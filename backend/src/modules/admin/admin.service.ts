@@ -8,6 +8,9 @@ import type {
   RescheduleBookingInput,
   UpdateAdminProfileInput,
   UpdateTentangKamiInput,
+  UpdateHeroBannersInput,
+  BannerPromoItemInput,
+  DefaultSlideConfigInput,
 } from './admin.schema'
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
@@ -79,6 +82,22 @@ const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
     judul: 'Ada untuk Setiap Langkahmu',
     deskripsi:
       'Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.',
+  },
+  pemimpinSection: {
+    judulSection: 'Berawal dari Mereka',
+    fotoBersama: '',
+    pendiri: {
+      nama: '',
+      peran: '',
+      bio: '',
+      foto: '',
+    },
+    manager: {
+      nama: '',
+      peran: '',
+      bio: '',
+      foto: '',
+    },
   },
 }
 
@@ -814,7 +833,7 @@ export class AdminService {
   // ── Manajemen Tentang Kami ──────────────────────────────────────
 
   async getTentangKami(): Promise<UpdateTentangKamiInput> {
-    // 1. Prioritaskan membaca dari Database (tabel SiteSetting dengan key 'tentang_kami')
+    // 1. Baca langsung dari Database (tabel SiteSetting dengan key 'tentang_kami')
     try {
       const setting = await this.repo.getSiteSetting('tentang_kami')
       if (setting && setting.value) {
@@ -827,58 +846,191 @@ export class AdminService {
           nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(val.nilai || {}) },
           kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(val.kenapaHadir || {}) },
           layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(val.layananSection || {}) },
+          pemimpinSection: {
+            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+            ...(val.pemimpinSection || {}),
+            pendiri: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+              ...(val.pemimpinSection?.pendiri || {}),
+              foto: val.pemimpinSection?.pendiri?.foto ?? '',
+            },
+            manager: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+              ...(val.pemimpinSection?.manager || {}),
+              foto: val.pemimpinSection?.manager?.foto ?? '',
+            },
+          },
         }
       }
-    } catch {
-      // Abaikan error jika tabel belum ada atau DB tidak terjangkau, lanjut ke fallback
+    } catch (err: any) {
+      console.warn('Gagal membaca Tentang Kami dari database, gunakan default bawaan:', err?.message)
     }
 
-    // 2. Fallback ke file JSON lokal jika ada
-    const dataDir = join(process.cwd(), 'data')
-    const filePath = join(dataDir, 'tentang-kami.json')
-    try {
-      if (existsSync(filePath)) {
-        const raw = readFileSync(filePath, 'utf-8')
-        const parsed = JSON.parse(raw)
-        return {
-          ...DEFAULT_TENTANG_KAMI,
-          ...parsed,
-          hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(parsed.hero || {}) },
-          berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(parsed.berkenalan || {}) },
-          nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(parsed.nilai || {}) },
-          kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(parsed.kenapaHadir || {}) },
-          layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(parsed.layananSection || {}) },
-        }
-      }
-    } catch {
-      // Fallback ke default jika berkas tidak ditemukan atau format tidak sesuai
-    }
+    // 2. Jika database belum terisi atau baru dideploy, gunakan default bawaan sistem
     return DEFAULT_TENTANG_KAMI
   }
 
   async updateTentangKami(input: UpdateTentangKamiInput): Promise<UpdateTentangKamiInput> {
-    // 1. Simpan ke Database (tabel SiteSetting dengan key 'tentang_kami')
-    try {
-      await this.repo.upsertSiteSetting('tentang_kami', input)
-    } catch (err: any) {
-      console.warn('Gagal menyimpan Tentang Kami ke database, fallback ke berkas JSON:', err.message)
+    const normalizedInput: UpdateTentangKamiInput = {
+      ...input,
+      pemimpinSection: input.pemimpinSection
+        ? {
+            ...input.pemimpinSection,
+            pendiri: input.pemimpinSection.pendiri
+              ? {
+                  ...input.pemimpinSection.pendiri,
+                  foto: input.pemimpinSection.pendiri.foto ?? '',
+                }
+              : undefined,
+            manager: input.pemimpinSection.manager
+              ? {
+                  ...input.pemimpinSection.manager,
+                  foto: input.pemimpinSection.manager.foto ?? '',
+                }
+              : undefined,
+          }
+        : input.pemimpinSection,
     }
 
-    // 2. Simpan juga salinan ke file JSON lokal (dual-write redundansi & kompatibilitas lokal)
+    // Simpan murni ke Database (tabel SiteSetting dengan key 'tentang_kami')
+    await this.repo.upsertSiteSetting('tentang_kami', normalizedInput)
+
+    return normalizedInput
+  }
+
+  // ── Manajemen Banner Hero Promosi & Slide Utama ──────────────────────
+
+  async getHeroBanners(): Promise<UpdateHeroBannersInput> {
+    const fallbackSlide: DefaultSlideConfigInput = {
+      title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+      subtitle:
+        'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+      link: '/konseling',
+    }
+
+    let bannersFromDb: BannerPromoItemInput[] | null = null
+    let slideFromDb: DefaultSlideConfigInput | null = null
+
+    // 1. Coba baca dari Database (tabel SiteSetting dengan key 'hero_banners')
+    try {
+      const setting = await this.repo.getSiteSetting('hero_banners')
+      if (setting && setting.value) {
+        const val = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value
+        if (Array.isArray(val.promoBanners)) {
+          bannersFromDb = val.promoBanners
+        }
+        if (val.defaultSlide) {
+          slideFromDb = val.defaultSlide
+        }
+      }
+    } catch {
+      // Abaikan error jika database belum terhubung
+    }
+
+    // 2. Baca file JSON lokal
+    let bannersFromFile: BannerPromoItemInput[] | null = null
+    let slideFromFile: DefaultSlideConfigInput | null = null
+
+    const dataDir = join(process.cwd(), 'data')
+    const filePath = join(dataDir, 'hero-banners.json')
+    try {
+      if (existsSync(filePath)) {
+        const raw = readFileSync(filePath, 'utf-8')
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed.promoBanners)) {
+          bannersFromFile = parsed.promoBanners
+        }
+        if (parsed.defaultSlide) {
+          slideFromFile = parsed.defaultSlide
+        }
+      }
+    } catch {
+      // Abaikan jika berkas belum ada
+    }
+
+    // Prioritaskan DB jika ada, jika DB kosong/belum ada maka pakai file lokal
+    const promoBanners = bannersFromDb !== null ? bannersFromDb : (bannersFromFile ?? [])
+    const chosenSlide = slideFromDb ?? slideFromFile
+    const defaultSlide: DefaultSlideConfigInput = {
+      title: chosenSlide?.title ?? fallbackSlide.title,
+      subtitle: chosenSlide?.subtitle ?? fallbackSlide.subtitle,
+      link: chosenSlide?.link ?? fallbackSlide.link,
+    }
+
+    return {
+      promoBanners,
+      defaultSlide,
+    }
+  }
+
+  async getHeroBannersPublic(): Promise<{
+    activeBanners: BannerPromoItemInput[]
+    defaultSlide: DefaultSlideConfigInput
+  }> {
+    const data = await this.getHeroBanners()
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const todayStr = `${year}-${month}-${day}`
+
+    const activeBanners = (data.promoBanners || []).filter((b) => {
+      if (!b.aktif) return false
+      if (b.tanggalMulai) {
+        const startStr = b.tanggalMulai.split('T')[0]
+        if (todayStr < startStr) return false
+      }
+      if (b.tanggalBerakhir) {
+        const endStr = b.tanggalBerakhir.split('T')[0]
+        if (todayStr > endStr) return false
+      }
+      return true
+    })
+
+    return {
+      activeBanners,
+      defaultSlide: data.defaultSlide || {
+        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+        subtitle:
+          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+        link: '/konseling',
+      },
+    }
+  }
+
+  async updateHeroBanners(input: UpdateHeroBannersInput): Promise<UpdateHeroBannersInput> {
+    const dataToSave: UpdateHeroBannersInput = {
+      promoBanners: input.promoBanners || [],
+      defaultSlide: input.defaultSlide || {
+        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+        subtitle:
+          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+        link: '/konseling',
+      },
+    }
+
+    // 1. Simpan ke Database (tabel SiteSetting dengan key 'hero_banners')
+    try {
+      await this.repo.upsertSiteSetting('hero_banners', dataToSave)
+    } catch (err: any) {
+      console.warn('Gagal menyimpan Hero Banners ke database, fallback ke berkas JSON:', err.message)
+    }
+
+    // 2. Dual-write ke JSON lokal
     try {
       const dataDir = join(process.cwd(), 'data')
-      const filePath = join(dataDir, 'tentang-kami.json')
-      const tempPath = join(dataDir, `tentang-kami.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
+      const filePath = join(dataDir, 'hero-banners.json')
+      const tempPath = join(dataDir, `hero-banners.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
       if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true })
       }
-      writeFileSync(tempPath, JSON.stringify(input, null, 2), 'utf-8')
+      writeFileSync(tempPath, JSON.stringify(dataToSave, null, 2), 'utf-8')
       renameSync(tempPath, filePath)
     } catch {
-      // Abaikan error penulisan file jika environment read-only
+      // Abaikan jika read-only
     }
 
-    return input
+    return dataToSave
   }
 
   // ── Modul Manajemen Internship (Database Murni) ──────────────────

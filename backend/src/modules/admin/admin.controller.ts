@@ -9,6 +9,7 @@ import type {
   UpdateAdminProfileInput,
   ResendActivationInput,
   UpdateTentangKamiInput,
+  UpdateHeroBannersInput,
   CreateInternshipPositionInput,
   UpdateInternshipPositionInput,
   UpdateInternshipPositionsInput,
@@ -427,6 +428,59 @@ export class AdminController {
       return reply.code(500).send({
         success: false,
         message: 'Gagal menyimpan konfigurasi Tentang Kami',
+        error: err.message,
+      })
+    }
+  }
+
+  // ── Modul Banner Promosi Hero Beranda ───────────────────────────
+  getHeroBannersPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getHeroBannersPublic()
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil banner promosi publik',
+        error: err.message,
+      })
+    }
+  }
+
+  getHeroBanners = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getHeroBanners()
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil konfigurasi banner promosi',
+        error: err.message,
+      })
+    }
+  }
+
+  updateHeroBanners = async (
+    request: FastifyRequest<{ Body: UpdateHeroBannersInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.updateHeroBanners(request.body)
+      return reply.code(200).send({
+        success: true,
+        message: 'Banner promosi beranda berhasil disimpan',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menyimpan konfigurasi banner promosi',
         error: err.message,
       })
     }

@@ -3,11 +3,17 @@
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
 import { PsikologCard } from '@/features/psikolog/components/client/PsikologCard'
-import { HERO_SLIDES } from '../../data/homeData'
+import {
+  getStoredBanners,
+  getActiveBanners,
+  type BannerPromoItem,
+  type DefaultSlideConfig,
+  DEFAULT_HERO_SLIDE,
+} from '@/features/profile/types/banner'
+import { bannerService } from '@/services/banner.service'
 import { useHomeSlider } from '../../hooks/useHomeSlider'
 import { usePsikologSlider } from '../../hooks/usePsikologSlider'
 import { eventService, EventItemApi } from '@/services/event.service'
@@ -28,6 +34,8 @@ export default function HomeClient() {
   const [loadingPsikotes, setLoadingPsikotes] = useState(true)
   const [psychologists, setPsychologists] = useState<PsikologUI[]>([])
   const [loadingPsychologists, setLoadingPsychologists] = useState(true)
+  const [promoBanners, setPromoBanners] = useState<BannerPromoItem[]>([])
+  const [heroDefaultSlide, setHeroDefaultSlide] = useState<DefaultSlideConfig>(DEFAULT_HERO_SLIDE)
   const [adminProfile, setAdminProfile] = useState<{
     alamat: string
     linkMaps: string
@@ -173,7 +181,71 @@ export default function HomeClient() {
       window.removeEventListener("storage", fetchHomePsychologists)
       window.removeEventListener("focus", fetchHomePsychologists)
     }
+  }, [isBiro, slug])
+
+  useEffect(() => {
+    const loadBanners = async () => {
+      // 1. Cepat: muat dari storage lokal
+      const stored = getStoredBanners()
+      const active = getActiveBanners(stored)
+      setPromoBanners(active)
+
+      // 2. Sinkronkan dengan data backend publik
+      try {
+        const res = await bannerService.getPublic()
+        if (res && Array.isArray(res.activeBanners)) {
+          setPromoBanners(res.activeBanners)
+        }
+        if (res && res.defaultSlide) {
+          setHeroDefaultSlide(res.defaultSlide)
+        }
+      } catch (err) {
+        console.warn("Gagal memuat banner dari server:", err)
+      }
+    }
+    loadBanners()
+
+    window.addEventListener("empathika_hero_banners_updated", loadBanners)
+    window.addEventListener("storage", loadBanners)
+    window.addEventListener("focus", loadBanners)
+
+    return () => {
+      window.removeEventListener("empathika_hero_banners_updated", loadBanners)
+      window.removeEventListener("storage", loadBanners)
+      window.removeEventListener("focus", loadBanners)
+    }
   }, [])
+
+  // Slide utama bawaan Empathika yang dikelola oleh admin di DB
+  const defaultSlide = {
+    id: "default-slide",
+    image: "",
+    title: heroDefaultSlide.title || "Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya",
+    subtitle:
+      heroDefaultSlide.subtitle ||
+      "Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.",
+    link: biroPrefix
+      ? `${biroPrefix}${heroDefaultSlide.link || "/konseling"}`
+      : heroDefaultSlide.link || "/konseling",
+    isCustomPromo: false,
+  }
+
+  // Format slide promosi aktif yang diinput admin
+  const customPromoSlides = promoBanners.map((p) => ({
+    id: p.id,
+    image: p.gambar,
+    title: p.judul,
+    subtitle: "Layanan, event & promo eksklusif Empathika",
+    link: p.linkTujuan || (biroPrefix ? `${biroPrefix}/konseling` : "/konseling"),
+    isCustomPromo: true,
+  }))
+
+  // Murni data dari database / admin: banner promosi aktif + slide default utama
+  const activeSlides = customPromoSlides.length > 0
+    ? [...customPromoSlides, defaultSlide]
+    : [defaultSlide]
+
+  const hasMultipleSlides = activeSlides.length > 1
 
   const {
     currentSlide,
@@ -181,7 +253,7 @@ export default function HomeClient() {
     setIsHovered,
     nextSlide,
     prevSlide,
-  } = useHomeSlider(HERO_SLIDES.length);
+  } = useHomeSlider(activeSlides.length);
 
   const {
     activePsyIndex,
@@ -204,80 +276,114 @@ export default function HomeClient() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {HERO_SLIDES.map((slide, idx) => (
+        {activeSlides.map((slide, idx) => (
           <div
             key={slide.id}
             className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
               }`}
           >
-            {/* Background Image Full Width dengan Overlay Gelap */}
+            {/* Background Image / Gradien */}
             <div className="absolute inset-0 w-full h-full">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-full h-full object-cover"
-              />
-              {/* Overlay gelap kebiruan agar teks putih terbaca jelas seperti di referensi */}
-              <div className="absolute inset-0 bg-[#0c232e]/60 mix-blend-multiply" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#0c232e]/80 to-transparent" />
+              {slide.image ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  className="w-full h-full object-cover object-center pointer-events-none select-none"
+                />
+              ) : (
+                /* Gradien Khas Empathika (#561269 ungu tegas ke biru gelap jernih) */
+                <div className="w-full h-full bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630]">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(234,179,8,0.12),transparent_50%)]" />
+                </div>
+              )}
             </div>
 
             {/* Konten Text Overlay di Kiri */}
             <div className="relative z-20 w-full h-full max-w-7xl mx-auto px-12 md:px-16 lg:px-24 flex flex-col justify-center items-start pt-16 lg:pt-20">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-[3.25rem] font-bold text-white mb-4 lg:mb-6 max-w-3xl leading-[1.2] drop-shadow-md">
-                {slide.title}
-              </h1>
-              <p className="text-base md:text-lg lg:text-xl text-white/90 mb-6 lg:mb-8 max-w-2xl font-light leading-relaxed drop-shadow-sm">
-                {slide.subtitle}
-              </p>
+              {slide.isCustomPromo && !slide.title ? (
+                /* Invisible placeholder agar posisi tombol sejajar persis dengan tombol di banner default */
+                <div className="invisible select-none pointer-events-none" aria-hidden="true">
+                  <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-[3.25rem] font-bold mb-4 lg:mb-6 max-w-3xl leading-[1.2]">
+                    {heroDefaultSlide.title || "Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya"}
+                  </h1>
+                  <p className="text-base md:text-lg lg:text-xl mb-6 lg:mb-8 max-w-2xl font-light leading-relaxed">
+                    {heroDefaultSlide.subtitle || "Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika."}
+                  </p>
+                </div>
+              ) : (
+                slide.title && (
+                  <>
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-[3.25rem] font-bold text-white mb-4 lg:mb-6 max-w-3xl leading-[1.2] drop-shadow-md">
+                      {slide.title}
+                    </h1>
+                    <p className="text-base md:text-lg lg:text-xl text-white/90 mb-6 lg:mb-8 max-w-2xl font-light leading-relaxed drop-shadow-sm">
+                      {slide.subtitle}
+                    </p>
+                  </>
+                )
+              )}
 
               {/* Tombol Aksi */}
-              <div className="flex flex-wrap items-center gap-3 lg:gap-4">
+              <div className="flex flex-wrap items-center gap-3 lg:gap-4 mt-2 sm:mt-4">
                 <Link
-                  href={biroPrefix ? `${biroPrefix}/konseling` : "/konseling"}
-                  className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer"
+                  href={slide.link}
+                  className="bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-sm md:text-base py-3 px-8 rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 cursor-pointer whitespace-nowrap"
                 >
-                  Booking Sesi
+                  {slide.isCustomPromo ? "Lihat Selengkapnya" : "Booking Sesi"}
                 </Link>
+                {slide.isCustomPromo && (
+                  <Link
+                    href={biroPrefix ? `${biroPrefix}/konseling` : "/konseling"}
+                    className="bg-black/30 hover:bg-black/40 text-white border border-white/30 backdrop-blur-md font-semibold text-sm md:text-base py-3 px-6 rounded-full transition-all whitespace-nowrap shadow-sm"
+                  >
+                    Konsultasi
+                  </Link>
+                )}
               </div>
             </div>
           </div>
         ))}
 
-        {/* Navigation Arrows di Kiri dan Kanan */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30 text-white/50 hover:text-white transition-colors p-2"
-          aria-label="Previous slide"
-        >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
-        </button>
-        <button
-          onClick={nextSlide}
-          className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30 text-white/50 hover:text-white transition-colors p-2"
-          aria-label="Next slide"
-        >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
-        </button>
+          {/* Navigation Arrows di Kiri dan Kanan (Hanya tampil jika ada lebih dari 1 slide) */}
+          {hasMultipleSlides && (
+            <>
+              <button
+                onClick={prevSlide}
+                className="absolute left-2 md:left-6 top-1/2 -translate-y-1/2 z-30 text-white/50 hover:text-white transition-colors p-2 cursor-pointer"
+                aria-label="Previous slide"
+              >
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <button
+                onClick={nextSlide}
+                className="absolute right-2 md:right-6 top-1/2 -translate-y-1/2 z-30 text-white/50 hover:text-white transition-colors p-2 cursor-pointer"
+                aria-label="Next slide"
+              >
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </>
+          )}
 
-        {/* Dots Indicator Garis (Bottom Center) */}
-        <div className="absolute bottom-20 lg:bottom-24 left-1/2 transform -translate-x-1/2 z-30 flex space-x-2">
-          {HERO_SLIDES.map((_, idx) => (
-            <button
-              key={idx}
-              className={`transition-all duration-300 rounded-full h-1.5 ${idx === currentSlide ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/80'
-                }`}
-              onClick={() => setCurrentSlide(idx)}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
-        </div>
-      </section>
+          {/* Dots Indicator Garis (Bottom Center) - Hanya tampil jika ada lebih dari 1 slide */}
+          {hasMultipleSlides && (
+            <div className="absolute bottom-20 lg:bottom-24 left-1/2 transform -translate-x-1/2 z-30 flex space-x-2">
+              {activeSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  className={`transition-all duration-300 rounded-full h-1.5 ${idx === currentSlide ? 'w-8 bg-white' : 'w-4 bg-white/40 hover:bg-white/80'
+                    }`}
+                  onClick={() => setCurrentSlide(idx)}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
       {/* ======================================= */}
       {/* OVERLAPPING STATS SECTION */}
@@ -402,13 +508,19 @@ export default function HomeClient() {
                   className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group"
                 >
                   <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden bg-gray-100">
-                    <Image
-                      unoptimized
-                      src={ev.banner_url || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"}
-                      alt={ev.judul}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
+                    {ev.banner_url ? (
+                      <Image
+                        unoptimized
+                        src={ev.banner_url}
+                        alt={ev.judul}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="w-full h-full min-h-[14rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <span className="text-white/70 text-xs font-bold uppercase tracking-wider">{ev.jenis_event}</span>
+                      </div>
+                    )}
                     <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
                       <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                         {ev.jenis_event}
@@ -740,16 +852,19 @@ export default function HomeClient() {
                 >
                   {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
                   <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
-                    <Image
-                      src={
-                        item.banner_url ||
-                        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800"
-                      }
-                      alt={item.judul}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      unoptimized
-                    />
+                    {item.banner_url ? (
+                      <Image
+                        src={item.banner_url}
+                        alt={item.judul}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <span className="text-white/80 text-xs font-bold text-center">{item.judul}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 flex flex-col flex-1">

@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  Image as ImageIcon,
+  Trash2,
 } from "lucide-react"
 import {
   tentangKamiService,
@@ -17,18 +19,22 @@ import {
 import { uploadService } from "@/services/upload.service"
 
 export default function AdminTentangKamiClient() {
-  const [activeTab, setActiveTab] = useState<"hero" | "berkenalan" | "nilai" | "kenapaHadir">("hero")
+  const [activeTab, setActiveTab] = useState<"hero" | "berkenalan" | "nilai" | "kenapaHadir" | "pemimpin">("hero")
   const [formData, setFormData] = useState<TentangKamiContent>(DEFAULT_TENTANG_KAMI)
   const [initialData, setInitialData] = useState<TentangKamiContent>(DEFAULT_TENTANG_KAMI)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null)
   const [isUploadingTeamPhoto, setIsUploadingTeamPhoto] = useState(false)
+  const [isUploadingPendiriPhoto, setIsUploadingPendiriPhoto] = useState(false)
+  const [isUploadingManagerPhoto, setIsUploadingManagerPhoto] = useState(false)
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [showResetModal, setShowResetModal] = useState(false)
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null)
+  const pendiriPhotoInputRef = useRef<HTMLInputElement | null>(null)
+  const managerPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
   // Panduan rasio foto untuk masing-masing slot galeri hero
   const GALLERY_SLOT_RATIOS = [
@@ -85,10 +91,10 @@ export default function AdminTentangKamiClient() {
 
     for (let i = 0; i < 6; i++) {
       const url = formData.hero.gallery[i]?.trim()
-      if (!url || !safeUrlRegex.test(url)) {
+      if (url && !safeUrlRegex.test(url)) {
         setToast({
           type: "error",
-          message: `URL foto galeri slot ${i + 1} tidak valid (harus diawali http://, https://, atau /uploads/).`,
+          message: `Foto galeri slot ${i + 1} memiliki format yang tidak valid.`,
         })
         setActiveTab("hero")
         return
@@ -142,7 +148,7 @@ export default function AdminTentangKamiClient() {
     ) {
       setToast({
         type: "error",
-        message: "Seluruh kolom narasi dan URL foto tim pada tab Kenapa Kami Hadir wajib valid dan terisi.",
+        message: "Seluruh kolom narasi dan foto tim pada tab Kenapa Kami Hadir wajib terisi.",
       })
       setActiveTab("kenapaHadir")
       return
@@ -250,6 +256,86 @@ export default function AdminTentangKamiClient() {
     }
   }
 
+  // Handler upload foto figur pendiri (cutout/PNG transparan)
+  const handleUploadPendiriPhoto = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast({
+        type: "error",
+        message: "File yang diunggah harus berupa gambar (JPG, PNG, atau WEBP).",
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({
+        type: "error",
+        message: "Ukuran file terlalu besar. Maksimal ukuran foto adalah 5MB.",
+      })
+      return
+    }
+
+    setIsUploadingPendiriPhoto(true)
+    try {
+      const uploadedUrl = await uploadService.uploadImage(file)
+      setFormData((prev) => ({
+        ...prev,
+        pemimpinSection: {
+          ...prev.pemimpinSection,
+          pendiri: {
+            nama: prev.pemimpinSection?.pendiri?.nama || "",
+            peran: prev.pemimpinSection?.pendiri?.peran || "",
+            bio: prev.pemimpinSection?.pendiri?.bio || "",
+            foto: uploadedUrl,
+          },
+        },
+      }))
+      setToast({ type: "success", message: "Foto pendiri berhasil diunggah!" })
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Gagal mengunggah foto pendiri." })
+    } finally {
+      setIsUploadingPendiriPhoto(false)
+    }
+  }
+
+  // Handler upload foto figur manajer (cutout/PNG transparan)
+  const handleUploadManagerPhoto = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setToast({
+        type: "error",
+        message: "File yang diunggah harus berupa gambar (JPG, PNG, atau WEBP).",
+      })
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setToast({
+        type: "error",
+        message: "Ukuran file terlalu besar. Maksimal ukuran foto adalah 5MB.",
+      })
+      return
+    }
+
+    setIsUploadingManagerPhoto(true)
+    try {
+      const uploadedUrl = await uploadService.uploadImage(file)
+      setFormData((prev) => ({
+        ...prev,
+        pemimpinSection: {
+          ...prev.pemimpinSection,
+          manager: {
+            nama: prev.pemimpinSection?.manager?.nama || "",
+            peran: prev.pemimpinSection?.manager?.peran || "",
+            bio: prev.pemimpinSection?.manager?.bio || "",
+            foto: uploadedUrl,
+          },
+        },
+      }))
+      setToast({ type: "success", message: "Foto manajer berhasil diunggah!" })
+    } catch (err: any) {
+      setToast({ type: "error", message: err.message || "Gagal mengunggah foto manajer." })
+    } finally {
+      setIsUploadingManagerPhoto(false)
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-24 gap-3 font-poppins">
@@ -321,6 +407,7 @@ export default function AdminTentangKamiClient() {
           { key: "berkenalan", label: "2. Mari Berkenalan" },
           { key: "nilai", label: "3. Nilai yang Kami Bawa" },
           { key: "kenapaHadir", label: "4. Kenapa Kami Hadir" },
+          { key: "pemimpin", label: "5. Pendiri & Manajer" },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -387,39 +474,52 @@ export default function AdminTentangKamiClient() {
                         {GALLERY_SLOT_RATIOS[idx]}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => {
-                          const nextG = [...prev.hero.gallery] as [string, string, string, string, string, string]
-                          nextG[idx] = DEFAULT_TENTANG_KAMI.hero.gallery[idx]
-                          return { ...prev, hero: { ...prev.hero, gallery: nextG } }
-                        })
-                      }}
-                      className="text-[11px] text-gray-400 hover:text-gray-700 transition"
-                    >
-                      Default
-                    </button>
+                    {imgUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => {
+                            const nextG = [...prev.hero.gallery] as [string, string, string, string, string, string]
+                            nextG[idx] = ""
+                            return { ...prev, hero: { ...prev.hero, gallery: nextG } }
+                          })
+                        }}
+                        className="text-[11px] text-rose-500 hover:text-rose-700 transition cursor-pointer font-medium"
+                        title="Kosongkan slot foto ini"
+                      >
+                        Hapus
+                      </button>
+                    )}
                   </div>
 
                   {/* Thumbnail Preview */}
-                  <div className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-200 border border-gray-200 group">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imgUrl}
-                      alt={`Galeri ${idx + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      onError={(e) => {
-                        ;(e.target as HTMLElement).setAttribute(
-                          "src",
-                          "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=400&q=80"
-                        )
-                      }}
-                    />
+                  <div
+                    onClick={() => fileInputRefs.current[idx]?.click()}
+                    className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/20 group cursor-pointer flex items-center justify-center transition-all"
+                  >
+                    {imgUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={imgUrl}
+                        alt={`Galeri ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-[#561269] transition-colors p-4">
+                        <ImageIcon className="w-7 h-7 mb-1" />
+                        <span className="text-[11px] font-medium">Klik untuk unggah</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         type="button"
-                        onClick={() => fileInputRefs.current[idx]?.click()}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          fileInputRefs.current[idx]?.click()
+                        }}
                         disabled={uploadingSlot === idx}
                         className="px-3 py-1.5 rounded-xl bg-white text-[#561269] text-xs font-bold shadow-md hover:bg-gray-100 transition flex items-center gap-1.5 cursor-pointer"
                       >
@@ -428,13 +528,13 @@ export default function AdminTentangKamiClient() {
                         ) : (
                           <Upload className="w-3.5 h-3.5" />
                         )}
-                        <span>Ganti Foto</span>
+                        <span>{imgUrl ? "Ganti Foto" : "Unggah Foto"}</span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Input URL atau Upload */}
-                  <div className="space-y-2">
+                  {/* Upload Action Button */}
+                  <div>
                     <input
                       type="file"
                       ref={(el) => {
@@ -449,39 +549,39 @@ export default function AdminTentangKamiClient() {
                       }}
                     />
 
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={imgUrl}
-                        onChange={(e) => {
-                          const val = e.target.value
-                          setFormData((prev) => {
-                            const nextG = [...prev.hero.gallery] as [string, string, string, string, string, string]
-                            nextG[idx] = val
-                            return { ...prev, hero: { ...prev.hero, gallery: nextG } }
-                          })
-                        }}
-                        placeholder="Tempel URL foto..."
-                        className="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRefs.current[idx]?.click()}
-                        disabled={uploadingSlot === idx}
-                        title="Unggah dari komputer"
-                        className="px-3 py-2 rounded-xl bg-[#561269]/10 hover:bg-[#561269]/20 text-[#561269] text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
-                      >
-                        {uploadingSlot === idx ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Upload className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRefs.current[idx]?.click()}
+                      disabled={uploadingSlot === idx}
+                      className="w-full py-2 px-3 rounded-xl bg-[#561269]/10 hover:bg-[#561269]/20 text-[#561269] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                    >
+                      {uploadingSlot === idx ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Upload className="w-3.5 h-3.5" />
+                      )}
+                      <span>Ganti Foto Slot {idx + 1}</span>
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Bottom Save Bar inside Tab 5 */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-semibold text-gray-500">
+              {hasUnsavedChanges ? "Ada perubahan yang belum disimpan" : "Semua perubahan telah tersimpan"}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
           </div>
         </div>
       )}
@@ -554,6 +654,22 @@ export default function AdminTentangKamiClient() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Bottom Save Bar inside Tab 5 */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-semibold text-gray-500">
+              {hasUnsavedChanges ? "Ada perubahan yang belum disimpan" : "Semua perubahan telah tersimpan"}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
           </div>
         </div>
       )}
@@ -670,6 +786,22 @@ export default function AdminTentangKamiClient() {
               ))}
             </div>
           </div>
+
+          {/* Bottom Save Bar inside Tab 5 */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-semibold text-gray-500">
+              {hasUnsavedChanges ? "Ada perubahan yang belum disimpan" : "Semua perubahan telah tersimpan"}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -697,7 +829,10 @@ export default function AdminTentangKamiClient() {
                 </span>
               </div>
 
-              <div className="relative w-full h-64 sm:h-72 rounded-3xl overflow-hidden bg-gray-100 border-4 border-white shadow-xl group">
+              <div
+                onClick={() => teamPhotoInputRef.current?.click()}
+                className="relative w-full h-64 sm:h-72 rounded-3xl overflow-hidden bg-gray-100 border-4 border-white shadow-xl group cursor-pointer"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={formData.kenapaHadir.fotoTim}
@@ -713,7 +848,10 @@ export default function AdminTentangKamiClient() {
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <button
                     type="button"
-                    onClick={() => teamPhotoInputRef.current?.click()}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      teamPhotoInputRef.current?.click()
+                    }}
                     disabled={isUploadingTeamPhoto}
                     className="px-4 py-2 rounded-2xl bg-white text-[#561269] text-xs font-bold shadow-lg hover:bg-gray-100 transition flex items-center gap-2 cursor-pointer"
                   >
@@ -739,33 +877,19 @@ export default function AdminTentangKamiClient() {
                 }}
               />
 
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={formData.kenapaHadir.fotoTim}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      kenapaHadir: { ...prev.kenapaHadir, fotoTim: e.target.value },
-                    }))
-                  }
-                  placeholder="Atau tempel URL foto tim..."
-                  className="flex-1 px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
-                />
-                <button
-                  type="button"
-                  onClick={() => teamPhotoInputRef.current?.click()}
-                  disabled={isUploadingTeamPhoto}
-                  className="px-3 py-2 rounded-xl bg-[#561269]/10 hover:bg-[#561269]/20 text-[#561269] text-xs font-semibold flex items-center gap-1 transition cursor-pointer"
-                >
-                  {isUploadingTeamPhoto ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Upload className="w-3.5 h-3.5" />
-                  )}
-                  <span>Unggah</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => teamPhotoInputRef.current?.click()}
+                disabled={isUploadingTeamPhoto}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                {isUploadingTeamPhoto ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+                <span>Unggah / Ganti Foto Tim</span>
+              </button>
             </div>
 
             {/* Narasi 3 Paragraf */}
@@ -842,6 +966,439 @@ export default function AdminTentangKamiClient() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Bottom Save Bar inside Tab 5 */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-semibold text-gray-500">
+              {hasUnsavedChanges ? "Ada perubahan yang belum disimpan" : "Semua perubahan telah tersimpan"}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 5: PENDIRI & MANAJER                                 */}
+      {/* ======================================================== */}
+      {activeTab === "pemimpin" && (
+        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-xs space-y-8">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">
+              Berawal dari Mereka (Pendiri & Manajer)
+            </h2>
+            <p className="text-xs text-gray-500 mt-1">
+              Atur judul seksi serta profil lengkap Pendiri dan Manajer.
+            </p>
+          </div>
+
+          {/* Judul Section & Tips */}
+          <div className="space-y-4 pb-6 border-b border-gray-100">
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                Judul Section
+              </label>
+              <input
+                type="text"
+                value={formData.pemimpinSection?.judulSection || ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    pemimpinSection: {
+                      ...prev.pemimpinSection,
+                      judulSection: e.target.value,
+                    },
+                  }))
+                }
+                placeholder="Berawal dari Mereka"
+                className="w-full px-4 py-3 rounded-2xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] text-sm text-gray-800 transition font-semibold"
+              />
+            </div>
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-purple-50/40 border border-purple-100 text-gray-800 text-xs leading-relaxed flex items-start gap-2.5">
+              <span className="text-base select-none">💡</span>
+              <p>
+                Unggah foto berformat <strong>PNG transparan</strong> (tanpa background) potongan badan/setengah badan dengan <strong>rasio 3:4 (rekomendasi: 600 × 800 px, maks. 5MB)</strong> agar langsung berdiri rapi menyatu dengan warna latar belakang krem tanpa ada garis kotak.
+              </p>
+            </div>
+          </div>
+
+          {/* Form Pendiri & Manajer (2 Kolom Masing-Masing dengan Foto) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Profil Pendiri (Atas / Kiri) */}
+            <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50/50 space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
+                <h3 className="text-sm font-bold text-gray-900">Profil Pendiri</h3>
+              </div>
+
+              {/* Upload Foto Pendiri */}
+              <div className="space-y-2">
+                <div
+                  onClick={() => pendiriPhotoInputRef.current?.click()}
+                  className="relative aspect-[3/4] max-w-[180px] mx-auto rounded-2xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/20 flex items-end justify-center group shadow-xs cursor-pointer transition-all"
+                >
+                  {formData.pemimpinSection?.pendiri?.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={formData.pemimpinSection.pendiri.foto}
+                      alt="Foto Pendiri"
+                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="text-center p-4 self-center">
+                      <ImageIcon className="w-8 h-8 text-gray-400 group-hover:text-[#561269] mx-auto mb-2 transition-colors" />
+                      <p className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">Klik untuk unggah</p>
+                    </div>
+                  )}
+                  {isUploadingPendiriPhoto && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span className="text-xs font-semibold">Mengunggah...</span>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  ref={pendiriPhotoInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleUploadPendiriPhoto(file)
+                    e.target.value = ""
+                  }}
+                />
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => pendiriPhotoInputRef.current?.click()}
+                    disabled={isUploadingPendiriPhoto}
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
+                  >
+                    {isUploadingPendiriPhoto ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {formData.pemimpinSection?.pendiri?.foto ? "Ganti Foto Pendiri" : "Unggah Foto Pendiri"}
+                    </span>
+                  </button>
+                  {formData.pemimpinSection?.pendiri?.foto && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          pemimpinSection: {
+                            ...prev.pemimpinSection,
+                            pendiri: {
+                              nama: prev.pemimpinSection?.pendiri?.nama || "",
+                              peran: prev.pemimpinSection?.pendiri?.peran || "",
+                              bio: prev.pemimpinSection?.pendiri?.bio || "",
+                              foto: "",
+                            },
+                          },
+                        }))
+                        setToast({
+                          type: "success",
+                          message: "Foto Pendiri dihapus dari form. Jangan lupa klik 'Simpan Perubahan' untuk menerapkan ke website.",
+                        })
+                      }}
+                      className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 transition cursor-pointer flex items-center justify-center shrink-0 shadow-2xs hover:scale-105 active:scale-95"
+                      title="Hapus Foto Pendiri"
+                      aria-label="Hapus Foto Pendiri"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-gray-400 text-center">
+                  Format PNG transparan • Rekomendasi 600 × 800 px (Maks. 5MB)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Nama Lengkap & Gelar
+                </label>
+                <input
+                  type="text"
+                  value={formData.pemimpinSection?.pendiri?.nama || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        pendiri: {
+                          nama: e.target.value,
+                          peran: prev.pemimpinSection?.pendiri?.peran || "",
+                          bio: prev.pemimpinSection?.pendiri?.bio || "",
+                          foto: prev.pemimpinSection?.pendiri?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Contoh: Ifandi Khainur Rahim"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Jabatan / Posisi
+                </label>
+                <input
+                  type="text"
+                  value={formData.pemimpinSection?.pendiri?.peran || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        pendiri: {
+                          nama: prev.pemimpinSection?.pendiri?.nama || "",
+                          peran: e.target.value,
+                          bio: prev.pemimpinSection?.pendiri?.bio || "",
+                          foto: prev.pemimpinSection?.pendiri?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Contoh: Founder & CEO"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Biografi Singkat
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.pemimpinSection?.pendiri?.bio || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        pendiri: {
+                          nama: prev.pemimpinSection?.pendiri?.nama || "",
+                          peran: prev.pemimpinSection?.pendiri?.peran || "",
+                          bio: e.target.value,
+                          foto: prev.pemimpinSection?.pendiri?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Tuliskan latar belakang pendidikan, pengalaman, dan visi pendiri..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269] leading-relaxed"
+                />
+              </div>
+            </div>
+
+            {/* Profil Manajer (Bawah / Kanan) */}
+            <div className="p-5 rounded-2xl border border-gray-200 bg-gray-50/50 space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b border-gray-200">
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                <h3 className="text-sm font-bold text-gray-900">Profil Manajer</h3>
+              </div>
+
+              {/* Upload Foto Manajer */}
+              <div className="space-y-2">
+                <div
+                  onClick={() => managerPhotoInputRef.current?.click()}
+                  className="relative aspect-[3/4] max-w-[180px] mx-auto rounded-2xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/20 flex items-end justify-center group shadow-xs cursor-pointer transition-all"
+                >
+                  {formData.pemimpinSection?.manager?.foto ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={formData.pemimpinSection.manager.foto}
+                      alt="Foto Manajer"
+                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-sm group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="text-center p-4 self-center">
+                      <ImageIcon className="w-8 h-8 text-gray-400 group-hover:text-[#561269] mx-auto mb-2 transition-colors" />
+                      <p className="text-xs text-gray-400 group-hover:text-gray-600 transition-colors">Klik untuk unggah</p>
+                    </div>
+                  )}
+                  {isUploadingManagerPhoto && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-xs flex flex-col items-center justify-center text-white gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin" />
+                      <span className="text-xs font-semibold">Mengunggah...</span>
+                    </div>
+                  )}
+                </div>
+
+                <input
+                  type="file"
+                  ref={managerPhotoInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) handleUploadManagerPhoto(file)
+                    e.target.value = ""
+                  }}
+                />
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => managerPhotoInputRef.current?.click()}
+                    disabled={isUploadingManagerPhoto}
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
+                  >
+                    {isUploadingManagerPhoto ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>
+                      {formData.pemimpinSection?.manager?.foto ? "Ganti Foto Manajer" : "Unggah Foto Manajer"}
+                    </span>
+                  </button>
+                  {formData.pemimpinSection?.manager?.foto && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          pemimpinSection: {
+                            ...prev.pemimpinSection,
+                            manager: {
+                              nama: prev.pemimpinSection?.manager?.nama || "",
+                              peran: prev.pemimpinSection?.manager?.peran || "",
+                              bio: prev.pemimpinSection?.manager?.bio || "",
+                              foto: "",
+                            },
+                          },
+                        }))
+                        setToast({
+                          type: "success",
+                          message: "Foto Manajer dihapus dari form. Jangan lupa klik 'Simpan Perubahan' untuk menerapkan ke website.",
+                        })
+                      }}
+                      className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/60 transition cursor-pointer flex items-center justify-center shrink-0 shadow-2xs hover:scale-105 active:scale-95"
+                      title="Hapus Foto Manajer"
+                      aria-label="Hapus Foto Manajer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-gray-400 text-center">
+                  Format PNG transparan • Rekomendasi 600 × 800 px (Maks. 5MB)
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Nama Lengkap & Gelar
+                </label>
+                <input
+                  type="text"
+                  value={formData.pemimpinSection?.manager?.nama || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        manager: {
+                          nama: e.target.value,
+                          peran: prev.pemimpinSection?.manager?.peran || "",
+                          bio: prev.pemimpinSection?.manager?.bio || "",
+                          foto: prev.pemimpinSection?.manager?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Contoh: Rizky Andriawan"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Jabatan / Posisi
+                </label>
+                <input
+                  type="text"
+                  value={formData.pemimpinSection?.manager?.peran || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        manager: {
+                          nama: prev.pemimpinSection?.manager?.nama || "",
+                          peran: e.target.value,
+                          bio: prev.pemimpinSection?.manager?.bio || "",
+                          foto: prev.pemimpinSection?.manager?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Contoh: Co-founder & CTO"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Biografi Singkat
+                </label>
+                <textarea
+                  rows={4}
+                  value={formData.pemimpinSection?.manager?.bio || ""}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      pemimpinSection: {
+                        ...prev.pemimpinSection,
+                        manager: {
+                          nama: prev.pemimpinSection?.manager?.nama || "",
+                          peran: prev.pemimpinSection?.manager?.peran || "",
+                          bio: e.target.value,
+                          foto: prev.pemimpinSection?.manager?.foto || "",
+                        },
+                      },
+                    }))
+                  }
+                  placeholder="Tuliskan latar belakang pendidikan, keahlian, dan peran operasional/teknis..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-gray-200 bg-white focus:outline-none focus:ring-1 focus:ring-[#561269] leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Save Bar inside Tab 5 */}
+          <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-semibold text-gray-500">
+              {hasUnsavedChanges ? "Ada perubahan yang belum disimpan" : "Semua perubahan telah tersimpan"}
+            </span>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            >
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
+            </button>
           </div>
         </div>
       )}

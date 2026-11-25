@@ -8,6 +8,7 @@ interface EventBannerUploadProps {
   isDragOver: boolean
   setIsDragOver: (val: boolean) => void
   onImageUpload: (file: File) => void
+  error?: string
 }
 
 export function EventBannerUpload({
@@ -15,10 +16,13 @@ export function EventBannerUpload({
   isDragOver,
   setIsDragOver,
   onImageUpload,
+  error,
 }: EventBannerUploadProps) {
   return (
     <div>
-      <label className={labelClass}>Banner / Poster Event</label>
+      <label className={labelClass}>
+        Banner / Poster Event <span className="text-red-500">*</span>
+      </label>
       <div
         onDragOver={(e) => {
           e.preventDefault()
@@ -33,7 +37,9 @@ export function EventBannerUpload({
           }
         }}
         className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-all p-6 text-center cursor-pointer overflow-hidden ${
-          isDragOver
+          error
+            ? "border-red-400 bg-red-50/20"
+            : isDragOver
             ? "border-[#561269] bg-purple-50/50"
             : bannerUrl
             ? "border-purple-200 bg-gray-50"
@@ -110,9 +116,18 @@ export function EventBannerUpload({
           </div>
         )}
       </div>
-      <span className={helperClass}>
-        Banner akan ditampilkan di kartu list event dan halaman rincian
-      </span>
+      {error ? (
+        <span className="flex items-center gap-1.5 text-xs text-red-600 font-semibold mt-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 shrink-0">
+            <path fillRule="evenodd" d="M18 10a8 8 0 1 1-16 0 8 8 0 0 1 16 0Zm-8-5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 10a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+          </svg>
+          {error}
+        </span>
+      ) : (
+        <span className={helperClass}>
+          Banner akan ditampilkan di kartu list event dan halaman rincian
+        </span>
+      )}
     </div>
   )
 }

@@ -61,9 +61,6 @@ export function CardFotoAdmin({
               <h3 className="text-lg sm:text-xl font-extrabold text-gray-900">
                 Foto Profil
               </h3>
-              <span className="inline-block rounded-full bg-purple-100 px-3 py-0.5 text-xs font-semibold text-[#561269]">
-                {role === "admin" ? "Admin Utama" : spesialisasi || "Psikolog / Konselor"}
-              </span>
             </div>
             <p className="text-xs text-gray-600 max-w-sm font-medium">
               Rekomendasi ukuran: <span className="font-bold text-[#561269]">600 × 600 piksel (Persegi / Rasio 1:1, wajah di tengah)</span>
