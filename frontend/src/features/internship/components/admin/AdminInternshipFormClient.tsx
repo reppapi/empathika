@@ -481,9 +481,9 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
                     setIsAddingQuestion(true)
                     setNewQuestionLabel("")
                   }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#561269] text-white text-xs font-semibold hover:bg-[#6e1885] transition-all cursor-pointer self-start sm:self-auto"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-95 self-start sm:self-auto"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5 text-[#0f172a]" />
                   <span>Tambah Pertanyaan</span>
                 </button>
               )}
