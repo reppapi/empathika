@@ -659,7 +659,7 @@ export default function AdminInternshipClient() {
 
               {/* Dropdown Floating di Atas Table Sesuai Desain Event Workshop */}
               {isStatusDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 z-20 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
                   <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                     Pilih Status Pelamar
                   </p>
