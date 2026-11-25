@@ -375,7 +375,7 @@ export default function AdminInternshipClient() {
           onClick={() => setActiveTab("posisi")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "posisi"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
@@ -383,7 +383,9 @@ export default function AdminInternshipClient() {
           <span>Daftar Posisi Magang</span>
           <span
             className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${
-              activeTab === "posisi" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-700"
+              activeTab === "posisi"
+                ? "bg-[#561269] text-white"
+                : "bg-gray-200 text-gray-700"
             }`}
           >
             {totalPositions}
@@ -394,7 +396,7 @@ export default function AdminInternshipClient() {
           onClick={() => setActiveTab("pelamar")}
           className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "pelamar"
-              ? "bg-[#561269] text-white shadow-sm"
+              ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
@@ -403,7 +405,7 @@ export default function AdminInternshipClient() {
           <span
             className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${
               activeTab === "pelamar"
-                ? "bg-[#EAB308] text-[#0f172a]"
+                ? "bg-[#561269] text-white"
                 : "bg-gray-200 text-gray-700"
             }`}
           >
