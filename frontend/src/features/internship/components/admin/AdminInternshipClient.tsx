@@ -25,6 +25,7 @@ import {
   FileText,
   Globe,
   MessageSquare,
+  ArrowLeft,
   ArrowRight,
   X,
   HelpCircle,
@@ -265,6 +266,248 @@ export default function AdminInternshipClient() {
     } catch {
       return dateStr
     }
+  }
+
+  if (selectedApp) {
+    return (
+      <div className="space-y-6 font-poppins pb-16">
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="fixed top-6 right-6 z-50 flex items-center gap-3 bg-[#0f172a] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-700 animate-slideIn">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span className="text-sm font-medium">{toastMessage}</span>
+          </div>
+        )}
+
+        {/* Top Bar Kembali */}
+        <div className="flex items-center justify-between gap-4">
+          <button
+            type="button"
+            onClick={() => setSelectedApp(null)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:text-[#561269] hover:border-purple-200 font-semibold text-xs sm:text-sm shadow-2xs transition-all cursor-pointer"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Kembali ke Daftar Pelamar</span>
+          </button>
+        </div>
+
+        {/* Kartu Detail Pelamar (Halaman Penuh tanpa overlay abu-abu) */}
+        <div className="bg-white rounded-3xl border border-purple-100/80 shadow-xs overflow-hidden">
+          {/* Header */}
+          <div className="p-6 sm:p-8 bg-gradient-to-r from-[#561269] to-[#7b1b95] text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span className="px-2.5 py-0.5 rounded-md bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider">
+                Detail Pelamar Magang
+              </span>
+              <h2 className="text-2xl font-extrabold mt-2">{selectedApp.nama}</h2>
+              <p className="text-xs sm:text-sm text-purple-200 mt-1">
+                Melamar: <strong className="text-white">{selectedApp.positionTitle}</strong> • Dikirim{" "}
+                {formatDateTime(selectedApp.createdAt)}
+              </p>
+            </div>
+
+            <span
+              className={`self-start sm:self-center px-3 py-1 rounded-full text-xs font-bold ${
+                selectedApp.status === "MENUNGGU"
+                  ? "bg-amber-100 text-amber-800"
+                  : selectedApp.status === "REVIEW"
+                  ? "bg-blue-100 text-blue-800"
+                  : selectedApp.status === "DITERIMA"
+                  ? "bg-emerald-100 text-emerald-800"
+                  : "bg-rose-100 text-rose-800"
+              }`}
+            >
+              {selectedApp.status}
+            </span>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 sm:p-8 space-y-6 text-xs sm:text-sm">
+            {/* Profil & Kontak */}
+            <div className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/80 space-y-3">
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Informasi Kontak & Pendidikan
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-gray-500 block mb-0.5">Email:</span>
+                  <a
+                    href={`mailto:${selectedApp.email}`}
+                    className="font-bold text-gray-900 hover:text-[#561269] transition-colors break-all"
+                  >
+                    {selectedApp.email}
+                  </a>
+                </div>
+                <div>
+                  <span className="text-gray-500 block mb-0.5">Nomor WhatsApp:</span>
+                  <a
+                    href={`https://wa.me/${selectedApp.telepon.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-bold text-emerald-600 hover:underline inline-flex items-center gap-1"
+                  >
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>{selectedApp.telepon}</span>
+                  </a>
+                </div>
+                <div>
+                  <span className="text-gray-500 block mb-0.5">Universitas / Institusi:</span>
+                  <span className="font-bold text-gray-900">{selectedApp.universitas}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500 block mb-0.5">Jurusan & Semester:</span>
+                  <span className="font-bold text-gray-900">
+                    {selectedApp.jurusan || "-"} {selectedApp.semester ? `(Sem. ${selectedApp.semester})` : ""}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Tautan Berkas */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
+                Berkas & Portofolio
+              </h4>
+              <div className="flex flex-wrap gap-3">
+                {selectedApp.cvUrl && (
+                  <a
+                    href={selectedApp.cvUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
+                  >
+                    <FileText className="w-4 h-4 text-emerald-700" />
+                    <span>Buka CV / Resume</span>
+                    <ExternalLink className="w-3 h-3 text-emerald-700" />
+                  </a>
+                )}
+
+                {selectedApp.portfolioUrl && (
+                  <a
+                    href={selectedApp.portfolioUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 text-[#561269] border border-purple-200 font-bold text-xs hover:bg-purple-100 transition-colors shadow-2xs"
+                  >
+                    <Globe className="w-4 h-4 text-[#561269]" />
+                    <span>Buka Portofolio / LinkedIn</span>
+                    <ExternalLink className="w-3 h-3 text-[#561269]" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Jawaban Pertanyaan Kualifikasi */}
+            <div>
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <HelpCircle className="w-4 h-4 text-[#561269]" />
+                <span>Jawaban Pertanyaan Seleksi</span>
+              </h4>
+
+              {selectedApp.jawaban && selectedApp.jawaban.length > 0 ? (
+                <div className="space-y-3">
+                  {selectedApp.jawaban.map((j, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-1.5"
+                    >
+                      <p className="text-xs font-bold text-gray-700">
+                        {idx + 1}. {j.question}
+                      </p>
+                      <p className="text-xs sm:text-sm text-gray-900 bg-white p-3 rounded-lg border border-gray-100 leading-relaxed whitespace-pre-wrap">
+                        {j.answer || "-"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-gray-400 italic">Tidak ada butir pertanyaan khusus.</p>
+              )}
+            </div>
+
+            {/* Atur Status & Catatan */}
+            <div className="pt-5 border-t border-gray-100 space-y-4">
+              <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Tindakan & Catatan Admin
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    Status Lamaran
+                  </label>
+                  <select
+                    value={modalStatus}
+                    onChange={(e) =>
+                      setModalStatus(e.target.value as InternshipApplication["status"])
+                    }
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-[#561269] bg-white font-bold"
+                  >
+                    <option value="MENUNGGU">Menunggu (Pending)</option>
+                    <option value="REVIEW">Di-Review (Dalam Seleksi)</option>
+                    <option value="DITERIMA">Diterima (Lolos)</option>
+                    <option value="DITOLAK">Ditolak (Tidak Lolos)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                    Hubungi Pelamar Langsung
+                  </label>
+                  <a
+                    href={`https://wa.me/${selectedApp.telepon.replace(
+                      /\D/g,
+                      ""
+                    )}?text=${encodeURIComponent(
+                      `Halo ${selectedApp.nama}, kami dari tim HR Empathika terkait lamaran magang Anda untuk posisi ${selectedApp.positionTitle}...`
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-2xs transition-all"
+                  >
+                    <Phone className="w-4 h-4" />
+                    <span>Chat WhatsApp</span>
+                  </a>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Catatan Internal Admin (Opsional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={modalCatatan}
+                  onChange={(e) => setModalCatatan(e.target.value)}
+                  placeholder="Contoh: Jadwal wawancara tanggal 30 Nov, hasil portofolio sangat baik..."
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:border-[#561269] leading-relaxed"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-5 sm:px-8 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedApp(null)}
+              className="px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 hover:bg-gray-100 font-semibold text-xs sm:text-sm transition-colors cursor-pointer"
+            >
+              Kembali
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveAppStatus}
+              disabled={updatingAppStatus}
+              className="px-6 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            >
+              {updatingAppStatus ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -851,219 +1094,6 @@ export default function AdminInternshipClient() {
               </table>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── MODAL DETAIL PELAMAR ── */}
-      {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-gray-100">
-            {/* Modal Header */}
-            <div className="p-6 bg-gradient-to-r from-[#561269] to-[#7b1b95] text-white flex items-start justify-between gap-4">
-              <div>
-                <span className="px-2.5 py-0.5 rounded-md bg-white/20 text-white text-[11px] font-bold uppercase tracking-wider">
-                  Detail Pelamar Magang
-                </span>
-                <h3 className="text-xl font-extrabold mt-1">{selectedApp.nama}</h3>
-                <p className="text-xs text-purple-200 mt-0.5">
-                  Melamar: <strong className="text-white">{selectedApp.positionTitle}</strong> • Dikirim{" "}
-                  {formatDateTime(selectedApp.createdAt)}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setSelectedApp(null)}
-                className="p-1.5 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto space-y-6 text-xs sm:text-sm">
-              {/* Profil & Kontak */}
-              <div className="bg-[#FAF7FB] rounded-2xl p-4 border border-purple-100/80 space-y-2.5">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                  Informasi Kontak & Pendidikan
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <span className="text-gray-500 block">Email:</span>
-                    <a
-                      href={`mailto:${selectedApp.email}`}
-                      className="font-bold text-gray-900 hover:text-[#561269] transition-colors"
-                    >
-                      {selectedApp.email}
-                    </a>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Nomor WhatsApp:</span>
-                    <a
-                      href={`https://wa.me/${selectedApp.telepon.replace(/\D/g, "")}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-bold text-emerald-600 hover:underline flex items-center gap-1"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>{selectedApp.telepon}</span>
-                    </a>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Universitas / Institusi:</span>
-                    <span className="font-bold text-gray-900">{selectedApp.universitas}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 block">Jurusan & Semester:</span>
-                    <span className="font-bold text-gray-900">
-                      {selectedApp.jurusan || "-"} {selectedApp.semester ? `(Sem. ${selectedApp.semester})` : ""}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Tautan Berkas */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
-                  Berkas & Portofolio
-                </h4>
-                <div className="flex flex-wrap gap-3">
-                  {selectedApp.cvUrl && (
-                    <a
-                      href={selectedApp.cvUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-xs hover:bg-emerald-100 transition-colors shadow-2xs"
-                    >
-                      <FileText className="w-4 h-4 text-emerald-700" />
-                      <span>Buka CV / Resume</span>
-                      <ExternalLink className="w-3 h-3 text-emerald-700" />
-                    </a>
-                  )}
-
-                  {selectedApp.portfolioUrl && (
-                    <a
-                      href={selectedApp.portfolioUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-50 text-[#561269] border border-purple-200 font-bold text-xs hover:bg-purple-100 transition-colors shadow-2xs"
-                    >
-                      <Globe className="w-4 h-4 text-[#561269]" />
-                      <span>Buka Portofolio / LinkedIn</span>
-                      <ExternalLink className="w-3 h-3 text-[#561269]" />
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Jawaban Pertanyaan Kualifikasi */}
-              <div>
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                  <HelpCircle className="w-4 h-4 text-[#561269]" />
-                  <span>Jawaban Pertanyaan Seleksi</span>
-                </h4>
-
-                {selectedApp.jawaban && selectedApp.jawaban.length > 0 ? (
-                  <div className="space-y-3">
-                    {selectedApp.jawaban.map((j, idx) => (
-                      <div
-                        key={idx}
-                        className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-1.5"
-                      >
-                        <p className="text-xs font-bold text-gray-700">
-                          {idx + 1}. {j.question}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-900 bg-white p-3 rounded-lg border border-gray-100 leading-relaxed whitespace-pre-wrap">
-                          {j.answer || "-"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 italic">Tidak ada butir pertanyaan khusus.</p>
-                )}
-              </div>
-
-              {/* Atur Status & Catatan */}
-              <div className="pt-4 border-t border-gray-100 space-y-3">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Tindakan & Catatan Admin
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Status Lamaran
-                    </label>
-                    <select
-                      value={modalStatus}
-                      onChange={(e) =>
-                        setModalStatus(e.target.value as InternshipApplication["status"])
-                      }
-                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#561269] bg-white font-bold"
-                    >
-                      <option value="MENUNGGU">Menunggu (Pending)</option>
-                      <option value="REVIEW">Di-Review (Dalam Seleksi)</option>
-                      <option value="DITERIMA">Diterima (Lolos)</option>
-                      <option value="DITOLAK">Ditolak (Tidak Lolos)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1">
-                      Hubungi Pelamar Langsung
-                    </label>
-                    <a
-                      href={`https://wa.me/${selectedApp.telepon.replace(
-                        /\D/g,
-                        ""
-                      )}?text=${encodeURIComponent(
-                        `Halo ${selectedApp.nama}, kami dari tim HR Empathika terkait lamaran magang Anda untuk posisi ${selectedApp.positionTitle}...`
-                      )}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs transition-all"
-                    >
-                      <Phone className="w-3.5 h-3.5" />
-                      <span>Chat WhatsApp</span>
-                    </a>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Catatan Internal Admin (Opsional)
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={modalCatatan}
-                    onChange={(e) => setModalCatatan(e.target.value)}
-                    placeholder="Contoh: Jadwal wawancara tanggal 30 Nov, hasil portofolio sangat baik..."
-                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl focus:outline-none focus:border-[#561269] leading-relaxed"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedApp(null)}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-100 font-semibold text-xs transition-colors cursor-pointer"
-              >
-                Tutup
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveAppStatus}
-                disabled={updatingAppStatus}
-                className="px-6 py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer flex items-center gap-2"
-              >
-                {updatingAppStatus ? "Menyimpan..." : "Simpan Perubahan"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
