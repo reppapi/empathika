@@ -233,57 +233,58 @@ export default function ModalDetailSesiKlien({
                       </p>
                     </div>
                     {!isPsikologPortal && !isAsesmen && !isCompleted && !isCancelled && !isRescheduled && (
-                      <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-1.5 flex-wrap">
+                      <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
-                          title={`Kirim pesan pengingat jadwal ke ${session.psikolog} via WhatsApp`}
+                          className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
+                          title={`Buka WhatsApp ${session.psikolog} dengan rincian jadwal otomatis`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Ingatkan (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Chat WA</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                         {onCopyWhatsAppPsikolog && (
                           <button
                             type="button"
                             onClick={() => onCopyWhatsAppPsikolog(session)}
-                            className="p-1 rounded-full border border-purple-200 hover:bg-purple-100 text-gray-600 transition cursor-pointer"
-                            title="Salin Pesan Pengingat Psikolog"
+                            className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                            title="Salin Rincian Pesan WA ke Clipboard"
                           >
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                            <span>Salin</span>
                           </button>
                         )}
                       </div>
                     )}
                     {!isPsikologPortal && !isAsesmen && isRescheduled && (
-                      <div className="mt-2 pt-1.5 border-t border-amber-200/50 flex items-center gap-1.5 flex-wrap">
+                      <div className="mt-2 pt-1.5 border-t border-amber-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologRescheduleUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
-                          title={`Kirim pemberitahuan reschedule ke ${session.psikolog} via WhatsApp`}
+                          className="px-3.5 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
+                          title={`Buka WhatsApp ${session.psikolog} dengan rincian jadwal reschedule baru`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Info Reschedule (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Info Reschedule (WA)</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                       </div>
                     )}
                     {!isPsikologPortal && !isAsesmen && isCancelled && (
-                      <div className="mt-2 pt-1.5 border-t border-rose-200/50 flex items-center gap-1.5 flex-wrap">
+                      <div className="mt-2 pt-1.5 border-t border-rose-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologCancelUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
                           title={`Kirim pemberitahuan pembatalan sesi ke ${session.psikolog} via WhatsApp`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Info Batal (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Info Batal (WA)</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                         <button
                           type="button"
@@ -292,10 +293,11 @@ export default function ModalDetailSesiKlien({
                             navigator.clipboard.writeText(text)
                             alert("Template pesan pembatalan untuk psikolog berhasil disalin ke clipboard!")
                           }}
-                          className="p-1 rounded-full border border-rose-200 hover:bg-rose-100 text-rose-700 transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
                           title="Salin Template Pesan Pembatalan untuk Psikolog"
                         >
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                          <span>Salin</span>
                         </button>
                       </div>
                     )}
