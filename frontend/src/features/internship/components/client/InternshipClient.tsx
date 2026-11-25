@@ -265,41 +265,28 @@ export default function InternshipClient() {
                   >
                     {/* Header Kartu Posisi */}
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-white via-white to-purple-50/40">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap items-center gap-2.5">
-                            {pos.divisi && (
-                              <span className="px-3 py-1 text-xs font-bold bg-purple-100 text-[#561269] rounded-full">
-                                {pos.divisi}
-                              </span>
-                            )}
-                            <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                              Dibuka
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          {pos.divisi && (
+                            <span className="px-3 py-1 text-xs font-bold bg-purple-100 text-[#561269] rounded-full">
+                              {pos.divisi}
                             </span>
-                          </div>
-
-                          <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
-                            {pos.judul}
-                          </h3>
-
-                          {pos.deskripsi && (
-                            <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed">
-                              {pos.deskripsi}
-                            </p>
                           )}
+                          <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            Dibuka
+                          </span>
                         </div>
 
-                        {/* Tombol Apply Now di Header */}
-                        <div className="shrink-0 flex items-center gap-3">
-                          <Link
-                            href={`/internship/apply/${pos.id}`}
-                            className="px-6 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
-                          >
-                            <span>APPLY NOW</span>
-                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
-                          </Link>
-                        </div>
+                        <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
+                          {pos.judul}
+                        </h3>
+
+                        {pos.deskripsi && (
+                          <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed">
+                            {pos.deskripsi}
+                          </p>
+                        )}
                       </div>
 
                       {/* Info Pills Grid */}
