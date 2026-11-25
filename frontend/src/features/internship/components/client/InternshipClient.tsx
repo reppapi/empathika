@@ -20,6 +20,8 @@ import {
   HelpCircle,
   AlertCircle,
   GraduationCap,
+  HeartHandshake,
+  Rocket,
 } from "lucide-react"
 import HeroStarryOverlay from "@/components/shared/HeroStarryOverlay"
 import {
@@ -86,9 +88,9 @@ export default function InternshipClient() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-6">
-            Tumbuh Bersama, Berkarya untuk{" "}
+            Wujudkan Empati, Ciptakan Aksi &{" "}
             <span className="text-[#EAB308] underline decoration-wavy decoration-[#EAB308]/60 underline-offset-8">
-              Kesehatan Mental
+              Dampak Nyata
             </span>
           </h1>
 
@@ -143,49 +145,49 @@ export default function InternshipClient() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Pilar 1: BELAJAR */}
+            {/* Pilar 1: EMPATI */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <BookOpen className="w-8 h-8 text-[#EAB308]" />
+                <HeartHandshake className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 01
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BELAJAR
+                EMPATI
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Mendapatkan bimbingan dan mentorship intensif dari praktisi kesehatan mental,
-                psikolog, dan tim kreatif profesional yang berpengalaman di industri.
+                Mendalami isu kesehatan mental secara langsung bersama para psikolog dan praktisi profesional, serta
+                mengasah kepekaan untuk memahami kebutuhan dan suara nyata audiens.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Mentorship 1-on-1 & Evaluasi Rutin
+                Mentorship Intensif & Nilai Kemanusiaan
               </div>
             </div>
 
-            {/* Pilar 2: BERKARYA */}
+            {/* Pilar 2: AKSI */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <Sparkles className="w-8 h-8 text-[#EAB308]" />
+                <Rocket className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 02
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BERKARYA
+                AKSI
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Memproduksi karya nyata, mulai dari kampanye digital, edukasi konten, hingga
-                program layanan psikologi yang menjangkau puluhan ribu audiens.
+                Terjun langsung mengeksekusi ide kreatif menjadi kampanye digital, konten edukasi multiplatform,
+                hingga layanan psikologi yang menjangkau puluhan ribu masyarakat.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Portofolio Nyata & Terpublikasi
+                Eksekusi Nyata & Portofolio Terpublikasi
               </div>
             </div>
 
-            {/* Pilar 3: BERTUMBUH */}
+            {/* Pilar 3: DAMPAK */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
                 <TrendingUp className="w-8 h-8 text-[#EAB308]" />
@@ -194,15 +196,15 @@ export default function InternshipClient() {
                 Pilar 03
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BERTUMBUH
+                DAMPAK
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Mengasah kemampuan interpersonal, pemecahan masalah, kepemimpinan, dan membangun
-                jejaring karir yang solid untuk masa depan profesionalmu.
+                Menciptakan perubahan positif bagi kesadaran kesehatan mental di Indonesia sekaligus membangun
+                fondasi karir, kredibilitas, dan jejaring profesional yang solid.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Sertifikat Resmi & Surat Rekomendasi
+                Sertifikat Resmi & Jejak Karir Berdampak
               </div>
             </div>
           </div>
