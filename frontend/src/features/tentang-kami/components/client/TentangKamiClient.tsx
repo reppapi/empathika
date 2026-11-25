@@ -569,8 +569,24 @@ export default function TentangKamiClient() {
       {/* 4.5. BERAWAL DARI MEREKA (Zigzag: Founder Atas, Manager Bawah)     */}
       {/* ================================================================= */}
       {content.pemimpinSection && (content.pemimpinSection.pendiri?.nama || content.pemimpinSection.pendiri?.foto || content.pemimpinSection.manager?.nama || content.pemimpinSection.manager?.foto) && (
-        <section className="w-full bg-[#FAF6EE] py-12 sm:py-16 md:py-20 border-y border-[#F3ECE0]/80">
-          <div className="max-w-[960px] mx-auto px-6 sm:px-10">
+        <section className="w-full bg-[#FAF6EE] relative py-16 sm:py-20 md:py-24 overflow-hidden">
+          {/* Lengkungan SVG Atas (Transisi dari section sebelumnya bg-[#fbfbfb]) */}
+          <div className="absolute top-0 left-0 right-0 w-full overflow-hidden leading-none pointer-events-none z-10">
+            <svg
+              className="relative block w-full h-[32px] sm:h-[48px] md:h-[64px]"
+              viewBox="0 0 1440 64"
+              fill="none"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M0,0 C360,64 1080,64 1440,0 L1440,0 L0,0 Z"
+                fill="#fbfbfb"
+              />
+            </svg>
+          </div>
+
+          <div className="max-w-[960px] mx-auto px-6 sm:px-10 relative z-20">
             {/* Judul Bagian - Ditengah */}
             <div className="text-center mb-10 sm:mb-12 md:mb-16">
               <h2
@@ -661,7 +677,7 @@ export default function TentangKamiClient() {
                   <div
                     className={`order-2 md:order-1 flex flex-col ${
                       content.pemimpinSection.manager?.foto
-                        ? "text-center md:text-left items-center md:items-start max-w-md mx-auto md:mx-0"
+                        ? "text-center md:text-right items-center md:items-end max-w-md mx-auto md:ml-auto md:mr-0"
                         : "text-center items-center max-w-lg mx-auto"
                     }`}
                   >
@@ -714,6 +730,22 @@ export default function TentangKamiClient() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Lengkungan SVG Bawah (Transisi ke section berikutnya bg-white) */}
+          <div className="absolute bottom-0 left-0 right-0 w-full overflow-hidden leading-none pointer-events-none z-10">
+            <svg
+              className="relative block w-full h-[32px] sm:h-[48px] md:h-[64px]"
+              viewBox="0 0 1440 64"
+              fill="none"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M0,64 C360,0 1080,0 1440,64 L1440,64 L0,64 Z"
+                fill="#ffffff"
+              />
+            </svg>
           </div>
         </section>
       )}
