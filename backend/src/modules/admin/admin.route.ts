@@ -17,6 +17,7 @@ import {
   createInternshipPositionSchema,
   updateInternshipPositionSchema,
   updateInternshipPositionsSchema,
+  internshipIdParamsSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -120,6 +121,18 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getInternship,
   })
 
+  // 2b. Terproteksi: Admin mengambil detail satu posisi internship berdasarkan ID
+  fastify.get('/internship/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan detail satu posisi internship dari database',
+      security: [{ bearerAuth: [] }],
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.getInternshipById,
+  })
+
   // 3. Terproteksi: Admin membuat posisi internship baru di database
   fastify.post('/internship', {
     preHandler: [adminGuard],
@@ -139,11 +152,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Memperbarui data lowongan posisi internship di database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
       body: updateInternshipPositionSchema,
     },
     handler: controller.updateInternshipItem,
@@ -156,11 +165,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Mengubah status visibilitas lowongan posisi (buka/tutup) di database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
     },
     handler: controller.toggleInternshipStatus,
   })
@@ -172,11 +177,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Menghapus posisi internship dari database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
     },
     handler: controller.deleteInternship,
   })

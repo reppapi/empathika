@@ -12,6 +12,7 @@ import type {
   CreateInternshipPositionInput,
   UpdateInternshipPositionInput,
   UpdateInternshipPositionsInput,
+  InternshipIdParams,
 } from './admin.schema'
 import {
   buildActivationUrl,
@@ -460,6 +461,31 @@ export class AdminController {
       return reply.code(500).send({
         success: false,
         message: 'Gagal mengambil daftar posisi internship untuk admin',
+        error: err.message,
+      })
+    }
+  }
+
+  getInternshipById = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getInternshipById(request.params.id)
+      if (!data) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Posisi internship tidak ditemukan',
+        })
+      }
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil detail posisi internship',
         error: err.message,
       })
     }

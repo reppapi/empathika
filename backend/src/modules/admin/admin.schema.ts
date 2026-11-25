@@ -143,9 +143,13 @@ export const updateInternshipPositionSchema = internshipPositionSchema.partial()
 export const updateInternshipPositionsSchema = z.object({
   positions: z.array(internshipPositionSchema),
 })
+export const internshipIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'ID posisi wajib diisi'),
+})
 
 export type InternshipPositionItem = z.infer<typeof internshipPositionSchema>
 export type CreateInternshipPositionInput = z.infer<typeof createInternshipPositionSchema>
 export type UpdateInternshipPositionInput = z.infer<typeof updateInternshipPositionSchema>
 export type UpdateInternshipPositionsInput = z.infer<typeof updateInternshipPositionsSchema>
+export type InternshipIdParams = z.infer<typeof internshipIdParamsSchema>
 
