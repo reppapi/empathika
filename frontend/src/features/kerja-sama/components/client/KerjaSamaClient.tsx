@@ -1,6 +1,7 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import { useTenantContext } from '@/context/TenantContext';
 import { getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 import { kerjaSamaService } from '@/services/kerja-sama.service';
@@ -8,6 +9,45 @@ import { adminService } from '@/services/admin.service';
 import { getColorTheme } from '../../utils/colorThemes';
 
 export default function KerjaSamaClient() {
+  const { isBiro, biroProfile } = useTenantContext();
+  const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika";
+  const rawThemeColor = isBiro
+    ? (biroProfile?.warna_tema || (typeof window !== "undefined" ? localStorage.getItem("biro_theme_color") : null) || "#561269")
+    : "#561269";
+
+  const colorContrast = useMemo(() => {
+    let hex = rawThemeColor ? rawThemeColor.replace("#", "").trim() : "561269";
+    if (hex.length === 3) {
+      hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    if (!/^[0-9a-fA-F]{6}$/.test(hex)) {
+      hex = "561269";
+    }
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+
+    const clamp = (val: number) => Math.max(0, Math.min(255, Math.round(val)));
+    const toHex = (num: number) => clamp(num).toString(16).padStart(2, "0");
+    const rgbToHex = (cr: number, cg: number, cb: number) => `#${toHex(cr)}${toHex(cg)}${toHex(cb)}`;
+
+    // Tulisan ATAS: Dibuat LEBIH GELAP (Deep Darkened Shade ~36% ke arah gelap)
+    // Menghasilkan warna gelap tegas yang berbobot dengan rona warna tema biro
+    const darkShade = isBiro
+      ? rgbToHex(r * 0.36, g * 0.36, b * 0.36)
+      : "#2a0835";
+
+    // Tulisan BAWAH: Dibuat LEBIH TERANG & BERSINAR (Warna tema dasar -> Gradien Terang ~55% ke putih)
+    const baseColor = `#${hex}`;
+    const lightShade = rgbToHex(r + (255 - r) * 0.55, g + (255 - g) * 0.55, b + (255 - b) * 0.55);
+
+    return {
+      darkShade,
+      baseColor,
+      lightShade,
+    };
+  }, [rawThemeColor, isBiro]);
+
   const [items, setItems] = useState<KerjaSamaItem[]>([]);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
@@ -181,10 +221,27 @@ export default function KerjaSamaClient() {
         
         <div className="flex flex-col items-center gap-6">
 
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-[#2a0835] text-center leading-[1.1] tracking-tight">
-            {currentConfig.heroTitle || "Bangun Kolaborasi"} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#561269] to-[#8e4a9e]">
-              {currentConfig.heroHighlight || "Bersama Empathika!"}
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-center leading-[1.1] tracking-tight">
+            <span
+              style={{
+                color: colorContrast.darkShade,
+              }}
+              className="text-[#2a0835] block sm:inline"
+            >
+              {currentConfig.heroTitle || "Bangun Kolaborasi"}
+            </span>{" "}
+            <br className="hidden sm:inline" />
+            <span
+              style={{
+                backgroundImage: isBiro
+                  ? `linear-gradient(to right, ${colorContrast.baseColor}, ${colorContrast.lightShade})`
+                  : undefined,
+              }}
+              className="text-transparent bg-clip-text bg-gradient-to-r from-[#561269] to-[#8e4a9e]"
+            >
+              {isBiro && biroProfile?.nama_biro
+                ? `Bersama ${biroProfile.nama_biro}!`
+                : (currentConfig.heroHighlight || "Bersama Empathika!")}
             </span>
           </h1>
           
@@ -283,8 +340,8 @@ export default function KerjaSamaClient() {
           <div className="w-full mt-4 text-left max-w-3xl mx-auto z-10">
             <p className="text-sm md:text-base text-gray-800 leading-relaxed mb-4">
               Punya ide kolaborasi lainnya?<br />
-              Empathika terbuka untuk berbagai ide dan bentuk kolaborasi yang dapat memberikan manfaat bagi masyarakat. Mari bersama-sama menciptakan ruang yang mendukung kesehatan dan kesejahteraan psikologis.<br />
-              Hubungi contact person kami dan mari berkolaborasi bersama Empathika.
+              {brandName} terbuka untuk berbagai ide dan bentuk kolaborasi yang dapat memberikan manfaat bagi masyarakat. Mari bersama-sama menciptakan ruang yang mendukung kesehatan dan kesejahteraan psikologis.<br />
+              Hubungi contact person kami dan mari berkolaborasi bersama {brandName}.
             </p>
             
             <h4 className="text-[#561269] font-bold mb-2">KONTAK KAMI:</h4>

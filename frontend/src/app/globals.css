@@ -133,7 +133,6 @@ html[data-biro-theme="true"] .text-\[\#430e52\],
 html[data-biro-theme="true"] .text-\[\#430d52\],
 html[data-biro-theme="true"] .text-\[\#3d0b4b\],
 html[data-biro-theme="true"] .text-\[\#491c68\],
-html[data-biro-theme="true"] .text-\[\#2a0835\],
 [data-biro-theme="true"] .text-\[\#561269\],
 [data-biro-theme="true"] .text-\[\#3B074B\],
 [data-biro-theme="true"] .text-\[\#3b074b\],
@@ -147,9 +146,14 @@ html[data-biro-theme="true"] .text-\[\#2a0835\],
 [data-biro-theme="true"] .text-\[\#430e52\],
 [data-biro-theme="true"] .text-\[\#430d52\],
 [data-biro-theme="true"] .text-\[\#3d0b4b\],
-[data-biro-theme="true"] .text-\[\#491c68\],
-[data-biro-theme="true"] .text-\[\#2a0835\] {
+[data-biro-theme="true"] .text-\[\#491c68\] {
   color: var(--biro-theme-color, #561269) !important;
+}
+
+/* Tulisan Judul Atas / Deep Dark Shade Tema Biro (Kontras lebih gelap dari warna dasar) */
+html[data-biro-theme="true"] .text-\[\#2a0835\],
+[data-biro-theme="true"] .text-\[\#2a0835\] {
+  color: color-mix(in srgb, var(--biro-theme-color, #561269) 35%, #0a040d) !important;
 }
 
 /* 2. Warna Background (Background Colors) */
@@ -427,8 +431,8 @@ html[data-biro-theme="true"] .from-\[\#561269\].via-\[\#8e4a9e\].to-\[\#ba68c8\]
   background-image: linear-gradient(
     to right,
     var(--biro-theme-color, #561269) 0%,
-    color-mix(in srgb, var(--biro-theme-color, #561269) 80%, white) 50%,
-    color-mix(in srgb, var(--biro-theme-color, #561269) 60%, white) 100%
+    color-mix(in srgb, var(--biro-theme-color, #561269) 65%, white) 50%,
+    color-mix(in srgb, var(--biro-theme-color, #561269) 40%, white) 100%
   ) !important;
 }
 
@@ -437,7 +441,7 @@ html[data-biro-theme="true"] .from-\[\#561269\].to-\[\#8e4a9e\],
   background-image: linear-gradient(
     to right,
     var(--biro-theme-color, #561269) 0%,
-    color-mix(in srgb, var(--biro-theme-color, #561269) 75%, white) 100%
+    color-mix(in srgb, var(--biro-theme-color, #561269) 45%, white) 100%
   ) !important;
 }
 
