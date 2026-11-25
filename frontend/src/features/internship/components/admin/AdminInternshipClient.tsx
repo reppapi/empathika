@@ -745,14 +745,14 @@ export default function AdminInternshipClient() {
           ) : (
             <div className="overflow-x-auto admin-table-scrollbar">
               <table className="w-full text-left text-xs border-collapse">
-                <thead className="bg-[#FAF7FB] border-b border-gray-200">
-                  <tr className="text-gray-700 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="py-3.5 px-4 min-w-[100px]">Tanggal</th>
-                    <th className="py-3.5 px-4 min-w-[180px]">Nama Pelamar</th>
-                    <th className="py-3.5 px-4 min-w-[180px]">Posisi Dilamar</th>
-                    <th className="py-3.5 px-4 min-w-[160px]">Kontak</th>
-                    <th className="py-3.5 px-4 min-w-[120px]">Status</th>
-                    <th className="py-3.5 px-4 text-center min-w-[140px]">Aksi</th>
+                <thead className="sticky top-0 z-10 bg-[#D3C4D8] biro-table-header">
+                  <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold biro-table-header">
+                    <th className="py-4 px-4 sm:px-5 text-left min-w-[100px]">Tanggal</th>
+                    <th className="py-4 px-4 sm:px-5 text-left min-w-[180px]">Nama Pelamar</th>
+                    <th className="py-4 px-4 sm:px-5 text-left min-w-[180px]">Posisi Dilamar</th>
+                    <th className="py-4 px-4 sm:px-5 text-left min-w-[160px]">Kontak</th>
+                    <th className="py-4 px-4 sm:px-5 text-center min-w-[120px]">Status</th>
+                    <th className="py-4 px-4 sm:px-5 text-center min-w-[140px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
