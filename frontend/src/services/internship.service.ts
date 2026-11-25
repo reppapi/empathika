@@ -94,6 +94,25 @@ export const internshipService = {
   },
 
   /**
+   * Mengambil detail satu posisi internship berdasarkan ID
+   */
+  getPositionById: async (id: string): Promise<InternshipPosition | null> => {
+    try {
+      const res = await apiClient.get<{ success: boolean; data: InternshipPosition }>(
+        `/admin/internship/${id}`
+      )
+      if (res.data?.success && res.data.data) {
+        return res.data.data
+      }
+    } catch {
+      // Fallback: cari dari seluruh data jika endpoint single belum tersedia
+    }
+
+    const all = await internshipService.getAllPositions()
+    return all.find((p) => p.id === id) || null
+  },
+
+  /**
    * Menambahkan posisi baru langsung ke Database
    */
   createPosition: async (

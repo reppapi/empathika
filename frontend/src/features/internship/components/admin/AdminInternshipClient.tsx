@@ -32,37 +32,6 @@ export default function AdminInternshipClient() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
-  // State Modal Tambah/Edit
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] = useState<{
-    judul: string
-    divisi: string
-    durasi: string
-    lokasi: string
-    workMode: string
-    kompensasi: string
-    deadline: string
-    deskripsi: string
-    responsibilitiesText: string
-    qualificationsText: string
-    applyUrl: string
-    isOpen: boolean
-  }>({
-    judul: "",
-    divisi: "",
-    durasi: "6 Month",
-    lokasi: "WFA",
-    workMode: "Remote",
-    kompensasi: "Unpaid",
-    deadline: "",
-    deskripsi: "",
-    responsibilitiesText: "",
-    qualificationsText: "",
-    applyUrl: "https://empathika.id/daftar-internship",
-    isOpen: true,
-  })
-
   // State Modal Hapus
   const [itemToDelete, setItemToDelete] = useState<InternshipPosition | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -125,110 +94,6 @@ export default function AdminInternshipClient() {
     }
   }
 
-  // Buka Modal Tambah
-  const openAddModal = () => {
-    setEditingId(null)
-    setFormData({
-      judul: "",
-      divisi: "Digital Media & Creative",
-      durasi: "6 Month",
-      lokasi: "WFA",
-      workMode: "Remote",
-      kompensasi: "Unpaid",
-      deadline: "30/11/2026",
-      deskripsi: "",
-      responsibilitiesText:
-        "Membantu merencanakan dan mengembangkan ide konten untuk media sosial Empathika.\nMembuat konten edukatif, informatif dan engaging terkait kesehatan mental dan layanan Empathika.\nMembantu membuat konten untuk Instagram, TikTok, Threads, Linkedin dan platform media sosial lainnya.",
-      qualificationsText:
-        "Mahasiswa aktif atau fresh graduate dari Ilmu Komunikasi, Marketing, Desain, Psikologi, atau bidang terkait.\nMemiliki ketertarikan pada social media, content creation, digital marketing, dan kesehatan mental.\nKreatif dan mampu menghasilkan ide konten yang menarik.",
-      applyUrl: "https://empathika.id/daftar-internship",
-      isOpen: true,
-    })
-    setIsModalOpen(true)
-  }
-
-  // Buka Modal Edit
-  const openEditModal = (pos: InternshipPosition) => {
-    setEditingId(pos.id)
-    setFormData({
-      judul: pos.judul,
-      divisi: pos.divisi || "",
-      durasi: pos.durasi,
-      lokasi: pos.lokasi,
-      workMode: pos.workMode,
-      kompensasi: pos.kompensasi,
-      deadline: pos.deadline,
-      deskripsi: pos.deskripsi || "",
-      responsibilitiesText: pos.responsibilities.join("\n"),
-      qualificationsText: pos.qualifications.join("\n"),
-      applyUrl: pos.applyUrl,
-      isOpen: pos.isOpen,
-    })
-    setIsModalOpen(true)
-  }
-
-  // Simpan Tambah/Edit
-  const handleSubmitForm = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.judul.trim()) {
-      alert("Judul posisi wajib diisi!")
-      return
-    }
-
-    const respList = formData.responsibilitiesText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-    const qualList = formData.qualificationsText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean)
-
-    setSubmitting(true)
-    try {
-      if (editingId) {
-        const updated = await internshipService.updatePosition(editingId, {
-          judul: formData.judul.trim(),
-          divisi: formData.divisi.trim() || undefined,
-          durasi: formData.durasi.trim(),
-          lokasi: formData.lokasi.trim(),
-          workMode: formData.workMode.trim(),
-          kompensasi: formData.kompensasi.trim(),
-          deadline: formData.deadline.trim(),
-          deskripsi: formData.deskripsi.trim() || undefined,
-          responsibilities: respList,
-          qualifications: qualList,
-          applyUrl: formData.applyUrl.trim(),
-          isOpen: formData.isOpen,
-        })
-        setPositions(updated)
-        showToast("Posisi internship berhasil diperbarui!")
-      } else {
-        const updated = await internshipService.createPosition({
-          judul: formData.judul.trim(),
-          divisi: formData.divisi.trim() || undefined,
-          durasi: formData.durasi.trim(),
-          lokasi: formData.lokasi.trim(),
-          workMode: formData.workMode.trim(),
-          kompensasi: formData.kompensasi.trim(),
-          deadline: formData.deadline.trim(),
-          deskripsi: formData.deskripsi.trim() || undefined,
-          responsibilities: respList,
-          qualifications: qualList,
-          applyUrl: formData.applyUrl.trim(),
-          isOpen: formData.isOpen,
-        })
-        setPositions(updated)
-        showToast("Posisi internship baru berhasil ditambahkan!")
-      }
-      setIsModalOpen(false)
-    } catch (err: any) {
-      alert("Gagal menyimpan: " + (err?.message || "Kesalahan server"))
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   // Hapus Posisi
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return
@@ -281,13 +146,13 @@ export default function AdminInternshipClient() {
             <ExternalLink className="w-4 h-4" />
           </Link>
 
-          <button
-            onClick={openAddModal}
+          <Link
+            href="/admin/internship/tambah"
             className="px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 text-[#0f172a]" />
             <span>Tambah Posisi</span>
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -455,13 +320,13 @@ export default function AdminInternshipClient() {
                   </button>
 
                   {/* Tombol Edit */}
-                  <button
-                    onClick={() => openEditModal(pos)}
-                    className="p-2 rounded-xl bg-purple-50 text-[#561269] hover:bg-purple-100 transition-colors"
+                  <Link
+                    href={`/admin/internship/edit/${pos.id}`}
+                    className="p-2 rounded-xl bg-purple-50 text-[#561269] hover:bg-purple-100 transition-colors flex items-center justify-center"
                     title="Ubah Rincian Posisi"
                   >
                     <Edit2 className="w-4 h-4" />
-                  </button>
+                  </Link>
 
                   {/* Tombol Hapus */}
                   <button
@@ -478,260 +343,7 @@ export default function AdminInternshipClient() {
         )}
       </div>
 
-      {/* ── 4. MODAL TAMBAH / EDIT POSISI ── */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100">
-            {/* Header Modal */}
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-10">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 text-[#561269] flex items-center justify-center">
-                  <Briefcase className="w-4 h-4" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900">
-                  {editingId ? "Edit Posisi Internship" : "Tambah Posisi Internship Baru"}
-                </h3>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Formulir */}
-            <form onSubmit={handleSubmitForm} className="p-6 space-y-5">
-              {/* Judul Posisi & Divisi */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Judul Posisi <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Social Media & Content Intern"
-                    value={formData.judul}
-                    onChange={(e) => setFormData({ ...formData, judul: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Divisi / Bidang
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Digital Media & Creative"
-                    value={formData.divisi}
-                    onChange={(e) => setFormData({ ...formData, divisi: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-              </div>
-
-              {/* Durasi, Lokasi, Work Mode, Kompensasi */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Durasi
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="6 Month"
-                    value={formData.durasi}
-                    onChange={(e) => setFormData({ ...formData, durasi: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="WFA / Jakarta"
-                    value={formData.lokasi}
-                    onChange={(e) => setFormData({ ...formData, lokasi: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Work Mode
-                  </label>
-                  <select
-                    value={formData.workMode}
-                    onChange={(e) => setFormData({ ...formData, workMode: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  >
-                    <option value="Remote">Remote</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="On-site">On-site</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Kompensasi
-                  </label>
-                  <select
-                    value={formData.kompensasi}
-                    onChange={(e) => setFormData({ ...formData, kompensasi: e.target.value })}
-                    className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  >
-                    <option value="Unpaid">Unpaid</option>
-                    <option value="Paid">Paid</option>
-                    <option value="Pocket Money">Pocket Money</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Deadline & Link Pendaftaran */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Application Deadline <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: 30/11/2026"
-                    value={formData.deadline}
-                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                    Link Pendaftaran (Apply URL) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://empathika.id/daftar-internship"
-                    value={formData.applyUrl}
-                    onChange={(e) => setFormData({ ...formData, applyUrl: e.target.value })}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                  />
-                </div>
-              </div>
-
-              {/* Deskripsi Singkat */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Deskripsi Singkat (Opsional)
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="Ringkasan tentang tujuan peran ini..."
-                  value={formData.deskripsi}
-                  onChange={(e) => setFormData({ ...formData, deskripsi: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269]"
-                />
-              </div>
-
-              {/* Responsibilities */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Responsibilities (Tulis satu poin per baris) <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={5}
-                  required
-                  placeholder="Membantu merencanakan konten..."
-                  value={formData.responsibilitiesText}
-                  onChange={(e) => setFormData({ ...formData, responsibilitiesText: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269] font-mono"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Tips: Tekan Enter untuk memisahkan setiap butir tanggung jawab.
-                </p>
-              </div>
-
-              {/* Qualifications */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Qualifications (Tulis satu poin per baris) <span className="text-rose-500">*</span>
-                </label>
-                <textarea
-                  rows={5}
-                  required
-                  placeholder="Mahasiswa aktif Ilmu Komunikasi / Psikologi..."
-                  value={formData.qualificationsText}
-                  onChange={(e) => setFormData({ ...formData, qualificationsText: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269] font-mono"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Tips: Tekan Enter untuk memisahkan setiap butir kualifikasi.
-                </p>
-              </div>
-
-              {/* Toggle Status Buka / Tutup */}
-              <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-gray-900">
-                    Status Publikasi Halaman Klien
-                  </h4>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {formData.isOpen
-                      ? "Posisi ini akan langsung muncul di halaman web /internship"
-                      : "Posisi ini akan disembunyikan dari halaman web /internship"}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, isOpen: !formData.isOpen })}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
-                    formData.isOpen
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "bg-gray-300 text-gray-700"
-                  }`}
-                >
-                  {formData.isOpen ? (
-                    <>
-                      <Eye className="w-3.5 h-3.5" />
-                      <span>Dibuka (Aktif)</span>
-                    </>
-                  ) : (
-                    <>
-                      <EyeOff className="w-3.5 h-3.5" />
-                      <span>Ditutup (Nonaktif)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Tombol Footer */}
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold text-xs transition-colors"
-                >
-                  Batal
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-6 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs shadow-sm transition-all disabled:opacity-50 cursor-pointer active:scale-95"
-                >
-                  {submitting ? "Menyimpan..." : editingId ? "Simpan Perubahan" : "Tambah Posisi"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── 5. MODAL KONFIRMASI HAPUS ── */}
+      {/* ── 4. MODAL KONFIRMASI HAPUS ── */}
       {itemToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100">
