@@ -499,9 +499,11 @@ export default function AdminLayananView() {
                 const wkndVal = parseRupiahNumber(item.weekend)
                 if (!item.weekend || wkndVal === 0) {
                   return (
-                    <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
-                      -
-                    </span>
+                    <div className="flex items-center justify-center w-full">
+                      <span className="text-gray-400 font-semibold text-sm whitespace-nowrap">
+                        -
+                      </span>
+                    </div>
                   )
                 }
                 return (
@@ -535,9 +537,11 @@ export default function AdminLayananView() {
 
               if (isOnlyOnline || !offlineWknd || Number(parseRupiahNumber(offlineWknd)) === 0) {
                 return (
-                  <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
-                    -
-                  </span>
+                  <div className="flex items-center justify-center w-full">
+                    <span className="text-gray-400 font-semibold text-sm whitespace-nowrap">
+                      -
+                    </span>
+                  </div>
                 )
               }
 
@@ -558,9 +562,11 @@ export default function AdminLayananView() {
             const wkndVal = parseRupiahNumber(item.weekend)
             if (!item.weekend || wkndVal === 0) {
               return (
-                <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
-                  -
-                </span>
+                <div className="flex items-center justify-center w-full">
+                  <span className="text-gray-400 font-semibold text-sm whitespace-nowrap">
+                    -
+                  </span>
+                </div>
               )
             }
 
