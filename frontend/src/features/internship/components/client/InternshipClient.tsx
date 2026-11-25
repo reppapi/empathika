@@ -292,15 +292,13 @@ export default function InternshipClient() {
 
                         {/* Tombol Apply Now di Header */}
                         <div className="shrink-0 flex items-center gap-3">
-                          <a
-                            href={pos.applyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-6 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5"
+                          <Link
+                            href={`/internship/apply/${pos.id}`}
+                            className="px-6 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5 cursor-pointer"
                           >
                             <span>APPLY NOW</span>
-                            <ExternalLink className="w-4 h-4 text-[#0f172a]" />
-                          </a>
+                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
+                          </Link>
                         </div>
                       </div>
 
@@ -410,15 +408,13 @@ export default function InternshipClient() {
                             </p>
                           </div>
 
-                          <a
-                            href={pos.applyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          <Link
+                            href={`/internship/apply/${pos.id}`}
+                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span>APPLY NOW</span>
-                            <ExternalLink className="w-4 h-4 text-[#0f172a]" />
-                          </a>
+                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
+                          </Link>
                         </div>
                       </div>
                     )}

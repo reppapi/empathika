@@ -16,10 +16,14 @@ import {
   MapPin,
   Save,
   CheckCircle2,
+  Plus,
+  Trash2,
+  HelpCircle,
 } from "lucide-react"
 import {
   internshipService,
   InternshipPosition,
+  InternshipQuestion,
 } from "@/services/internship.service"
 
 interface Props {
@@ -47,6 +51,26 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
     applyUrl: "https://empathika.id/daftar-internship",
     isOpen: true,
   })
+
+  // State Pertanyaan Seleksi
+  const [questions, setQuestions] = useState<InternshipQuestion[]>([
+    {
+      id: "q-1",
+      label: "Mengapa Anda tertarik untuk mengikuti program magang pada posisi ini di Empathika?",
+      type: "textarea",
+      required: true,
+    },
+    {
+      id: "q-2",
+      label: "Ceritakan pengalaman, keterampilan, atau proyek terbaik yang relevan dengan posisi yang Anda lamar!",
+      type: "textarea",
+      required: true,
+    },
+  ])
+  const [newQuestionLabel, setNewQuestionLabel] = useState("")
+  const [newQuestionType, setNewQuestionType] = useState<"text" | "textarea" | "url">("textarea")
+  const [newQuestionRequired, setNewQuestionRequired] = useState(true)
+  const [isAddingQuestion, setIsAddingQuestion] = useState(false)
 
   const [loadingData, setLoadingData] = useState(isEditMode)
   const [submitting, setSubmitting] = useState(false)
@@ -83,6 +107,9 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             applyUrl: item.applyUrl || "",
             isOpen: Boolean(item.isOpen),
           })
+          if (item.questions && Array.isArray(item.questions) && item.questions.length > 0) {
+            setQuestions(item.questions)
+          }
         }
       } catch (err: any) {
         console.error("Gagal memuat detail posisi:", err)
@@ -142,6 +169,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           deskripsi: formData.deskripsi.trim() || undefined,
           responsibilities: respList,
           qualifications: qualList,
+          questions: questions,
           applyUrl: formData.applyUrl.trim(),
           isOpen: formData.isOpen,
         })
@@ -158,6 +186,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           deskripsi: formData.deskripsi.trim() || undefined,
           responsibilities: respList,
           qualifications: qualList,
+          questions: questions,
           applyUrl: formData.applyUrl.trim(),
           isOpen: formData.isOpen,
         })
@@ -430,6 +459,160 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             <p className="text-[11px] text-gray-400 mt-1">
               Petunjuk: Tekan <strong>Enter</strong> untuk membuat butir kualifikasi baru yang akan tampil sebagai poin bertanda checklist pada halaman publik.
             </p>
+          </div>
+
+          {/* Section 6b: Pertanyaan Seleksi / Screening Questions */}
+          <div className="bg-[#FAF7FB] rounded-2xl border border-purple-100 p-5 sm:p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-100/80 pb-3">
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <HelpCircle className="w-4 h-4 text-[#561269]" />
+                  <span>Pertanyaan Formulir Pendaftaran (Screening Questions)</span>
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Pertanyaan esai atau portofolio khusus yang wajib/opsional dijawab pelamar saat menekan tombol &ldquo;Apply Now&rdquo;.
+                </p>
+              </div>
+
+              {!isAddingQuestion && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAddingQuestion(true)
+                    setNewQuestionLabel("")
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#561269] text-white text-xs font-semibold hover:bg-[#6e1885] transition-all cursor-pointer self-start sm:self-auto"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambah Pertanyaan</span>
+                </button>
+              )}
+            </div>
+
+            {/* List Pertanyaan */}
+            <div className="space-y-3">
+              {questions.map((q, idx) => (
+                <div
+                  key={q.id || `q-${idx}`}
+                  className="bg-white rounded-xl p-3.5 sm:p-4 border border-gray-200 flex items-start justify-between gap-3 shadow-2xs"
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[11px] font-bold text-[#561269] bg-purple-50 px-2 py-0.5 rounded-md">
+                        Butir #{idx + 1}
+                      </span>
+                      <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md uppercase">
+                        Tipe: {q.type === "url" ? "Link / URL" : q.type === "text" ? "Teks Singkat" : "Esai / Paragraf"}
+                      </span>
+                      {q.required && (
+                        <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md">
+                          Wajib Diisi
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs sm:text-sm text-gray-800 font-medium">{q.label}</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuestions(questions.filter((_, i) => i !== idx))
+                    }}
+                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    title="Hapus pertanyaan"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Form Tambah Pertanyaan Baru */}
+            {isAddingQuestion && (
+              <div className="bg-white rounded-xl border-2 border-dashed border-[#561269]/40 p-4 space-y-3 animate-in fade-in duration-150">
+                <h5 className="text-xs font-bold text-gray-900">Tambah Butir Pertanyaan Baru:</h5>
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                    Label Pertanyaan
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuestionLabel}
+                    onChange={(e) => setNewQuestionLabel(e.target.value)}
+                    placeholder="Contoh: Lampirkan link portofolio desain / Figma terbaik Anda!"
+                    className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#561269]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 mb-1">
+                      Tipe Isian Jawaban
+                    </label>
+                    <select
+                      value={newQuestionType}
+                      onChange={(e) =>
+                        setNewQuestionType(e.target.value as "text" | "textarea" | "url")
+                      }
+                      className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#561269] bg-white"
+                    >
+                      <option value="textarea">Esai Panjang / Paragraf</option>
+                      <option value="text">Teks Singkat</option>
+                      <option value="url">Tautan / URL Link</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-5">
+                    <input
+                      type="checkbox"
+                      id="check-required"
+                      checked={newQuestionRequired}
+                      onChange={(e) => setNewQuestionRequired(e.target.checked)}
+                      className="w-4 h-4 text-[#561269] rounded border-gray-300 cursor-pointer"
+                    />
+                    <label
+                      htmlFor="check-required"
+                      className="text-xs text-gray-700 font-semibold cursor-pointer"
+                    >
+                      Wajib Diisi oleh Pelamar
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAddingQuestion(false)
+                      setNewQuestionLabel("")
+                    }}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-semibold hover:bg-gray-50 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newQuestionLabel.trim()) return
+                      setQuestions([
+                        ...questions,
+                        {
+                          id: `q-${Date.now()}`,
+                          label: newQuestionLabel.trim(),
+                          type: newQuestionType,
+                          required: newQuestionRequired,
+                        },
+                      ])
+                      setIsAddingQuestion(false)
+                      setNewQuestionLabel("")
+                    }}
+                    className="px-4 py-1.5 rounded-lg bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] text-xs font-bold shadow-xs cursor-pointer"
+                  >
+                    Simpan Pertanyaan
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Section 7: Status Publikasi Halaman Klien */}

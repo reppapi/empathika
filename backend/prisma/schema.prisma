@@ -836,10 +836,32 @@ model InternshipPosition {
   deskripsi        String?  @db.Text
   responsibilities Json     @default("[]")
   qualifications   Json     @default("[]")
+  questions        Json     @default("[]")
   applyUrl         String
   isOpen           Boolean  @default(true)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   @@map("internship_positions")
+}
+
+model InternshipApplication {
+  id               String   @id @default(uuid())
+  positionId       String
+  positionTitle    String
+  nama             String
+  email            String
+  telepon          String
+  universitas      String
+  jurusan          String?
+  semester         String?
+  cvUrl            String?  @db.Text
+  portfolioUrl     String?  @db.Text
+  jawaban          Json     @default("[]")
+  status           String   @default("MENUNGGU")
+  catatanAdmin     String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("internship_applications")
 }

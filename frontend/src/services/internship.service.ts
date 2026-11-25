@@ -1,5 +1,12 @@
 import apiClient from "@/lib/axios"
 
+export interface InternshipQuestion {
+  id: string
+  label: string
+  type: "text" | "textarea" | "url"
+  required: boolean
+}
+
 export interface InternshipPosition {
   id: string
   judul: string
@@ -12,8 +19,34 @@ export interface InternshipPosition {
   deskripsi?: string
   responsibilities: string[]
   qualifications: string[]
-  applyUrl: string // contoh: "https://empathika.id/daftar-internship"
+  questions?: InternshipQuestion[]
+  applyUrl: string // contoh: "/internship/apply/[id]"
   isOpen: boolean // true: Buka (tampil di client), false: Ditutup (tidak muncul di client)
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface InternshipApplicationAnswer {
+  questionId?: string
+  question: string
+  answer: string
+}
+
+export interface InternshipApplication {
+  id: string
+  positionId: string
+  positionTitle: string
+  nama: string
+  email: string
+  telepon: string
+  universitas: string
+  jurusan?: string | null
+  semester?: string | null
+  cvUrl: string
+  portfolioUrl?: string | null
+  jawaban: InternshipApplicationAnswer[]
+  status: "MENUNGGU" | "REVIEW" | "DITERIMA" | "DITOLAK"
+  catatanAdmin?: string | null
   createdAt: string
   updatedAt?: string
 }
@@ -224,5 +257,103 @@ export const internshipService = {
     }
 
     return positions
+  },
+
+  /**
+   * Mengirimkan formulir pendaftaran / lamaran magang (Publik)
+   */
+  applyInternship: async (
+    data: Omit<InternshipApplication, "id" | "status" | "createdAt" | "updatedAt">
+  ): Promise<InternshipApplication> => {
+    try {
+      const res = await apiClient.post<{ success: boolean; data: InternshipApplication }>(
+        "/admin/internship/apply",
+        data
+      )
+      if (res.data?.success && res.data.data) {
+        return res.data.data
+      }
+      throw new Error("Gagal mengirimkan lamaran")
+    } catch (err: any) {
+      console.error("Gagal mengirimkan lamaran internship:", err)
+      throw new Error(
+        err.response?.data?.message || err.message || "Gagal mengirimkan lamaran ke server"
+      )
+    }
+  },
+
+  /**
+   * Mengambil seluruh daftar pelamar internship untuk admin
+   */
+  getApplications: async (): Promise<InternshipApplication[]> => {
+    try {
+      const res = await apiClient.get<{ success: boolean; data: InternshipApplication[] }>(
+        "/admin/internship/applications"
+      )
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        return res.data.data
+      }
+    } catch (err: any) {
+      console.warn("Gagal mengambil data pelamar internship:", err?.message)
+    }
+    return []
+  },
+
+  /**
+   * Mengambil detail satu pelamar internship
+   */
+  getApplicationById: async (id: string): Promise<InternshipApplication | null> => {
+    try {
+      const res = await apiClient.get<{ success: boolean; data: InternshipApplication }>(
+        `/admin/internship/applications/${id}`
+      )
+      if (res.data?.success && res.data.data) {
+        return res.data.data
+      }
+    } catch (err: any) {
+      console.warn("Gagal mengambil detail pelamar internship:", err?.message)
+    }
+    return null
+  },
+
+  /**
+   * Memperbarui status lamaran (MENUNGGU / REVIEW / DITERIMA / DITOLAK)
+   */
+  updateApplicationStatus: async (
+    id: string,
+    status: InternshipApplication["status"],
+    catatanAdmin?: string | null
+  ): Promise<InternshipApplication> => {
+    try {
+      const res = await apiClient.patch<{ success: boolean; data: InternshipApplication }>(
+        `/admin/internship/applications/${id}/status`,
+        { status, catatanAdmin }
+      )
+      if (res.data?.success && res.data.data) {
+        return res.data.data
+      }
+      throw new Error("Gagal memperbarui status")
+    } catch (err: any) {
+      console.error("Gagal memperbarui status pelamar:", err)
+      throw new Error(
+        err.response?.data?.message || err.message || "Gagal memperbarui status di database"
+      )
+    }
+  },
+
+  /**
+   * Menghapus lamaran pelamar
+   */
+  deleteApplication: async (id: string): Promise<void> => {
+    try {
+      await apiClient.delete<{ success: boolean; message: string }>(
+        `/admin/internship/applications/${id}`
+      )
+    } catch (err: any) {
+      console.error("Gagal menghapus lamaran:", err)
+      throw new Error(
+        err.response?.data?.message || err.message || "Gagal menghapus dari database"
+      )
+    }
   },
 }

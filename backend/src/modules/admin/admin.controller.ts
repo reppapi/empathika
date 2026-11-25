@@ -13,6 +13,8 @@ import type {
   UpdateInternshipPositionInput,
   UpdateInternshipPositionsInput,
   InternshipIdParams,
+  CreateInternshipApplicationInput,
+  UpdateInternshipApplicationStatusInput,
 } from './admin.schema'
 import {
   buildActivationUrl,
@@ -585,6 +587,111 @@ export class AdminController {
       return reply.code(500).send({
         success: false,
         message: 'Gagal memperbarui posisi internship',
+        error: err.message,
+      })
+    }
+  }
+
+  // ── Modul Pengajuan Pelamar Magang (Internship Applications) ──────
+
+  getInternshipApplications = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getInternshipApplications()
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil daftar pelamar internship dari database',
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil data pelamar internship',
+        error: err.message,
+      })
+    }
+  }
+
+  getInternshipApplicationById = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getInternshipApplicationById(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil detail pelamar internship dari database',
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Pelamar internship tidak ditemukan',
+        error: err.message,
+      })
+    }
+  }
+
+  createInternshipApplication = async (
+    request: FastifyRequest<{ Body: CreateInternshipApplicationInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const created = await this.service.createInternshipApplication(request.body)
+      return reply.code(201).send({
+        success: true,
+        message: 'Lamaran internship berhasil dikirimkan ke database',
+        data: created,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengirimkan lamaran internship',
+        error: err.message,
+      })
+    }
+  }
+
+  updateInternshipApplicationStatus = async (
+    request: FastifyRequest<{
+      Params: InternshipIdParams
+      Body: UpdateInternshipApplicationStatusInput
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.updateInternshipApplicationStatus(
+        request.params.id,
+        request.body.status,
+        request.body.catatanAdmin
+      )
+      return reply.code(200).send({
+        success: true,
+        message: 'Status lamaran internship berhasil diperbarui di database',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal memperbarui status lamaran internship',
+        error: err.message,
+      })
+    }
+  }
+
+  deleteInternshipApplication = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      await this.service.deleteInternshipApplication(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Data pelamar internship berhasil dihapus dari database',
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menghapus data pelamar internship',
         error: err.message,
       })
     }
