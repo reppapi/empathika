@@ -397,9 +397,6 @@ export default function InternshipClient() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#561269] bg-purple-100 px-3.5 py-1 rounded-full">
-                Benefit Program
-              </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-snug">
                 Apa yang Akan Kamu Dapatkan Selama Magang di Empathika?
               </h2>
@@ -451,9 +448,6 @@ export default function InternshipClient() {
             <div className="bg-gradient-to-br from-[#561269] to-[#8B3A9C] text-white rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-10 -mt-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none" />
               <div className="relative z-10 space-y-6">
-                <span className="px-3 py-1 bg-white/20 text-[#EAB308] font-bold text-xs rounded-full">
-                  Komitmen Kami
-                </span>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-snug">
                   &ldquo;Setiap langkah kecil yang kamu buat membawa dampak besar bagi kesehatan mental
                   banyak orang.&rdquo;
