@@ -109,15 +109,14 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
   // Temukan item berdasarkan slug category (misal: "mahasiswa", "sekolah", dll.)
   const item = activeItems.find((it: KerjaSamaItem) => it.slug === category);
 
-  // Jika item di-nonaktifkan atau tidak ditemukan, kita tampilkan fallback title
   const title = item ? item.title.replace('Empathika', brandName) : `${brandName} untuk ${category}`;
   const shortTitle = item?.shortName || title.replace('Empathika untuk ', '').replace(`${brandName} untuk `, '');
-  const description = item?.description?.replace(/Empathika/g, brandName) || `${brandName} membuka ruang sinergi dan kolaborasi profesional untuk menciptakan dampak nyata bagi kesehatan psikologis.`;
-  const pelatihanTitle = item?.pelatihanTitle || `Pelatihan ${shortTitle}`;
-  const pelatihanDeskripsi = item?.pelatihanDeskripsi || "Membekali peserta dengan keterampilan kesehatan mental, resiliensi, dan pendampingan psikologis terstruktur.";
+  const description = item?.description?.replace(/Empathika/g, brandName) || "";
+  const pelatihanTitle = item?.pelatihanTitle || "";
+  const pelatihanDeskripsi = item?.pelatihanDeskripsi || "";
   const pelatihanImage = item?.pelatihanImage;
-  const mitraTitle = item?.mitraTitle || `${brandName} x Mitra`;
-  const mitraDeskripsi = item?.mitraDeskripsi || "Sinergi berkelanjutan untuk mendukung ekosistem kesehatan mental dan program komprehensif.";
+  const mitraTitle = item?.mitraTitle || "";
+  const mitraDeskripsi = item?.mitraDeskripsi || "";
   const mitraImage = item?.mitraImage;
 
   return (
@@ -153,7 +152,26 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
           </div>
         )}
 
-        {!isLoading && !isError && (
+        {/* Not Found State */}
+        {!isLoading && !isError && !item && (
+          <div className="py-20 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+              ?
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Program Tidak Ditemukan</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Program kerja sama yang Anda cari tidak tersedia atau belum dipublikasikan.
+            </p>
+            <Link
+              href="/kerja-sama"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs cursor-pointer"
+            >
+              Kembali ke Halaman Kerja Sama
+            </Link>
+          </div>
+        )}
+
+        {!isLoading && !isError && item && (
           <div className="flex flex-col gap-6">
           
           {/* Elegant & Clean Title Section with Gradient Accent */}

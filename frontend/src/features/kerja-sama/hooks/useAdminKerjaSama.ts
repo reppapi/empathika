@@ -175,15 +175,8 @@ export function useAdminKerjaSama() {
               }
             })
 
-            // Gabungkan data backend dengan cache lokal jika ada item baru di lokal
-            const combined = [...mappedFromBackend]
-            localLeads.forEach((ll) => {
-              if (!combined.some((c) => c.id === ll.id)) {
-                combined.push(ll)
-              }
-            })
-            setLeads(combined)
-            savePengajuanKerjaSama(combined)
+            setLeads(mappedFromBackend)
+            savePengajuanKerjaSama(mappedFromBackend)
           }
         })
         .catch((err) => {
@@ -229,7 +222,7 @@ export function useAdminKerjaSama() {
     kerjaSamaService
       .getProgramList()
       .then((res: any) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        if (res?.data && Array.isArray(res.data)) {
           const mappedPrograms: KerjaSamaItem[] = res.data.map((p: any) => ({
             id: p.id,
             slug: p.slug,

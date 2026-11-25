@@ -439,6 +439,7 @@ export default function FormulirKerjaSamaClient({
   // State Validasi Formulir
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     setJawabanKhusus((prev) => {
@@ -515,6 +516,7 @@ export default function FormulirKerjaSamaClient({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setHasAttemptedSubmit(true)
+    setSubmitError(null)
 
     const errors = validateForm()
     setFormErrors(errors)
@@ -593,8 +595,11 @@ export default function FormulirKerjaSamaClient({
       if (res?.data?.id) {
         backendId = res.data.id
       }
-    } catch (apiErr) {
-      console.warn("Backend API submit pengajuan error (fallback to local):", apiErr)
+    } catch (apiErr: any) {
+      console.error("Backend API submit pengajuan error:", apiErr)
+      setIsSubmitting(false)
+      setSubmitError(apiErr?.response?.data?.message || apiErr?.message || "Gagal mengirimkan pengajuan kerja sama. Silakan periksa kembali formulir Anda.")
+      return
     }
 
     const existingLeads = getPengajuanKerjaSama()
@@ -1057,18 +1062,9 @@ export default function FormulirKerjaSamaClient({
                   (q.options && q.label.toLowerCase().includes("budget")) ||
                   q.key.toLowerCase().includes("budget")
 
-                const budgetFallbackOptions = [
-                  "< Rp 5 juta",
-                  "Rp 5–10 juta",
-                  "Rp 10–25 juta",
-                  "Rp 25–50 juta",
-                  "> Rp 50 juta",
-                ]
                 const effectiveOptions =
                   q.options && q.options.length > 0
                     ? q.options
-                    : isBudgetOrSelect
-                    ? budgetFallbackOptions
                     : []
 
                 return (
@@ -1202,6 +1198,13 @@ export default function FormulirKerjaSamaClient({
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+              <span className="font-medium">{submitError}</span>
             </div>
           )}
 

@@ -36,21 +36,6 @@ import {
 import { adminService } from "@/services/admin.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
 
-const DEFAULT_QUESTIONS: InternshipQuestion[] = [
-  {
-    id: "q-default-1",
-    label: "Mengapa Anda tertarik untuk mengikuti program magang pada posisi ini di Empathika?",
-    type: "textarea",
-    required: true,
-  },
-  {
-    id: "q-default-2",
-    label: "Ceritakan pengalaman, keterampilan, atau proyek terbaik yang relevan dengan posisi yang Anda lamar!",
-    type: "textarea",
-    required: true,
-  },
-]
-
 interface Props {
   positionId: string
 }
@@ -204,10 +189,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
   }, [positionId])
 
   // Get active questions for this position
-  const activeQuestions: InternshipQuestion[] =
-    position?.questions && position.questions.length > 0
-      ? position.questions
-      : DEFAULT_QUESTIONS
+  const activeQuestions: InternshipQuestion[] = position?.questions || []
 
   const handleAnswerChange = (questionId: string, val: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: val }))
@@ -854,50 +836,52 @@ export default function InternshipApplyClient({ positionId }: Props) {
           </div>
 
           {/* ── SECTION 3: PERTANYAAN POSISI / ESSAY ── */}
-          <div>
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Pertanyaan Seleksi & Minat</h2>
-                <p className="text-xs text-gray-500">
-                  Jawab pertanyaan berikut secara jelas dan deskriptif untuk membantu kami mengenal Anda.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {activeQuestions.map((q, idx) => (
-                <div key={q.id || `q-${idx}`} className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/70">
-                  <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
-                    {idx + 1}. {q.label}{" "}
-                    {q.required && <span className="text-rose-500">*</span>}
-                  </label>
-
-                  {q.type === "url" ? (
-                    <input
-                      type="url"
-                      required={q.required}
-                      value={answers[q.id] || ""}
-                      onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
-                    />
-                  ) : (
-                    <textarea
-                      required={q.required}
-                      rows={3}
-                      value={answers[q.id] || ""}
-                      onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                      placeholder="Tuliskan jawaban Anda di sini..."
-                      className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white leading-relaxed resize-y"
-                    />
-                  )}
+          {activeQuestions.length > 0 && (
+            <div>
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                  3
                 </div>
-              ))}
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Pertanyaan Seleksi & Minat</h2>
+                  <p className="text-xs text-gray-500">
+                    Jawab pertanyaan berikut secara jelas dan deskriptif untuk membantu kami mengenal Anda.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {activeQuestions.map((q, idx) => (
+                  <div key={q.id || `q-${idx}`} className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/70">
+                    <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                      {idx + 1}. {q.label}{" "}
+                      {q.required && <span className="text-rose-500">*</span>}
+                    </label>
+
+                    {q.type === "url" ? (
+                      <input
+                        type="url"
+                        required={q.required}
+                        value={answers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder="https://..."
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
+                      />
+                    ) : (
+                      <textarea
+                        required={q.required}
+                        rows={3}
+                        value={answers[q.id] || ""}
+                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                        placeholder="Tuliskan jawaban Anda di sini..."
+                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white leading-relaxed resize-y"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Error Banner Bawah */}
           {errorMessage && (

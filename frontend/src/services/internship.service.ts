@@ -64,28 +64,10 @@ export const internshipService = {
         "/admin/internship/public"
       )
       if (res.data?.success && Array.isArray(res.data.data)) {
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(STORAGE_KEY_INTERNSHIP, JSON.stringify(res.data.data))
-          } catch {}
-        }
         return res.data.data
       }
     } catch (err: any) {
       console.warn("Gagal mengambil data internship publik dari database:", err?.message)
-    }
-
-    // Jika offline, coba ambil dari cache lokal terakhir (bukan dummy)
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP)
-        if (local) {
-          const parsed = JSON.parse(local)
-          if (Array.isArray(parsed)) {
-            return parsed.filter((p) => p.isOpen)
-          }
-        }
-      } catch {}
     }
 
     return []
@@ -100,28 +82,10 @@ export const internshipService = {
         "/admin/internship"
       )
       if (res.data?.success && Array.isArray(res.data.data)) {
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(STORAGE_KEY_INTERNSHIP, JSON.stringify(res.data.data))
-          } catch {}
-        }
         return res.data.data
       }
     } catch (err: any) {
       console.warn("Gagal mengambil data internship admin dari database:", err?.message)
-    }
-
-    // Jika offline, coba ambil dari cache lokal terakhir (bukan dummy)
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP)
-        if (local) {
-          const parsed = JSON.parse(local)
-          if (Array.isArray(parsed)) {
-            return parsed
-          }
-        }
-      } catch {}
     }
 
     return []
@@ -131,7 +95,6 @@ export const internshipService = {
    * Mengambil detail satu posisi internship berdasarkan ID
    */
   getPositionById: async (id: string): Promise<InternshipPosition | null> => {
-    // 1. Coba ambil dari endpoint publik (tanpa butuh login admin)
     try {
       const res = await apiClient.get<{ success: boolean; data: InternshipPosition }>(
         `/admin/internship/public/${id}`
@@ -139,31 +102,8 @@ export const internshipService = {
       if (res.data?.success && res.data.data) {
         return res.data.data
       }
-    } catch {
-      // Lanjut ke fallback publik
-    }
-
-    // 2. Fallback: cari dari daftar posisi publik
-    try {
-      const publicPositions = await internshipService.getPublicPositions()
-      const found = publicPositions.find((p) => p.id === id)
-      if (found) return found
-    } catch {
-      // Lanjut ke cache
-    }
-
-    // 3. Fallback: cari dari cache localStorage
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP)
-        if (local) {
-          const parsed = JSON.parse(local)
-          if (Array.isArray(parsed)) {
-            const f = parsed.find((p: any) => p.id === id)
-            if (f) return f
-          }
-        }
-      } catch {}
+    } catch (err: any) {
+      console.warn("Gagal mengambil posisi dari endpoint publik:", err?.message)
     }
 
     return null
@@ -310,105 +250,35 @@ export const internshipService = {
   applyInternship: async (
     data: Omit<InternshipApplication, "id" | "status" | "createdAt" | "updatedAt">
   ): Promise<InternshipApplication> => {
-    const localId = `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    const nowStr = new Date().toISOString()
-    const localApp: InternshipApplication = {
-      id: localId,
-      positionId: data.positionId,
-      positionTitle: data.positionTitle,
-      nama: data.nama,
-      email: data.email,
-      telepon: data.telepon,
-      universitas: data.universitas,
-      jurusan: data.jurusan || null,
-      semester: data.semester || null,
-      cvUrl: data.cvUrl,
-      portfolioUrl: data.portfolioUrl || null,
-      jawaban: data.jawaban || [],
-      status: "MENUNGGU",
-      catatanAdmin: null,
-      createdAt: nowStr,
-      updatedAt: nowStr,
-    }
-
-    // Selalu simpan terlebih dahulu ke cache lokal agar aplikasi langsung tersimpan & tampil di admin
-    if (typeof window !== "undefined") {
-      try {
-        const existing = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-        const list: InternshipApplication[] = existing ? JSON.parse(existing) : []
-        localStorage.setItem(
-          STORAGE_KEY_INTERNSHIP_APPLICATIONS,
-          JSON.stringify([localApp, ...list])
-        )
+    const res = await apiClient.post<{ success: boolean; message: string; data: InternshipApplication }>(
+      "/admin/internship/apply",
+      data
+    )
+    if (res.data?.success && res.data.data) {
+      if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("empathika_internship_updated"))
-      } catch {}
-    }
-
-    try {
-      const res = await apiClient.post<{ success: boolean; data: InternshipApplication }>(
-        "/admin/internship/apply",
-        data
-      )
-      if (res.data?.success && res.data.data) {
-        const backendApp = res.data.data
-        if (typeof window !== "undefined") {
-          try {
-            const existing = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-            if (existing) {
-              const list: InternshipApplication[] = JSON.parse(existing)
-              const updated = list.map((item) => (item.id === localId ? backendApp : item))
-              localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
-              window.dispatchEvent(new Event("empathika_internship_updated"))
-            }
-          } catch {}
-        }
-        return backendApp
       }
-    } catch (err: any) {
-      console.warn("Kirim lamaran ke backend API gagal/offline, tersimpan di cache lokal:", err?.message || err)
+      return res.data.data
     }
-
-    return localApp
+    throw new Error(res.data?.message || "Gagal mengirimkan formulir lamaran")
   },
 
   /**
    * Mengambil seluruh daftar pelamar internship untuk admin
    */
   getApplications: async (): Promise<InternshipApplication[]> => {
-    let localList: InternshipApplication[] = []
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-        if (local) {
-          localList = JSON.parse(local)
-        }
-      } catch {}
-    }
-
     try {
       const res = await apiClient.get<{ success: boolean; data: InternshipApplication[] }>(
         "/admin/internship/applications"
       )
       if (res.data?.success && Array.isArray(res.data.data)) {
-        const backendData = res.data.data
-        const merged = [...backendData]
-        localList.forEach((localItem) => {
-          if (!merged.some((b) => b.id === localItem.id || (b.email === localItem.email && b.positionId === localItem.positionId))) {
-            merged.push(localItem)
-          }
-        })
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(merged))
-          } catch {}
-        }
-        return merged
+        return res.data.data
       }
     } catch (err: any) {
       console.warn("Gagal mengambil data pelamar internship dari database:", err?.message)
     }
 
-    return localList
+    return []
   },
 
   /**
@@ -426,17 +296,6 @@ export const internshipService = {
       console.warn("Gagal mengambil detail pelamar internship dari database:", err?.message)
     }
 
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-        if (local) {
-          const list: InternshipApplication[] = JSON.parse(local)
-          const found = list.find((item) => item.id === id)
-          if (found) return found
-        }
-      } catch {}
-    }
-
     return null
   },
 
@@ -448,70 +307,28 @@ export const internshipService = {
     status: InternshipApplication["status"],
     catatanAdmin?: string | null
   ): Promise<InternshipApplication> => {
-    if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-        if (local) {
-          const list: InternshipApplication[] = JSON.parse(local)
-          const updated = list.map((app) =>
-            app.id === id ? { ...app, status, catatanAdmin, updatedAt: new Date().toISOString() } : app
-          )
-          localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
-          window.dispatchEvent(new Event("empathika_internship_updated"))
-        }
-      } catch {}
-    }
-
-    try {
-      const res = await apiClient.patch<{ success: boolean; data: InternshipApplication }>(
-        `/admin/internship/applications/${id}/status`,
-        { status, catatanAdmin }
-      )
-      if (res.data?.success && res.data.data) {
-        return res.data.data
+    const res = await apiClient.patch<{ success: boolean; data: InternshipApplication }>(
+      `/admin/internship/applications/${id}/status`,
+      { status, catatanAdmin }
+    )
+    if (res.data?.success && res.data.data) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("empathika_internship_updated"))
       }
-    } catch (err: any) {
-      console.warn("Gagal memperbarui status pelamar di database:", err?.message)
+      return res.data.data
     }
-
-    return {
-      id,
-      positionId: "",
-      positionTitle: "",
-      nama: "",
-      email: "",
-      telepon: "",
-      universitas: "",
-      cvUrl: "",
-      jawaban: [],
-      status,
-      catatanAdmin,
-      createdAt: new Date().toISOString(),
-    }
+    throw new Error("Gagal memperbarui status pelamar di database")
   },
 
   /**
    * Menghapus lamaran pelamar
    */
   deleteApplication: async (id: string): Promise<void> => {
+    await apiClient.delete<{ success: boolean; message: string }>(
+      `/admin/internship/applications/${id}`
+    )
     if (typeof window !== "undefined") {
-      try {
-        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
-        if (local) {
-          const list: InternshipApplication[] = JSON.parse(local)
-          const updated = list.filter((app) => app.id !== id)
-          localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
-          window.dispatchEvent(new Event("empathika_internship_updated"))
-        }
-      } catch {}
-    }
-
-    try {
-      await apiClient.delete<{ success: boolean; message: string }>(
-        `/admin/internship/applications/${id}`
-      )
-    } catch (err: any) {
-      console.warn("Gagal menghapus lamaran dari database:", err?.message)
+      window.dispatchEvent(new Event("empathika_internship_updated"))
     }
   },
 }

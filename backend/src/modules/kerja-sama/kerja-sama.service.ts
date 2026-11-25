@@ -10,99 +10,6 @@ import type {
 } from './kerja-sama.schema'
 import type { StatusPengajuanKerjaSama } from '@prisma/client'
 
-const DEFAULT_PROGRAMS: CreateProgramInput[] = [
-  {
-    slug: 'mahasiswa',
-    title: 'Empathika untuk Mahasiswa',
-    short_name: 'Mahasiswa',
-    deskripsi: 'Pendampingan kesehatan mental mahasiswa, peer counselor club, manajemen stres akademik, dan persiapan transisi karir.',
-    pelatihan_title: 'Pelatihan Peer Counselor & Manajemen Stres Kampus',
-    pelatihan_deskripsi: 'Membekali perwakilan mahasiswa dan BEM dengan keterampilan dasar konseling sebaya (peer counseling) serta teknik coping stress saat menghadapi masa skripsi dan transisi karir.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x BEM Universitas Padjadjaran',
-    mitra_deskripsi: 'Penyelenggaraan Pekan Kesehatan Mental Kampus diikuti lebih dari 850 mahasiswa dengan sesi konseling massal dan webinar resiliensi.',
-    mitra_image: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-purple-500 to-indigo-600',
-    status: 'AKTIF',
-    urutan: 1,
-  },
-  {
-    slug: 'sekolah',
-    title: 'Empathika untuk Sekolah',
-    short_name: 'Sekolah',
-    deskripsi: 'Program bimbingan konseling komprehensif, parenting workshop, asesmen minat bakat, dan pencegahan bullying.',
-    pelatihan_title: 'Workshop Parenting Positif & Pencegahan Bullying',
-    pelatihan_deskripsi: 'Sesi edukasi interaktif bagi guru BK dan orang tua siswa untuk membangun komunikasi hangat serta mendeteksi dini masalah emosi remaja.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x SMA Taruna Bangsa',
-    mitra_deskripsi: 'Pemeriksaan psikologis minat bakat untuk 240 siswa kelas XII serta pendampingan pemilihan jurusan perkuliahan.',
-    mitra_image: 'https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-blue-500 to-cyan-600',
-    status: 'AKTIF',
-    urutan: 2,
-  },
-  {
-    slug: 'perusahaan',
-    title: 'Empathika untuk Perusahaan',
-    short_name: 'Perusahaan',
-    deskripsi: 'Employee Assistance Program (EAP), manajemen burnout karyawan, asesmen kompetensi, dan pelatihan kepemimpinan empatik.',
-    pelatihan_title: 'Pelatihan Psychological First Aid & EAP Workplace',
-    pelatihan_deskripsi: 'Membantu HR dan team leader mendeteksi gejala burnout, depresi kerja, serta mengelola beban kerja secara manusiawi dan produktif.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x PT Sinergi Digital Nusantara',
-    mitra_deskripsi: 'Implementasi program konseling privat karyawan rutin setiap bulan untuk 150 staf serta seminar bulanan work-life balance.',
-    mitra_image: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-emerald-500 to-teal-600',
-    status: 'AKTIF',
-    urutan: 3,
-  },
-  {
-    slug: 'komunitas',
-    title: 'Empathika untuk Komunitas',
-    short_name: 'Komunitas',
-    deskripsi: 'Support group berfasilitator psikolog, kampanye literasi kesehatan jiwa, dan kolaborasi aktivasi sosial.',
-    pelatihan_title: 'Training Fasilitator Support Group Komunitas',
-    pelatihan_deskripsi: 'Membekali pengurus komunitas dengan kode etik dasar pendampingan kelompok sebaya dan etika penanganan krisis mental.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x Komunitas Peduli Jiwa Muda',
-    mitra_deskripsi: 'Penyelenggaraan 12 sesi support group tematik gratis dan kampanye media sosial menjangkau lebih dari 50.000 audiens.',
-    mitra_image: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-amber-500 to-orange-600',
-    status: 'AKTIF',
-    urutan: 4,
-  },
-  {
-    slug: 'instansi',
-    title: 'Empathika untuk Instansi Pemerintah',
-    short_name: 'Instansi',
-    deskripsi: 'Peningkatan kapasitas psikologis aparatur, pemetaan psikososial masyarakat, dan program pemulihan pasca-bencana.',
-    pelatihan_title: 'Workshop Pelayanan Publik Berbasis Empati & Regulasi Emosi',
-    pelatihan_deskripsi: 'Meningkatkan ketahanan mental aparatur sipil dalam melayani masyarakat rentan dan mengelola stres kerja di garda depan.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x Dinas Sosial Jawa Barat',
-    mitra_deskripsi: 'Pelatihan penanganan psikososial trauma pasca-bencana untuk 60 pekerja sosial dan relawan bencana.',
-    mitra_image: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-rose-500 to-red-600',
-    status: 'AKTIF',
-    urutan: 5,
-  },
-  {
-    slug: 'rumah-sakit',
-    title: 'Empathika untuk Rumah Sakit',
-    short_name: 'Rumah Sakit',
-    deskripsi: 'Pendampingan psikologis pasien kronis, dukungan mental tenaga medis (nakes), serta konseling keluarga rawat inap.',
-    pelatihan_title: 'Resiliensi Mental Tenaga Kesehatan & Caregiver',
-    pelatihan_deskripsi: 'Pelatihan khusus mengatasi compassion fatigue dan trauma sekunder bagi dokter, perawat, dan keluarga pendamping pasien.',
-    pelatihan_image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800',
-    mitra_title: 'Empathika x RS Al-Islam',
-    mitra_deskripsi: 'Layanan telemedicine psikologi terpadu untuk pasien pasca pemulihan penyakit berat dan pendampingan keluarga.',
-    mitra_image: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&q=80&w=800',
-    warna_tema: 'from-pink-400 to-rose-500',
-    status: 'AKTIF',
-    urutan: 6,
-  },
-]
-
 const DEFAULT_FORMULIRS = [
   {
     slug: 'asesmen',
@@ -321,15 +228,7 @@ export class KerjaSamaService {
   // ── 2. Program Kerja Sama ───────────────────────────────────────────────────
 
   async getAllPrograms() {
-    let list = await this.repo.findAllPrograms()
-
-    // Auto-seed data awal jika tabel masih kosong
-    if (list.length === 0) {
-      for (const item of DEFAULT_PROGRAMS) {
-        await this.repo.createProgram(item).catch(() => {})
-      }
-      list = await this.repo.findAllPrograms()
-    }
+    const list = await this.repo.findAllPrograms()
 
     return {
       success: true,
