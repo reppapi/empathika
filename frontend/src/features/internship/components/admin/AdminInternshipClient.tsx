@@ -855,10 +855,10 @@ export default function AdminInternshipClient() {
         </div>
       )}
 
-      {/* ── MODAL DETAIL PELAMAR (Desain Seragam dengan Detail Layanan) ── */}
+      {/* ── MODAL DETAIL PELAMAR (Desain Seragam dengan Detail Layanan, backdrop terang) ── */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/15 backdrop-blur-[2px] p-4 animate-fadeIn">
+          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-2xl relative border border-gray-200/80 max-h-[90vh] overflow-y-auto">
             <button
               type="button"
               onClick={() => setSelectedApp(null)}
