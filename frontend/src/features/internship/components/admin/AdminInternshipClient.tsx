@@ -28,6 +28,9 @@ import {
   ArrowRight,
   X,
   HelpCircle,
+  Filter,
+  ChevronDown,
+  Check,
 } from "lucide-react"
 import {
   internshipService,
@@ -50,6 +53,8 @@ export default function AdminInternshipClient() {
   const [loadingApps, setLoadingApps] = useState(false)
   const [appSearchQuery, setAppSearchQuery] = useState("")
   const [appStatusFilter, setAppStatusFilter] = useState("Semua")
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false)
+  const statusDropdownRef = React.useRef<HTMLDivElement>(null)
   const [selectedApp, setSelectedApp] = useState<InternshipApplication | null>(null)
   const [appToDelete, setAppToDelete] = useState<InternshipApplication | null>(null)
   const [updatingAppStatus, setUpdatingAppStatus] = useState(false)
@@ -97,6 +102,24 @@ export default function AdminInternshipClient() {
     fetchPositions()
     fetchApplications()
   }, [])
+
+  // Tutup dropdown status saat klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        statusDropdownRef.current &&
+        !statusDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsStatusDropdownOpen(false)
+      }
+    }
+    if (isStatusDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isStatusDropdownOpen])
 
   // Filter pencarian Posisi
   const filteredPositions = useMemo(() => {
@@ -575,29 +598,95 @@ export default function AdminInternshipClient() {
               </p>
             </div>
 
-            {/* Filter Status Pills */}
-            <div className="flex flex-wrap items-center gap-1.5 bg-gray-100 p-1 rounded-full text-xs font-semibold self-start sm:self-auto">
-              {["Semua", "MENUNGGU", "REVIEW", "DITERIMA", "DITOLAK"].map((st) => (
-                <button
-                  key={st}
-                  onClick={() => setAppStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                    appStatusFilter === st
-                      ? "bg-[#561269] text-white font-bold shadow-xs"
-                      : "text-gray-600 hover:text-gray-900 font-medium"
+            {/* Tombol Filter Status Dropdown (Sesuai Gaya Filter Topik Event Workshop) */}
+            <div ref={statusDropdownRef} className="relative self-start sm:self-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsStatusDropdownOpen((prev) => !prev)}
+                className="flex items-center justify-between gap-2 w-48 sm:w-52 h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-xs hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-200 cursor-pointer active:scale-95 shrink-0"
+              >
+                <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
+                  <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
+                  <span className="text-gray-400 font-medium text-xs shrink-0">Status:</span>
+                  <span
+                    className="text-[#561269] font-bold text-xs sm:text-sm truncate min-w-0"
+                    title={
+                      appStatusFilter === "MENUNGGU"
+                        ? "Menunggu"
+                        : appStatusFilter === "REVIEW"
+                        ? "Di-Review"
+                        : appStatusFilter === "DITERIMA"
+                        ? "Diterima"
+                        : appStatusFilter === "DITOLAK"
+                        ? "Ditolak"
+                        : "Semua"
+                    }
+                  >
+                    {appStatusFilter === "MENUNGGU"
+                      ? "Menunggu"
+                      : appStatusFilter === "REVIEW"
+                      ? "Di-Review"
+                      : appStatusFilter === "DITERIMA"
+                      ? "Diterima"
+                      : appStatusFilter === "DITOLAK"
+                      ? "Ditolak"
+                      : "Semua"}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
+                    isStatusDropdownOpen ? "rotate-180" : ""
                   }`}
-                >
-                  {st === "MENUNGGU"
-                    ? "Menunggu"
-                    : st === "REVIEW"
-                    ? "Di-Review"
-                    : st === "DITERIMA"
-                    ? "Diterima"
-                    : st === "DITOLAK"
-                    ? "Ditolak"
-                    : "Semua"}
-                </button>
-              ))}
+                />
+              </button>
+
+              {/* Dropdown Floating di Atas Table Sesuai Desain Event Workshop */}
+              {isStatusDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                  <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
+                    Pilih Status Pelamar
+                  </p>
+                  <div className="space-y-0.5">
+                    {[
+                      { id: "Semua", label: "Semua Status" },
+                      { id: "MENUNGGU", label: "Menunggu" },
+                      { id: "REVIEW", label: "Di-Review" },
+                      { id: "DITERIMA", label: "Diterima" },
+                      { id: "DITOLAK", label: "Ditolak" },
+                    ].map((item) => {
+                      const isSelected = appStatusFilter === item.id
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => {
+                            setAppStatusFilter(item.id)
+                            setIsStatusDropdownOpen(false)
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                            isSelected
+                              ? "bg-purple-50 text-[#561269] font-bold"
+                              : "text-gray-700 hover:bg-gray-50 font-semibold"
+                          }`}
+                        >
+                          <span
+                            className={
+                              isSelected
+                                ? "font-bold text-[#561269]"
+                                : "font-semibold text-gray-800"
+                            }
+                          >
+                            {item.label}
+                          </span>
+                          {isSelected && (
+                            <Check className="h-3.5 w-3.5 text-[#561269] shrink-0 ml-2" />
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
