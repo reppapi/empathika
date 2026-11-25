@@ -569,10 +569,10 @@ export default function TentangKamiClient() {
       {/* 4.5. BERAWAL DARI MEREKA (Zigzag: Founder Atas, Manager Bawah)     */}
       {/* ================================================================= */}
       {content.pemimpinSection && (content.pemimpinSection.pendiri?.nama || content.pemimpinSection.pendiri?.foto || content.pemimpinSection.manager?.nama || content.pemimpinSection.manager?.foto) && (
-        <section className="w-full bg-[#FAF6EE] py-8 sm:py-10 md:py-14 border-y border-[#F3ECE0]/80">
-          <div className="max-w-[840px] mx-auto px-5 sm:px-8">
+        <section className="w-full bg-[#FAF6EE] py-12 sm:py-16 md:py-20 border-y border-[#F3ECE0]/80">
+          <div className="max-w-[960px] mx-auto px-6 sm:px-10">
             {/* Judul Bagian - Ditengah */}
-            <div className="text-center mb-6 sm:mb-8 md:mb-10">
+            <div className="text-center mb-10 sm:mb-12 md:mb-16">
               <h2
                 style={{ color: themeColor }}
                 className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight"
@@ -581,28 +581,43 @@ export default function TentangKamiClient() {
               </h2>
             </div>
 
-            <div className="space-y-6 sm:space-y-8 md:space-y-10">
+            <div className="space-y-12 sm:space-y-16 md:space-y-20">
               {/* Row 1: Pendiri (Foto Kiri, Tulisan Kanan) */}
               {(content.pemimpinSection.pendiri?.nama || content.pemimpinSection.pendiri?.foto) && (
                 <div
-                  className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
+                  className={`grid items-center gap-8 sm:gap-10 md:gap-16 lg:gap-20 ${
                     content.pemimpinSection.pendiri?.foto
                       ? "grid-cols-1 md:grid-cols-2"
                       : "grid-cols-1"
                   }`}
                 >
-                  {/* Kiri: Foto Badan Pendiri (Tanpa Frame) */}
+                  {/* Kiri: Foto Badan Pendiri (Dengan Aksen Bulat Estetik) */}
                   {content.pemimpinSection.pendiri?.foto && (
-                    <div className="w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-end md:pr-4">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={content.pemimpinSection.pendiri.foto}
-                        alt={content.pemimpinSection.pendiri?.nama || "Pendiri Empathika"}
-                        className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                      />
+                    <div className="w-full h-[220px] sm:h-[250px] md:h-[280px] flex items-end justify-center">
+                      <div className="relative flex items-end justify-center h-full max-h-full">
+                        {/* Lingkaran Estetik di Belakang Foto Pendiri */}
+                        <div
+                          className="absolute bottom-2 w-[160px] h-[160px] sm:w-[195px] sm:h-[195px] md:w-[220px] md:h-[220px] rounded-full pointer-events-none transition-transform duration-500"
+                          style={{
+                            background:
+                              "radial-gradient(circle, rgba(86,18,105,0.14) 0%, rgba(86,18,105,0.05) 65%, rgba(255,255,255,0.6) 100%)",
+                            border: "1.5px solid rgba(86,18,105,0.12)",
+                            boxShadow: "0 8px 24px -4px rgba(86,18,105,0.08)",
+                          }}
+                        />
+                        {/* Cincin Luar Halus */}
+                        <div className="absolute bottom-0.5 w-[180px] h-[180px] sm:w-[218px] sm:h-[218px] md:w-[245px] md:h-[245px] rounded-full pointer-events-none border border-dashed border-[#561269]/15" />
+
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={content.pemimpinSection.pendiri.foto}
+                          alt={content.pemimpinSection.pendiri?.nama || "Pendiri Empathika"}
+                          className="relative z-10 max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
 
@@ -610,7 +625,7 @@ export default function TentangKamiClient() {
                   <div
                     className={`flex flex-col ${
                       content.pemimpinSection.pendiri?.foto
-                        ? "text-center md:text-left items-center md:items-start max-w-md md:pl-4"
+                        ? "text-center md:text-left items-center md:items-start max-w-md mx-auto md:mx-0"
                         : "text-center items-center max-w-lg mx-auto"
                     }`}
                   >
@@ -620,7 +635,7 @@ export default function TentangKamiClient() {
                       </h3>
                     )}
                     {content.pemimpinSection.pendiri?.peran && (
-                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2.5">
                         {content.pemimpinSection.pendiri.peran}
                       </p>
                     )}
@@ -636,7 +651,7 @@ export default function TentangKamiClient() {
               {/* Row 2: Manajer (Tulisan Kiri, Foto Kanan) */}
               {(content.pemimpinSection.manager?.nama || content.pemimpinSection.manager?.foto) && (
                 <div
-                  className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
+                  className={`grid items-center gap-8 sm:gap-10 md:gap-16 lg:gap-20 ${
                     content.pemimpinSection.manager?.foto
                       ? "grid-cols-1 md:grid-cols-2"
                       : "grid-cols-1"
@@ -646,7 +661,7 @@ export default function TentangKamiClient() {
                   <div
                     className={`order-2 md:order-1 flex flex-col ${
                       content.pemimpinSection.manager?.foto
-                        ? "text-center md:text-left items-center md:items-start max-w-md md:ml-auto md:pr-4"
+                        ? "text-center md:text-left items-center md:items-start max-w-md mx-auto md:mx-0"
                         : "text-center items-center max-w-lg mx-auto"
                     }`}
                   >
@@ -656,7 +671,7 @@ export default function TentangKamiClient() {
                       </h3>
                     )}
                     {content.pemimpinSection.manager?.peran && (
-                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2.5">
                         {content.pemimpinSection.manager.peran}
                       </p>
                     )}
@@ -667,18 +682,33 @@ export default function TentangKamiClient() {
                     )}
                   </div>
 
-                  {/* Kanan: Foto Badan Manajer (Tanpa Frame) */}
+                  {/* Kanan: Foto Badan Manajer (Dengan Aksen Bulat Estetik) */}
                   {content.pemimpinSection.manager?.foto && (
-                    <div className="order-1 md:order-2 w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-start md:pl-4">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={content.pemimpinSection.manager.foto}
-                        alt={content.pemimpinSection.manager?.nama || "Manajer Empathika"}
-                        className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
-                        onError={(e) => {
-                          e.currentTarget.style.display = "none"
-                        }}
-                      />
+                    <div className="order-1 md:order-2 w-full h-[220px] sm:h-[250px] md:h-[280px] flex items-end justify-center">
+                      <div className="relative flex items-end justify-center h-full max-h-full">
+                        {/* Lingkaran Estetik di Belakang Foto Manajer */}
+                        <div
+                          className="absolute bottom-2 w-[160px] h-[160px] sm:w-[195px] sm:h-[195px] md:w-[220px] md:h-[220px] rounded-full pointer-events-none transition-transform duration-500"
+                          style={{
+                            background:
+                              "radial-gradient(circle, rgba(217,119,6,0.14) 0%, rgba(217,119,6,0.05) 65%, rgba(255,255,255,0.6) 100%)",
+                            border: "1.5px solid rgba(217,119,6,0.14)",
+                            boxShadow: "0 8px 24px -4px rgba(217,119,6,0.08)",
+                          }}
+                        />
+                        {/* Cincin Luar Halus */}
+                        <div className="absolute bottom-0.5 w-[180px] h-[180px] sm:w-[218px] sm:h-[218px] md:w-[245px] md:h-[245px] rounded-full pointer-events-none border border-dashed border-amber-600/15" />
+
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={content.pemimpinSection.manager.foto}
+                          alt={content.pemimpinSection.manager?.nama || "Manajer Empathika"}
+                          className="relative z-10 max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none"
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

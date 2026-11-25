@@ -58,11 +58,11 @@
   },
   "pemimpinSection": {
     "judulSection": "Berawal dari Mereka",
-    "fotoBersama": "",
+    "fotoBersama": "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80",
     "pendiri": {
       "nama": "fauuu, M.Psi., Psikolog",
       "peran": "Founder",
-      "bio": "Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu dan kelompok, penanganan trauma, dan pengembangan diri.",
+      "bio": "Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu dan kelompok, penanganan trauma, dan pengembangan diri. Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu dan kelompok, penanganan trauma, dan pengembangan diri.",
       "foto": "http://localhost:3001/uploads/bd487067-d264-40d2-abcf-fb890cd93442.webp"
     },
     "manager": {
