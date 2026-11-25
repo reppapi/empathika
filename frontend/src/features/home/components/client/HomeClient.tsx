@@ -509,13 +509,19 @@ export default function HomeClient() {
                   className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group"
                 >
                   <div className="relative h-56 sm:h-auto sm:w-2/5 shrink-0 overflow-hidden bg-gray-100">
-                    <Image
-                      unoptimized
-                      src={ev.banner_url || "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"}
-                      alt={ev.judul}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
+                    {ev.banner_url ? (
+                      <Image
+                        unoptimized
+                        src={ev.banner_url}
+                        alt={ev.judul}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                    ) : (
+                      <div className="w-full h-full min-h-[14rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <span className="text-white/70 text-xs font-bold uppercase tracking-wider">{ev.jenis_event}</span>
+                      </div>
+                    )}
                     <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
                       <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                         {ev.jenis_event}
@@ -847,16 +853,19 @@ export default function HomeClient() {
                 >
                   {/* Banner 16:9 Presisi Sesuai Ukuran Asli Gambar (1376x768) */}
                   <div className="w-full aspect-[16/9] overflow-hidden relative bg-gray-100">
-                    <Image
-                      src={
-                        item.banner_url ||
-                        "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&q=80&w=800"
-                      }
-                      alt={item.judul}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      unoptimized
-                    />
+                    {item.banner_url ? (
+                      <Image
+                        src={item.banner_url}
+                        alt={item.judul}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <span className="text-white/80 text-xs font-bold text-center">{item.judul}</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="p-5 flex flex-col flex-1">

@@ -26,7 +26,6 @@ export default function AdminTentangKamiClient() {
   const [isSaving, setIsSaving] = useState(false)
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null)
   const [isUploadingTeamPhoto, setIsUploadingTeamPhoto] = useState(false)
-  const [isUploadingTogetherPhoto, setIsUploadingTogetherPhoto] = useState(false)
   const [isUploadingPendiriPhoto, setIsUploadingPendiriPhoto] = useState(false)
   const [isUploadingManagerPhoto, setIsUploadingManagerPhoto] = useState(false)
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null)
@@ -34,7 +33,6 @@ export default function AdminTentangKamiClient() {
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null)
-  const togetherPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const pendiriPhotoInputRef = useRef<HTMLInputElement | null>(null)
   const managerPhotoInputRef = useRef<HTMLInputElement | null>(null)
 
@@ -93,10 +91,10 @@ export default function AdminTentangKamiClient() {
 
     for (let i = 0; i < 6; i++) {
       const url = formData.hero.gallery[i]?.trim()
-      if (!url || !safeUrlRegex.test(url)) {
+      if (url && !safeUrlRegex.test(url)) {
         setToast({
           type: "error",
-          message: `Foto galeri slot ${i + 1} tidak boleh kosong.`,
+          message: `Foto galeri slot ${i + 1} memiliki format yang tidak valid.`,
         })
         setActiveTab("hero")
         return
@@ -255,41 +253,6 @@ export default function AdminTentangKamiClient() {
       setToast({ type: "error", message: err.message || "Gagal mengunggah foto tim." })
     } finally {
       setIsUploadingTeamPhoto(false)
-    }
-  }
-
-  // Handler upload foto bersama figur (tengah)
-  const handleUploadTogetherPhoto = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      setToast({
-        type: "error",
-        message: "File yang diunggah harus berupa gambar (JPG, PNG, WEBP, atau GIF).",
-      })
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setToast({
-        type: "error",
-        message: "Ukuran file terlalu besar. Maksimal ukuran foto adalah 5MB.",
-      })
-      return
-    }
-
-    setIsUploadingTogetherPhoto(true)
-    try {
-      const uploadedUrl = await uploadService.uploadImage(file)
-      setFormData((prev) => ({
-        ...prev,
-        pemimpinSection: {
-          ...prev.pemimpinSection,
-          fotoBersama: uploadedUrl,
-        },
-      }))
-      setToast({ type: "success", message: "Foto bersama berhasil diunggah!" })
-    } catch (err: any) {
-      setToast({ type: "error", message: err.message || "Gagal mengunggah foto bersama." })
-    } finally {
-      setIsUploadingTogetherPhoto(false)
     }
   }
 
@@ -511,38 +474,45 @@ export default function AdminTentangKamiClient() {
                         {GALLERY_SLOT_RATIOS[idx]}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData((prev) => {
-                          const nextG = [...prev.hero.gallery] as [string, string, string, string, string, string]
-                          nextG[idx] = DEFAULT_TENTANG_KAMI.hero.gallery[idx]
-                          return { ...prev, hero: { ...prev.hero, gallery: nextG } }
-                        })
-                      }}
-                      className="text-[11px] text-gray-400 hover:text-gray-700 transition"
-                    >
-                      Default
-                    </button>
+                    {imgUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormData((prev) => {
+                            const nextG = [...prev.hero.gallery] as [string, string, string, string, string, string]
+                            nextG[idx] = ""
+                            return { ...prev, hero: { ...prev.hero, gallery: nextG } }
+                          })
+                        }}
+                        className="text-[11px] text-rose-500 hover:text-rose-700 transition cursor-pointer font-medium"
+                        title="Kosongkan slot foto ini"
+                      >
+                        Hapus
+                      </button>
+                    )}
                   </div>
 
                   {/* Thumbnail Preview */}
                   <div
                     onClick={() => fileInputRefs.current[idx]?.click()}
-                    className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-200 border border-gray-200 group cursor-pointer"
+                    className="relative w-full h-40 rounded-xl overflow-hidden bg-gray-50 border-2 border-dashed border-gray-300 hover:border-[#561269] hover:bg-purple-50/20 group cursor-pointer flex items-center justify-center transition-all"
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={imgUrl}
-                      alt={`Galeri ${idx + 1}`}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                      onError={(e) => {
-                        ;(e.target as HTMLElement).setAttribute(
-                          "src",
-                          "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=400&q=80"
-                        )
-                      }}
-                    />
+                    {imgUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={imgUrl}
+                        alt={`Galeri ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-[#561269] transition-colors p-4">
+                        <ImageIcon className="w-7 h-7 mb-1" />
+                        <span className="text-[11px] font-medium">Klik untuk unggah</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                       <button
                         type="button"
@@ -558,7 +528,7 @@ export default function AdminTentangKamiClient() {
                         ) : (
                           <Upload className="w-3.5 h-3.5" />
                         )}
-                        <span>Ganti Foto</span>
+                        <span>{imgUrl ? "Ganti Foto" : "Unggah Foto"}</span>
                       </button>
                     </div>
                   </div>

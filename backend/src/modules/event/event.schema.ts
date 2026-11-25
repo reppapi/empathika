@@ -126,7 +126,10 @@ export const createEventSchema = z
       .nullable(),
     paket_bundling: z.array(paketBundlingItemSchema).optional().nullable(),
     benefit: z.array(z.string().trim()).optional().default([]),
-    banner_url: z.string().trim().nullish().default('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=800&q=80'),
+    banner_url: z
+      .string({ required_error: 'Banner event wajib diunggah' })
+      .trim()
+      .min(1, 'Banner event wajib diunggah'),
     nama_pembicara: z
       .string({ required_error: 'Nama pembicara wajib diisi' })
       .trim()

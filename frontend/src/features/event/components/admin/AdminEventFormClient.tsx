@@ -240,6 +240,11 @@ export default function AdminEventFormClient({ eventId }: Props) {
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {}
 
+    // Banner Event Wajib Diunggah
+    if (!imageFile && (!bannerUrl || !bannerUrl.trim())) {
+      newErrors.banner = "Banner / poster event wajib diunggah."
+    }
+
     // Field Wajib Utama
     if (!form.judul || !form.judul.trim()) {
       newErrors.judul = "Judul event wajib diisi."
@@ -486,6 +491,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
             isDragOver={isDragOver}
             setIsDragOver={setIsDragOver}
             onImageUpload={handleImageUpload}
+            error={errors.banner}
           />
 
           {/* Judul Event */}

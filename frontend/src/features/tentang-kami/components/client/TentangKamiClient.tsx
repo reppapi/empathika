@@ -100,42 +100,13 @@ function renderNilaiIcon(iconName?: string, customColor?: string) {
   }
 }
 
-const BACKUP_GALLERY_FALLBACKS = [
-  "https://images.unsplash.com/photo-1544027993-37dbfe43562a?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=400&q=80",
-  "https://images.unsplash.com/photo-1573164713988-8665fc963095?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=600&q=80",
-  "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=400&q=80",
-  "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=600&q=80",
-]
-const BACKUP_TEAM_PHOTO =
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=1000&q=80"
-
-function getSafeImageUrl(url?: string, fallback = ""): string {
-  if (!url || typeof url !== "string") return fallback
+function getSafeImageUrl(url?: string): string {
+  if (!url || typeof url !== "string") return ""
   const trimmed = url.trim()
   if (/^(https?:\/\/|\/uploads\/|\/images\/|\/)/i.test(trimmed)) {
     return trimmed
   }
-  return fallback
-}
-
-function handleImageFallback(
-  e: React.SyntheticEvent<HTMLImageElement, Event>,
-  primaryFallback: string,
-  backupFallback: string
-) {
-  const target = e.currentTarget
-  if (target.dataset.triedFallback === "backup") {
-    return
-  }
-  if (!target.dataset.triedFallback && primaryFallback && !primaryFallback.startsWith("http://localhost")) {
-    target.dataset.triedFallback = "primary"
-    target.src = primaryFallback
-  } else {
-    target.dataset.triedFallback = "backup"
-    target.src = backupFallback
-  }
+  return ""
 }
 
 export default function TentangKamiClient() {
@@ -200,66 +171,90 @@ export default function TentangKamiClient() {
             {/* Kolom Kiri: Slot 1 (4:3), Slot 3 (3:4 Portrait), Slot 5 (1:1) */}
             <div className="flex flex-col gap-3 sm:gap-4">
               {/* Slot 1: Rasio 4:3 (Landscape) */}
-              <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 1"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[0], BACKUP_GALLERY_FALLBACKS[0])}
-                />
+              <div className="aspect-[4/3] w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[0] && (
+                  <img
+                    src={getSafeImageUrl(gallery[0])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 1"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
 
               {/* Slot 3: Rasio 3:4 (Portrait Tegak Tinggi) */}
-              <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 3"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[2], BACKUP_GALLERY_FALLBACKS[2])}
-                />
+              <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[2] && (
+                  <img
+                    src={getSafeImageUrl(gallery[2])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 3"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
 
               {/* Slot 5: Rasio 1:1 (Kotak) */}
-              <div className="aspect-square w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 5"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[4], BACKUP_GALLERY_FALLBACKS[4])}
-                />
+              <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[4] && (
+                  <img
+                    src={getSafeImageUrl(gallery[4])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 5"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
             </div>
 
             {/* Kolom Kanan: Slot 2 (1:1), Slot 4 (3:4 Portrait), Slot 6 (16:9) */}
             <div className="flex flex-col gap-3 sm:gap-4">
               {/* Slot 2: Rasio 1:1 (Kotak) */}
-              <div className="aspect-square w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 2"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[1], BACKUP_GALLERY_FALLBACKS[1])}
-                />
+              <div className="aspect-square w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[1] && (
+                  <img
+                    src={getSafeImageUrl(gallery[1])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 2"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
 
               {/* Slot 4: Rasio 3:4 (Portrait Tegak Tinggi) */}
-              <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 4"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[3], BACKUP_GALLERY_FALLBACKS[3])}
-                />
+              <div className="aspect-[3/4] w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[3] && (
+                  <img
+                    src={getSafeImageUrl(gallery[3])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 4"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
 
               {/* Slot 6: Rasio 16:9 (Landscape Lebar) */}
-              <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 6"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[5], BACKUP_GALLERY_FALLBACKS[5])}
-                />
+              <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden bg-gray-100 shadow-xs hover:shadow-md transition-shadow group">
+                {gallery[5] && (
+                  <img
+                    src={getSafeImageUrl(gallery[5])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 6"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -271,61 +266,85 @@ export default function TentangKamiClient() {
 
             {/* Column 1 */}
             <div className="flex flex-col gap-4 md:translate-y-6">
-              <div className="h-[120px] md:h-[140px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[0], DEFAULT_TENTANG_KAMI.hero.gallery[0])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 1"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[0], BACKUP_GALLERY_FALLBACKS[0])}
-                />
+              <div className="h-[120px] md:h-[140px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                {gallery[0] && (
+                  <img
+                    src={getSafeImageUrl(gallery[0])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 1"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
-              <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[1], DEFAULT_TENTANG_KAMI.hero.gallery[1])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 2"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[1], BACKUP_GALLERY_FALLBACKS[1])}
-                />
+              <div className="h-[140px] md:h-[160px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                {gallery[1] && (
+                  <img
+                    src={getSafeImageUrl(gallery[1])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 2"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
             </div>
 
             {/* Column 2 */}
-            <div className="h-[260px] md:h-[280px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow translate-y-2 group">
-              <img
-                src={getSafeImageUrl(gallery[2], DEFAULT_TENTANG_KAMI.hero.gallery[2])}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                alt="Empathika Gallery 3"
-                onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[2], BACKUP_GALLERY_FALLBACKS[2])}
-              />
+            <div className="h-[260px] md:h-[280px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-md hover:shadow-lg transition-shadow translate-y-2 group">
+              {gallery[2] && (
+                <img
+                  src={getSafeImageUrl(gallery[2])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 3"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
+                />
+              )}
             </div>
 
             {/* Column 3 */}
-            <div className="h-[200px] md:h-[300px] rounded-[1.5rem] overflow-hidden shadow-md hover:shadow-lg transition-shadow md:-translate-y-4 group">
-              <img
-                src={getSafeImageUrl(gallery[3], DEFAULT_TENTANG_KAMI.hero.gallery[3])}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                alt="Empathika Gallery 4"
-                onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[3], BACKUP_GALLERY_FALLBACKS[3])}
-              />
+            <div className="h-[200px] md:h-[300px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-md hover:shadow-lg transition-shadow md:-translate-y-4 group">
+              {gallery[3] && (
+                <img
+                  src={getSafeImageUrl(gallery[3])}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  alt="Empathika Gallery 4"
+                  onError={(e) => {
+                    e.currentTarget.style.display = "none"
+                  }}
+                />
+              )}
             </div>
 
             {/* Column 4 */}
             <div className="flex flex-col gap-4 md:translate-y-8">
-              <div className="h-[160px] md:h-[180px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[4], DEFAULT_TENTANG_KAMI.hero.gallery[4])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 5"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[4], BACKUP_GALLERY_FALLBACKS[4])}
-                />
+              <div className="h-[160px] md:h-[180px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                {gallery[4] && (
+                  <img
+                    src={getSafeImageUrl(gallery[4])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 5"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
-              <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
-                <img
-                  src={getSafeImageUrl(gallery[5], DEFAULT_TENTANG_KAMI.hero.gallery[5])}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  alt="Empathika Gallery 6"
-                  onError={(e) => handleImageFallback(e, DEFAULT_TENTANG_KAMI.hero.gallery[5], BACKUP_GALLERY_FALLBACKS[5])}
-                />
+              <div className="h-[100px] md:h-[120px] rounded-[1.5rem] overflow-hidden bg-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                {gallery[5] && (
+                  <img
+                    src={getSafeImageUrl(gallery[5])}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    alt="Empathika Gallery 6"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none"
+                    }}
+                  />
+                )}
               </div>
             </div>
 
@@ -515,21 +534,16 @@ export default function TentangKamiClient() {
                 className="relative w-[90%] sm:w-[80%] h-[85%] rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 ease-out z-10 border-[6px] sm:border-[8px] border-white group-hover:shadow-[0_30px_70px_rgba(0,0,0,0.2)] group-hover:-translate-y-2 group-hover:rotate-1"
               >
                  <div className="absolute inset-0 rounded-[2rem] overflow-hidden bg-gray-100">
-                   <img
-                     src={getSafeImageUrl(
-                       content.kenapaHadir.fotoTim,
-                       DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim
-                     )}
-                     alt="Empathika Team"
-                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-                     onError={(e) =>
-                       handleImageFallback(
-                         e,
-                         DEFAULT_TENTANG_KAMI.kenapaHadir.fotoTim,
-                         BACKUP_TEAM_PHOTO
-                       )
-                     }
-                   />
+                   {content.kenapaHadir.fotoTim && (
+                     <img
+                       src={getSafeImageUrl(content.kenapaHadir.fotoTim)}
+                       alt="Empathika Team"
+                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                       onError={(e) => {
+                         e.currentTarget.style.display = "none"
+                       }}
+                     />
+                   )}
                    <div className="absolute inset-0 bg-gradient-to-tr from-white/30 via-white/5 to-transparent opacity-40 mix-blend-overlay"></div>
                  </div>
               </div>
@@ -554,7 +568,7 @@ export default function TentangKamiClient() {
       {/* ================================================================= */}
       {/* 4.5. BERAWAL DARI MEREKA (Zigzag: Founder Atas, Manager Bawah)     */}
       {/* ================================================================= */}
-      {content.pemimpinSection && (
+      {content.pemimpinSection && (content.pemimpinSection.pendiri?.nama || content.pemimpinSection.pendiri?.foto || content.pemimpinSection.manager?.nama || content.pemimpinSection.manager?.foto) && (
         <section className="w-full bg-[#FAF6EE] py-8 sm:py-10 md:py-14 border-y border-[#F3ECE0]/80">
           <div className="max-w-[840px] mx-auto px-5 sm:px-8">
             {/* Judul Bagian - Ditengah */}
@@ -569,92 +583,106 @@ export default function TentangKamiClient() {
 
             <div className="space-y-6 sm:space-y-8 md:space-y-10">
               {/* Row 1: Pendiri (Foto Kiri, Tulisan Kanan) */}
-              <div
-                className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
-                  content.pemimpinSection.pendiri?.foto
-                    ? "grid-cols-1 md:grid-cols-2"
-                    : "grid-cols-1"
-                }`}
-              >
-                {/* Kiri: Foto Badan Pendiri (Tanpa Frame) */}
-                {content.pemimpinSection.pendiri?.foto && (
-                  <div className="w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-end md:pr-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={content.pemimpinSection.pendiri.foto}
-                      alt={content.pemimpinSection.pendiri?.nama || "Pendiri Empathika"}
-                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                      }}
-                    />
-                  </div>
-                )}
-
-                {/* Kanan: Tulisan Profil Pendiri */}
+              {(content.pemimpinSection.pendiri?.nama || content.pemimpinSection.pendiri?.foto) && (
                 <div
-                  className={`flex flex-col ${
+                  className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
                     content.pemimpinSection.pendiri?.foto
-                      ? "text-center md:text-left items-center md:items-start max-w-md md:pl-4"
-                      : "text-center items-center max-w-lg mx-auto"
+                      ? "grid-cols-1 md:grid-cols-2"
+                      : "grid-cols-1"
                   }`}
                 >
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
-                    {content.pemimpinSection.pendiri?.nama || "Nama Pendiri, M.Psi., Psikolog"}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
-                    {content.pemimpinSection.pendiri?.peran || "Founder & Lead Psychologist"}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                    {content.pemimpinSection.pendiri?.bio ||
-                      "Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu, penanganan trauma, dan pengembangan diri."}
-                  </p>
+                  {/* Kiri: Foto Badan Pendiri (Tanpa Frame) */}
+                  {content.pemimpinSection.pendiri?.foto && (
+                    <div className="w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-end md:pr-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={content.pemimpinSection.pendiri.foto}
+                        alt={content.pemimpinSection.pendiri?.nama || "Pendiri Empathika"}
+                        className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Kanan: Tulisan Profil Pendiri */}
+                  <div
+                    className={`flex flex-col ${
+                      content.pemimpinSection.pendiri?.foto
+                        ? "text-center md:text-left items-center md:items-start max-w-md md:pl-4"
+                        : "text-center items-center max-w-lg mx-auto"
+                    }`}
+                  >
+                    {content.pemimpinSection.pendiri?.nama && (
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                        {content.pemimpinSection.pendiri.nama}
+                      </h3>
+                    )}
+                    {content.pemimpinSection.pendiri?.peran && (
+                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                        {content.pemimpinSection.pendiri.peran}
+                      </p>
+                    )}
+                    {content.pemimpinSection.pendiri?.bio && (
+                      <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                        {content.pemimpinSection.pendiri.bio}
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Row 2: Manajer (Tulisan Kiri, Foto Kanan) */}
-              <div
-                className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
-                  content.pemimpinSection.manager?.foto
-                    ? "grid-cols-1 md:grid-cols-2"
-                    : "grid-cols-1"
-                }`}
-              >
-                {/* Kiri: Tulisan Profil Manajer */}
+              {(content.pemimpinSection.manager?.nama || content.pemimpinSection.manager?.foto) && (
                 <div
-                  className={`order-2 md:order-1 flex flex-col ${
+                  className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
                     content.pemimpinSection.manager?.foto
-                      ? "text-center md:text-left items-center md:items-start max-w-md md:ml-auto md:pr-4"
-                      : "text-center items-center max-w-lg mx-auto"
+                      ? "grid-cols-1 md:grid-cols-2"
+                      : "grid-cols-1"
                   }`}
                 >
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
-                    {content.pemimpinSection.manager?.nama || "Nama Manajer, S.Psi."}
-                  </h3>
-                  <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
-                    {content.pemimpinSection.manager?.peran || "Co-founder & Operational Manager"}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
-                    {content.pemimpinSection.manager?.bio ||
-                      "Berpengalaman dalam manajemen layanan klinis dan operasional organisasi. Berkomitmen memastikan setiap klien mendapatkan akses pendampingan psikologis yang cepat, nyaman, dan terpercaya."}
-                  </p>
-                </div>
-
-                {/* Kanan: Foto Badan Manajer (Tanpa Frame) */}
-                {content.pemimpinSection.manager?.foto && (
-                  <div className="order-1 md:order-2 w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-start md:pl-4">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={content.pemimpinSection.manager.foto}
-                      alt={content.pemimpinSection.manager?.nama || "Manajer Empathika"}
-                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
-                      onError={(e) => {
-                        e.currentTarget.style.display = "none"
-                      }}
-                    />
+                  {/* Kiri: Tulisan Profil Manajer */}
+                  <div
+                    className={`order-2 md:order-1 flex flex-col ${
+                      content.pemimpinSection.manager?.foto
+                        ? "text-center md:text-left items-center md:items-start max-w-md md:ml-auto md:pr-4"
+                        : "text-center items-center max-w-lg mx-auto"
+                    }`}
+                  >
+                    {content.pemimpinSection.manager?.nama && (
+                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                        {content.pemimpinSection.manager.nama}
+                      </h3>
+                    )}
+                    {content.pemimpinSection.manager?.peran && (
+                      <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                        {content.pemimpinSection.manager.peran}
+                      </p>
+                    )}
+                    {content.pemimpinSection.manager?.bio && (
+                      <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                        {content.pemimpinSection.manager.bio}
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
+
+                  {/* Kanan: Foto Badan Manajer (Tanpa Frame) */}
+                  {content.pemimpinSection.manager?.foto && (
+                    <div className="order-1 md:order-2 w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-start md:pl-4">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={content.pemimpinSection.manager.foto}
+                        alt={content.pemimpinSection.manager?.nama || "Manajer Empathika"}
+                        className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none"
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
