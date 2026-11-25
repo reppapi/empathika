@@ -366,7 +366,7 @@ export default function JadwalMingguanGrid({
                       return (
                         <div
                           key={item.id}
-                          onClick={() => onSelectSession && onSelectSession(item)}
+                          onClick={() => onSelectSession && onSelectSession(isSelesai ? { ...item, status: "Selesai" } : item)}
                           className={`rounded-xl p-2.5 flex flex-col gap-1.5 shadow-xs transition-all cursor-pointer hover:shadow-md hover:scale-[1.01] overflow-hidden ${isSelesai
                               ? "bg-gray-100/85 border border-gray-200/90 text-gray-500"
                               : "bg-[#E8F3ED] border border-[#b4d6be]"

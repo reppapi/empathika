@@ -9,6 +9,7 @@ import {
   formatWhatsAppPsikologCancellation,
   getWhatsAppClientRescheduleUrl,
   getWhatsAppPsikologRescheduleUrl,
+  parseTimeRangeMinutes,
 } from "@/features/konseling/data/jadwalAdminData"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import ModalInvoice from "./ModalInvoice"
@@ -71,7 +72,18 @@ export default function ModalDetailSesiKlien({
   const sessionDate = session.date || session.tanggal || ""
   const isCancelled = session.status === "Dibatalkan" || session.status === "Dibatalkan (Refund)"
   const isRescheduled = session.status === "Reschedule"
-  const isCompleted = session.status === "Selesai"
+
+  // Hitung apakah sesi sudah lewat waktunya secara riil
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  const { endMinutes } = parseTimeRangeMinutes(session.waktu)
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const isPastTime =
+    Boolean(sessionDate && sessionDate < todayKey) ||
+    Boolean(sessionDate && sessionDate === todayKey && endMinutes > 0 && currentMinutes >= endMinutes)
+
+  const isCompleted = session.status === "Selesai" || (session.status as string) === "COMPLETED" || (!isCancelled && !isRescheduled && isPastTime)
+  const displayStatus = isCompleted ? "Selesai" : session.status
 
   // Aturan Bisnis: Batas maksimal Reschedule adalah H-3 jam sebelum jam mulai sesi
   const isRescheduleAllowed = canRescheduleSession(sessionDate, session.waktu)
@@ -362,11 +374,11 @@ export default function ModalDetailSesiKlien({
             <span className="font-semibold text-gray-700">Status Saat Ini:</span>
             <AdminStatusBadge
               variant={
-                session.status === "Selesai"
+                displayStatus === "Selesai"
                   ? "success"
-                  : session.status === "Segera Dimulai"
+                  : displayStatus === "Segera Dimulai"
                     ? "info"
-                    : session.status === "Sedang Berlangsung"
+                    : displayStatus === "Sedang Berlangsung"
                       ? "danger"
                       : isRescheduled
                         ? "warning"
@@ -376,7 +388,7 @@ export default function ModalDetailSesiKlien({
               }
               className="w-40"
             >
-              {session.status}
+              {displayStatus}
             </AdminStatusBadge>
           </div>
 
@@ -522,6 +534,17 @@ export default function ModalDetailSesiKlien({
                 Tandai Selesai
               </button>
             </>
+          )}
+
+          {!isReadOnly && isCompleted && (
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-xs font-bold cursor-not-allowed select-none opacity-80"
+              title="Sesi ini telah selesai dan tidak dapat diubah lagi"
+            >
+              Sesi Selesai
+            </button>
           )}
 
           <button

@@ -398,6 +398,31 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
   const handleSelectWeeklySession = (session: BookedAssessment) => {
     const isClientBooked = !session.isAvailableSlot && session.namaKlien && session.namaKlien !== "Tersedia"
     const isResched = session.status === "Reschedule" || session.isRescheduled
+
+    const now = new Date()
+    const todayDateKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+    const sessionDateKey = session.date || (session as any).tanggal || ""
+    const { endMinutes } = parseTimeRangeMinutes(session.waktu)
+    const currentMinutes = now.getHours() * 60 + now.getMinutes()
+
+    const isPast =
+      Boolean(sessionDateKey && sessionDateKey < todayDateKey) ||
+      Boolean(sessionDateKey && sessionDateKey === todayDateKey && endMinutes > 0 && currentMinutes >= endMinutes)
+
+    const isCompleted =
+      session.status === "Selesai" ||
+      session.status === "COMPLETED" ||
+      (isClientBooked && isPast)
+
+    let finalStatus: ClientSessionStatus = "Menunggu Jadwal"
+    if (session.status === "Dibatalkan" || (session as any).isCancelled) {
+      finalStatus = "Dibatalkan"
+    } else if (isResched) {
+      finalStatus = "Reschedule"
+    } else if (isCompleted) {
+      finalStatus = "Selesai"
+    }
+
     const converted: ClientSessionToday = {
       id: session.id,
       date: session.date,
@@ -412,7 +437,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       layanan: session.layanan,
       tipe: session.metode === "Online" ? "Online [Zoom]" : "Offline [Klinik]",
       catatan: session.catatan,
-      status: session.status === "Dibatalkan" ? "Dibatalkan" : isResched ? "Reschedule" : "Menunggu Jadwal",
+      status: finalStatus,
       isPaid: true,
     }
     setSelectedDetailSession(converted)
@@ -800,6 +825,18 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
               layananName = isAsesmen ? "Asesmen Tersedia" : "Slot Tersedia"
             } else if (isAvailable) {
               finalWeeklyStatus = "Tersedia"
+            } else {
+              const { endMinutes } = parseTimeRangeMinutes(w.timeSlot)
+              const now = new Date()
+              const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+              const currentMinutes = now.getHours() * 60 + now.getMinutes()
+              const isPastTime =
+                w.date < todayKey ||
+                (w.date === todayKey && endMinutes > 0 && currentMinutes >= endMinutes)
+
+              if (w.status === "Selesai" || w.status === "COMPLETED" || isPastTime) {
+                finalWeeklyStatus = "Selesai"
+              }
             }
 
             return {
