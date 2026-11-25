@@ -943,11 +943,10 @@ export default function FormulirKerjaSamaClient({
 
               {/* No. WhatsApp PIC */}
               <div id="field-nomorWhatsapp">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  NO. WHATSAPP AKTIF <span className="text-rose-500">*</span>
-                </label>
                 <PhoneInputField
                   value={nomorWhatsapp}
+                  label="No WhatsApp"
+                  required
                   onChange={(val) => {
                     setNomorWhatsapp(val)
                     if (formErrors.nomorWhatsapp && val.replace(/\D/g, "").length >= 9) {
