@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import { createPortal } from "react-dom"
 import Link from "next/link"
 import {
   Briefcase,
@@ -856,8 +857,8 @@ export default function AdminInternshipClient() {
       )}
 
       {/* ── MODAL DETAIL PELAMAR (Desain Seragam dengan Detail Layanan) ── */}
-      {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
+      {selectedApp && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
             <button
               type="button"
@@ -1066,11 +1067,11 @@ export default function AdminInternshipClient() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── MODAL KONFIRMASI HAPUS POSISI ── */}
-      {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      {itemToDelete && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
@@ -1103,11 +1104,11 @@ export default function AdminInternshipClient() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* ── MODAL KONFIRMASI HAPUS PELAMAR ── */}
-      {appToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+      {appToDelete && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
@@ -1140,7 +1141,7 @@ export default function AdminInternshipClient() {
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   )
 }
