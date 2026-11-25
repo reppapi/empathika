@@ -487,6 +487,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
                   value={formData.telepon}
                   onChange={(val) => setFormData({ ...formData, telepon: val })}
                   placeholder="81234567890"
+                  inputClassName="px-4 py-3 rounded-xl border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
                 />
               </div>
 
