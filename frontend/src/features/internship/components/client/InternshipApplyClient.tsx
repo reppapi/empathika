@@ -341,12 +341,12 @@ export default function InternshipApplyClient({ positionId }: Props) {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center items-center">
             <Link
               href="/internship"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-full bg-[#561269] hover:bg-[#6e1885] text-white font-bold text-sm shadow-md hover:shadow-lg transition-all"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#6e1885] text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Halaman Magang</span>
             </Link>
           </div>
