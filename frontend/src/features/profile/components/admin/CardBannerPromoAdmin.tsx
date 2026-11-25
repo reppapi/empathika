@@ -29,7 +29,8 @@ export function CardBannerPromoAdmin() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // State Form Input (Hanya Gambar, Link Tujuan, Tanggal & Status)
+  // State Form Input (Nama Banner/Iklan, Gambar, Link Tujuan, Tanggal & Status)
+  const [nama, setNama] = useState("")
   const [gambar, setGambar] = useState("")
   const [linkTujuan, setLinkTujuan] = useState("")
   const [aktif, setAktif] = useState(true)
@@ -61,6 +62,7 @@ export function CardBannerPromoAdmin() {
   }, [])
 
   const resetForm = () => {
+    setNama("")
     setGambar("")
     setLinkTujuan("")
     setAktif(true)
@@ -80,6 +82,7 @@ export function CardBannerPromoAdmin() {
   const handleOpenEdit = (b: BannerPromoItem) => {
     setIsEditingDefault(false)
     setEditingId(b.id)
+    setNama(b.nama || "")
     setGambar(b.gambar)
     setLinkTujuan(b.linkTujuan || "")
     setAktif(b.aktif)
@@ -156,6 +159,7 @@ export function CardBannerPromoAdmin() {
         item.id === editingId
           ? {
               ...item,
+              nama: nama.trim() || null,
               judul: "",
               gambar,
               linkTujuan: linkTujuan.trim(),
@@ -168,6 +172,7 @@ export function CardBannerPromoAdmin() {
     } else {
       const newBanner: BannerPromoItem = {
         id: "banner-" + Date.now(),
+        nama: nama.trim() || null,
         judul: "",
         gambar,
         linkTujuan: linkTujuan.trim(),
@@ -253,7 +258,7 @@ export function CardBannerPromoAdmin() {
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#561269] hover:bg-[#6c1784] px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-5 py-2.5 text-xs font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
@@ -427,6 +432,23 @@ export function CardBannerPromoAdmin() {
               </div>
             </div>
 
+            {/* 2. Nama Iklan */}
+            <div>
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                Nama Iklan
+              </label>
+              <input
+                type="text"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                placeholder="Contoh: Promo Diskon Hari Ayah / Banner Webinar Desember"
+                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/10"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Nama ini hanya muncul di dashboard admin agar Anda mudah membedakan banner, tidak ditampilkan di website publik.
+              </p>
+            </div>
+
             {/* 3. Link Tujuan (URL Target) */}
             <div>
               <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -541,7 +563,7 @@ export function CardBannerPromoAdmin() {
                   <div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <h5 className="text-xs sm:text-sm font-bold text-gray-900">
-                        {item.judul || `Banner Promosi #${banners.indexOf(item) + 1}`}
+                        {item.nama || item.judul || `Banner Promosi #${banners.indexOf(item) + 1}`}
                       </h5>
                       <span className="text-xs text-gray-400 font-normal">
                         {item.aktif ? (isExpired ? "Kadaluarsa" : "Aktif") : "Nonaktif"}

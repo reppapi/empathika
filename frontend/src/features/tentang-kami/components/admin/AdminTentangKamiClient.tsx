@@ -392,7 +392,7 @@ export default function AdminTentangKamiClient() {
             type="button"
             onClick={handleSave}
             disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
           >
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -553,7 +553,7 @@ export default function AdminTentangKamiClient() {
                       type="button"
                       onClick={() => fileInputRefs.current[idx]?.click()}
                       disabled={uploadingSlot === idx}
-                      className="w-full py-2 px-3 rounded-xl bg-[#561269]/10 hover:bg-[#561269]/20 text-[#561269] text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer disabled:opacity-60"
+                      className="w-full py-2.5 px-3 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
                     >
                       {uploadingSlot === idx ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -577,7 +577,7 @@ export default function AdminTentangKamiClient() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -665,7 +665,7 @@ export default function AdminTentangKamiClient() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -796,7 +796,7 @@ export default function AdminTentangKamiClient() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -881,7 +881,7 @@ export default function AdminTentangKamiClient() {
                 type="button"
                 onClick={() => teamPhotoInputRef.current?.click()}
                 disabled={isUploadingTeamPhoto}
-                className="w-full py-2.5 px-4 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold flex items-center justify-center gap-2 transition cursor-pointer shadow-xs disabled:opacity-60"
               >
                 {isUploadingTeamPhoto ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -977,7 +977,7 @@ export default function AdminTentangKamiClient() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -1083,7 +1083,7 @@ export default function AdminTentangKamiClient() {
                     type="button"
                     onClick={() => pendiriPhotoInputRef.current?.click()}
                     disabled={isUploadingPendiriPhoto}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
                   >
                     {isUploadingPendiriPhoto ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1259,7 +1259,7 @@ export default function AdminTentangKamiClient() {
                     type="button"
                     onClick={() => managerPhotoInputRef.current?.click()}
                     disabled={isUploadingManagerPhoto}
-                    className="flex-1 py-2 px-3 rounded-xl bg-[#561269] hover:bg-[#430c52] text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
+                    className="flex-1 py-2 px-3 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs disabled:opacity-60"
                   >
                     {isUploadingManagerPhoto ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -1394,7 +1394,7 @@ export default function AdminTentangKamiClient() {
               type="button"
               onClick={handleSave}
               disabled={isSaving}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#561269] hover:bg-[#430c52] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
             >
               {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
@@ -1412,7 +1412,7 @@ export default function AdminTentangKamiClient() {
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="px-5 py-2 rounded-xl bg-[#561269] text-white text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-60 cursor-pointer"
+          className="px-5 py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-60 cursor-pointer"
         >
           {isSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
           <span>{isSaving ? "Simpan..." : "Simpan"}</span>

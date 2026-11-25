@@ -149,6 +149,7 @@ export type UpdateTentangKamiInput = z.infer<typeof updateTentangKamiSchema>
 
 export const bannerPromoItemSchema = z.object({
   id: z.string(),
+  nama: z.string().nullable().optional().default(''),
   judul: z.string().nullable().optional().default(''),
   gambar: z.string().min(1, 'Gambar banner wajib ada'),
   linkTujuan: z.string().nullable().optional().default(''),
