@@ -269,10 +269,10 @@ export default function AdminInternshipClient() {
   }
 
   return (
-    <div className="space-y-6 font-poppins pb-16">
+    <div className="flex flex-col gap-6 font-poppins pb-16 relative">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-50 flex items-center gap-3 bg-[#0f172a] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-700 animate-slideIn">
+        <div className="fixed top-6 right-6 z-50 !m-0 flex items-center gap-3 bg-[#0f172a] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-gray-700 animate-slideIn">
           <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
           <span className="text-sm font-medium">{toastMessage}</span>
         </div>
@@ -857,7 +857,7 @@ export default function AdminInternshipClient() {
 
       {/* ── MODAL DETAIL PELAMAR (Desain Seragam dengan Detail Layanan) ── */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
           <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
             <button
               type="button"
@@ -1070,7 +1070,7 @@ export default function AdminInternshipClient() {
 
       {/* ── MODAL KONFIRMASI HAPUS POSISI ── */}
       {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
@@ -1107,7 +1107,7 @@ export default function AdminInternshipClient() {
 
       {/* ── MODAL KONFIRMASI HAPUS PELAMAR ── */}
       {appToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
+        <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl border border-gray-100">
             <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto">
               <Trash2 className="w-6 h-6" />
