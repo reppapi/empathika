@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Link as LinkIcon, ChevronLeft } from 'lucide-react';
+import { useTenantContext } from '@/context/TenantContext';
 import { blogService } from '@/services/blog.service';
 import { BackendBlogItem } from '@/features/blog/types';
 import styles from './BlogDetail.module.css';
@@ -13,6 +14,9 @@ interface Props {
 }
 
 export default function BlogDetailClient({ slug }: Props) {
+  const { isBiro, biroProfile } = useTenantContext();
+  const themeColor = biroProfile?.warna_tema || "var(--biro-theme-color, #561269)";
+
   const [blog, setBlog] = useState<BackendBlogItem | null>(null);
   const [recentPosts, setRecentPosts] = useState<BackendBlogItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +32,13 @@ export default function BlogDetailClient({ slug }: Props) {
     ])
       .then(([detailRes, listRes]) => {
         if (!isMounted) return;
+        const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : 'Empathika';
         if (detailRes?.success && detailRes.data) {
           setBlog(detailRes.data);
-          document.title = `${detailRes.data.judul} – Blog Empathika`;
+          document.title = `${detailRes.data.judul} – Blog ${brandName}`;
         } else {
           setBlog(null);
-          document.title = 'Artikel Tidak Ditemukan – Empathika';
+          document.title = `Artikel Tidak Ditemukan – ${brandName}`;
         }
 
         if (listRes?.success && Array.isArray(listRes.data)) {
@@ -47,7 +52,7 @@ export default function BlogDetailClient({ slug }: Props) {
     return () => {
       isMounted = false;
     };
-  }, [slug]);
+  }, [slug, isBiro, biroProfile?.nama_biro]);
 
   const handleCopy = () => {
     if (typeof window !== 'undefined') {
@@ -60,9 +65,12 @@ export default function BlogDetailClient({ slug }: Props) {
   if (loading) {
     return (
       <div style={{
-        paddingTop: 130, minHeight: '100vh', background: '#f8f5ff',
+        paddingTop: 130, minHeight: '100vh',
+        background: isBiro ? `color-mix(in srgb, ${themeColor} 4%, #fcfcfd)` : '#f8f5ff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: 12, color: '#7c3aed', textAlign: 'center',
+        flexDirection: 'column', gap: 12,
+        color: isBiro ? themeColor : '#7c3aed',
+        textAlign: 'center',
       }}>
         <p style={{ fontWeight: 600, fontSize: 16 }}>Memuat detail artikel...</p>
       </div>
@@ -72,13 +80,16 @@ export default function BlogDetailClient({ slug }: Props) {
   if (!blog) {
     return (
       <div style={{
-        paddingTop: 130, minHeight: '100vh', background: '#f8f5ff',
+        paddingTop: 130, minHeight: '100vh',
+        background: isBiro ? `color-mix(in srgb, ${themeColor} 4%, #fcfcfd)` : '#f8f5ff',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        flexDirection: 'column', gap: 12, color: '#7c3aed', textAlign: 'center',
+        flexDirection: 'column', gap: 12,
+        color: isBiro ? themeColor : '#7c3aed',
+        textAlign: 'center',
       }}>
         <div style={{ fontSize: 56 }}>😔</div>
         <p style={{ fontWeight: 700, fontSize: 18, color: '#1a0533' }}>Artikel tidak ditemukan</p>
-        <Link href="/blog" style={{ color: '#7c3aed', fontWeight: 600, textDecoration: 'none' }}>
+        <Link href="/blog" style={{ color: isBiro ? themeColor : '#7c3aed', fontWeight: 600, textDecoration: 'none' }}>
           ← Kembali ke Blog
         </Link>
       </div>
@@ -150,7 +161,7 @@ export default function BlogDetailClient({ slug }: Props) {
           <div className={styles.recentSection}>
             <div className={styles.recentHeader}>
               <h3>Postingan Terakhir</h3>
-              <Link href="/blog">Lihat Semua</Link>
+              <Link href="/blog" style={isBiro ? { color: themeColor } : undefined}>Lihat Semua</Link>
             </div>
             <div className={styles.recentGrid}>
               {recentPosts.map((p) => (

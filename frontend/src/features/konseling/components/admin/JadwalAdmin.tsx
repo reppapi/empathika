@@ -90,8 +90,9 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
     handleCopyWhatsAppMessage,
     handleCopyWhatsAppPsikologMessage,
 
-    // Toast
+    // Toast & Loading
     actionToast,
+    isLoading,
   } = useJadwalAdmin({ isBiroContext })
 
   return (
@@ -222,10 +223,12 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
         stats={stats}
         activeStatus={selectedStatus}
         onStatusChange={handleStatusChange}
+        isLoading={isLoading}
       />
 
       {/* Sesi Klien Hari Ini (Highlight & Table) */}
       <JadwalHariIniSection
+        isLoading={isLoading}
         isReadOnly={isBiroContext}
         filteredTodaySessions={filteredTodaySessions}
         todaySessionsCount={todaySessions.length}
@@ -261,6 +264,7 @@ export default function JadwalAdmin({ isBiroContext = false }: JadwalAdminProps)
 
       {/* Jadwal Mingguan (Weekly Assessment Schedule Grid) */}
       <JadwalMingguanGrid
+        isLoading={isLoading}
         canGoPrevWeek={canGoPrevWeek}
         isCurrentWeek={isCurrentWeek}
         goToCurrentWeek={goToCurrentWeek}

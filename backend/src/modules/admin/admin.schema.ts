@@ -118,3 +118,34 @@ export const updateTentangKamiSchema = z.object({
 })
 
 export type UpdateTentangKamiInput = z.infer<typeof updateTentangKamiSchema>
+
+// ── Modul Manajemen Internship ────────────────────────────────────
+export const internshipPositionSchema = z.object({
+  id: z.string().optional(),
+  judul: z.string().trim().min(1, 'Judul posisi wajib diisi'),
+  divisi: z.string().trim().optional().nullable(),
+  durasi: z.string().trim().min(1, 'Durasi wajib diisi'),
+  lokasi: z.string().trim().min(1, 'Lokasi wajib diisi'),
+  workMode: z.string().trim().min(1, 'Work mode wajib diisi'),
+  kompensasi: z.string().trim().min(1, 'Kompensasi wajib diisi'),
+  deadline: z.string().trim().min(1, 'Deadline pendaftaran wajib diisi'),
+  deskripsi: z.string().trim().optional().nullable(),
+  responsibilities: z.array(z.string()).default([]),
+  qualifications: z.array(z.string()).default([]),
+  applyUrl: z.string().trim().min(1, 'URL pendaftaran wajib diisi'),
+  isOpen: z.boolean().default(true),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+})
+
+export const createInternshipPositionSchema = internshipPositionSchema
+export const updateInternshipPositionSchema = internshipPositionSchema.partial()
+export const updateInternshipPositionsSchema = z.object({
+  positions: z.array(internshipPositionSchema),
+})
+
+export type InternshipPositionItem = z.infer<typeof internshipPositionSchema>
+export type CreateInternshipPositionInput = z.infer<typeof createInternshipPositionSchema>
+export type UpdateInternshipPositionInput = z.infer<typeof updateInternshipPositionSchema>
+export type UpdateInternshipPositionsInput = z.infer<typeof updateInternshipPositionsSchema>
+

@@ -125,12 +125,29 @@ export function Navbar() {
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
                 )}
               </div>
-              <span 
-                className="text-[22px] font-extrabold tracking-widest uppercase max-w-[280px] truncate"
-                style={{ color: themeColor }}
-              >
-                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : (isBiro && slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "EMPATHIKA")}
-              </span>
+              {isBiro ? (
+                <div className="flex flex-col min-w-0 max-w-[280px]">
+                  <span 
+                    className="text-[18px] sm:text-[20px] font-extrabold tracking-wide uppercase truncate leading-tight"
+                    style={{ color: themeColor }}
+                  >
+                    {biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "BIRO MITRA")}
+                  </span>
+                  <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1.5 leading-none mt-1">
+                    <span>powered by</span>
+                    <span className="font-bold text-[12px]" style={{ color: "#561269" }}>
+                      Empathika
+                    </span>
+                  </span>
+                </div>
+              ) : (
+                <span 
+                  className="text-[22px] font-extrabold tracking-widest uppercase max-w-[280px] truncate"
+                  style={{ color: themeColor }}
+                >
+                  EMPATHIKA
+                </span>
+              )}
             </Link>
 
             <nav 
@@ -229,9 +246,23 @@ export function Navbar() {
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
                 )}
               </div>
-              <span className="text-[22px] font-extrabold tracking-widest text-white uppercase truncate">
-                {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : (isBiro && slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "EMPATHIKA")}
-              </span>
+              {isBiro ? (
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[18px] sm:text-[20px] font-extrabold tracking-wide text-white uppercase truncate leading-tight">
+                    {biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "BIRO MITRA")}
+                  </span>
+                  <span className="text-[11px] font-medium text-white/90 flex items-center gap-1.5 leading-none mt-1">
+                    <span>powered by</span>
+                    <span className="font-bold text-[11px] px-1.5 py-0.5 rounded-md bg-white shadow-xs" style={{ color: "#561269" }}>
+                      Empathika
+                    </span>
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[22px] font-extrabold tracking-widest text-white uppercase truncate">
+                  EMPATHIKA
+                </span>
+              )}
             </Link>
             <div className="mt-6 h-[1.5px] w-full bg-white/40"></div>
           </div>

@@ -39,8 +39,11 @@ export class BookingService {
       selectedDate = parseDateString(wibDateStr)
     }
 
-    // 1. Ambil Sesi Hari Ini
-    const rawTodaySessions = await this.repo.findTodaySessions(selectedDate, query.id_biro || query.biroId)
+    // 1. Ambil Sesi Hari Ini & Seluruh Slot Mingguan secara Paralel (Fast Response)
+    const [rawTodaySessions, allSlots] = await Promise.all([
+      this.repo.findTodaySessions(selectedDate, query.id_biro || query.biroId),
+      this.repo.findJadwalSlots(query),
+    ])
 
     const todaySessions = rawTodaySessions
       .filter((s) => {
@@ -138,8 +141,7 @@ export class BookingService {
       }
     })
 
-    // 2. Ambil Seluruh Slot & Grid Mingguan
-    const allSlots = await this.repo.findJadwalSlots(query)
+    // 2. Pemrosesan Grid Mingguan (Deduplikasi & Prioritas Slot Aktif)
 
     // Deduplikasi slot jika terdapat slot lama yang pernah dibatalkan dan slot baru yang dibooking pada jam/tanggal yang sama
     const slotOverviewMap = new Map<string, any>()

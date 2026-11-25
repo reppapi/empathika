@@ -819,3 +819,27 @@ model SiteSetting {
 
   @@map("site_settings")
 }
+
+// ==========================================
+// 10. INTERNSHIP (PROGRAM MAGANG & KARIR)
+// ==========================================
+
+model InternshipPosition {
+  id               String   @id @default(uuid())
+  judul            String
+  divisi           String?
+  durasi           String
+  lokasi           String
+  workMode         String
+  kompensasi       String
+  deadline         String
+  deskripsi        String?  @db.Text
+  responsibilities Json     @default("[]")
+  qualifications   Json     @default("[]")
+  applyUrl         String
+  isOpen           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("internship_positions")
+}

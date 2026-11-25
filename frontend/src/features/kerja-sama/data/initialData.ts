@@ -228,6 +228,19 @@ export const INITIAL_FORMULIR_CONFIGS: FormulirConfigItem[] = [
         options: ["10 - 30 Orang (Intimate Group)", "30 - 80 Orang", "80 - 200 Orang", "> 200 Orang (All-Hands)"],
       },
       {
+        id: "q_budget",
+        label: "Estimasi Budget",
+        key: "estimasiBudget",
+        type: "select",
+        options: [
+          "< Rp 5 juta",
+          "Rp 5–10 juta",
+          "Rp 10–25 juta",
+          "Rp 25–50 juta",
+          "> Rp 50 juta",
+        ],
+      },
+      {
         id: "q4",
         label: "Rencana Waktu & Lokasi Kegiatan",
         key: "waktuPelaksanaan",
@@ -271,6 +284,14 @@ export const INITIAL_FORMULIR_CONFIGS: FormulirConfigItem[] = [
         type: "text",
         placeholder: "Contoh: Bulan depan / Q1 2027",
       },
+      {
+        id: "q_proposal",
+        label: "Upload Proposal Kerja Sama (Opsional)",
+        key: "proposalKerjaSama",
+        type: "file",
+        placeholder: "Pilih file proposal (PDF, DOC, DOCX, maks 15MB)",
+        required: false,
+      },
     ],
   },
 ]
@@ -282,6 +303,54 @@ export function getFormulirConfigs(): FormulirConfigItem[] {
     if (!saved) return INITIAL_FORMULIR_CONFIGS
     const parsed: FormulirConfigItem[] = JSON.parse(saved)
     const filtered = parsed.filter((item) => item.slug !== "affiliate")
+
+    // Pastikan formulir In House Training menyertakan pertanyaan Estimasi Budget berbentuk select
+    const budgetOptions = [
+      "< Rp 5 juta",
+      "Rp 5–10 juta",
+      "Rp 10–25 juta",
+      "Rp 25–50 juta",
+      "> Rp 50 juta",
+    ]
+    const inHouse = filtered.find((f) => f.slug === "in-house-training" || f.id === "f_in_house")
+    if (inHouse) {
+      const budgetQ = inHouse.pertanyaanKhusus.find(
+        (q) => q.key === "estimasiBudget" || q.label.toLowerCase().includes("budget")
+      )
+      if (budgetQ) {
+        budgetQ.type = "select"
+        budgetQ.options = budgetOptions
+      } else {
+        inHouse.pertanyaanKhusus.push({
+          id: "q_budget",
+          label: "Estimasi Budget",
+          key: "estimasiBudget",
+          type: "select",
+          options: budgetOptions,
+        })
+      }
+    }
+
+    // Pastikan formulir Kerjasama Lainnya menyertakan pertanyaan upload proposal
+    const lainnya = filtered.find((f) => f.slug === "lainnya" || f.id === "f_lainnya")
+    if (lainnya) {
+      const proposalQ = lainnya.pertanyaanKhusus.find(
+        (q) => q.key === "proposalKerjaSama" || q.label.toLowerCase().includes("proposal")
+      )
+      if (proposalQ) {
+        proposalQ.type = "file"
+      } else {
+        lainnya.pertanyaanKhusus.push({
+          id: "q_proposal",
+          label: "Upload Proposal Kerja Sama (Opsional)",
+          key: "proposalKerjaSama",
+          type: "file",
+          placeholder: "Pilih file proposal (PDF, DOC, DOCX, maks 15MB)",
+          required: false,
+        })
+      }
+    }
+
     return filtered.length > 0 ? filtered : INITIAL_FORMULIR_CONFIGS
   } catch {
     return INITIAL_FORMULIR_CONFIGS

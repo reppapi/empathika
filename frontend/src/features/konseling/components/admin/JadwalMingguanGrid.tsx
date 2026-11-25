@@ -25,6 +25,7 @@ interface JadwalMingguanGridProps {
   today: Date
   onSelectSession?: (session: BookedAssessment) => void
   onRemoveSlot?: (time: string, dateKey?: string) => void
+  isLoading?: boolean
 }
 
 export default function JadwalMingguanGrid({
@@ -41,6 +42,7 @@ export default function JadwalMingguanGrid({
   today,
   onSelectSession,
   onRemoveSlot,
+  isLoading = false,
 }: JadwalMingguanGridProps) {
   const todayDateKey = formatDateKey(today)
 
@@ -48,9 +50,7 @@ export default function JadwalMingguanGrid({
     <div className="mt-8 bg-white border border-gray-100 shadow-sm rounded-2xl p-6 sm:p-8 font-poppins">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Mingguan</h2>
       <p className="text-gray-500 text-sm mb-6">
-        {onRemoveSlot
-          ? "Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu (klik sesi untuk melihat opsi pembatalan)"
-          : "Lihat ringkasan layanan yang telah dibooking oleh klien dalam satu minggu"}
+        Lihat ringkasan sesi yang telah dibooking oleh klien dalam satu minggu
       </p>
 
       {/* Week Selector */}
@@ -92,10 +92,10 @@ export default function JadwalMingguanGrid({
       </div>
 
       {/* Weekly Grid */}
-      <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-        <div className="min-w-[980px] xl:min-w-full">
+      <div className="overflow-x-auto border border-gray-200 rounded-xl admin-table-scrollbar">
+        <div className="w-full min-w-[780px] md:min-w-full max-h-[365px] overflow-y-auto admin-table-scrollbar">
           {/* Header */}
-          <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
+          <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-200 bg-gray-50/95 backdrop-blur-xs shadow-2xs">
             {weekDays.map((wd, i) => (
               <div
                 key={i}
@@ -122,11 +122,23 @@ export default function JadwalMingguanGrid({
           <div className="grid grid-cols-7 min-h-[360px] divide-x divide-gray-200">
             {weekDays.map((wd, i) => {
               const sessions = currentWeekAllSessions
-                .filter(
-                  (s) =>
+                .filter((s) => {
+                  const isUnbooked =
+                    s.isAvailableSlot ||
+                    s.status === "Tersedia" ||
+                    !s.namaKlien ||
+                    s.namaKlien.trim().toLowerCase() === "tersedia" ||
+                    s.layanan === "Slot Tersedia" ||
+                    s.layanan === "Slot Asesmen" ||
+                    s.layanan === "Asesmen Tersedia"
+                  const isCancelled = !isUnbooked && (s.status === "Dibatalkan" || (s as any).isCancelled)
+                  return (
+                    !isUnbooked &&
+                    !isCancelled &&
                     s.date === wd.dateKey &&
                     matchLayanan(s.layanan, selectedLayanan)
-                )
+                  )
+                })
                 .sort((a, b) => a.waktu.localeCompare(b.waktu))
 
               const isTodayColumn = wd.dateKey === todayDateKey
@@ -142,7 +154,12 @@ export default function JadwalMingguanGrid({
                       : "bg-white"
                     }`}
                 >
-                  {sessions.length > 0 ? (
+                  {isLoading && currentWeekAllSessions.length === 0 ? (
+                    <div className="flex flex-col gap-2 animate-pulse py-1">
+                      <div className="h-16 bg-gray-200/60 rounded-xl" />
+                      <div className="h-14 bg-gray-100/70 rounded-xl" />
+                    </div>
+                  ) : sessions.length > 0 ? (
                     sessions.map((item) => {
                       const isUnbooked =
                         item.isAvailableSlot ||
@@ -433,15 +450,11 @@ export default function JadwalMingguanGrid({
           <span className="text-xs font-bold text-amber-800">Sesi Reschedule</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
-          <span className="text-xs font-bold text-[#561269]">Slot Tersedia (Dibuka)</span>
-        </div>
-        <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-gray-400"></span>
           <span className="text-xs font-bold text-gray-500">Sesi Selesai / Lewat (Riwayat Masa Lalu)</span>
         </div>
         <span className="text-[11px] text-gray-400">
-          * Riwayat sesi dan slot masa lalu diabukan secara otomatis. Sesi minggu berikutnya muncul bila ada pemesanan (booking) atau slot dibuka.
+          * Jadwal mingguan hanya menampilkan sesi konsultasi dan asesmen yang telah dibooking oleh klien.
         </span>
       </div>
     </div>

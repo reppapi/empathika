@@ -26,6 +26,7 @@ export interface AdminDataTableProps<T> {
   tableClassName?: string
   containerClassName?: string
   maxRows?: number
+  maxHeight?: string
   // Optional pagination
   pagination?: {
     currentPage: number
@@ -49,7 +50,8 @@ export function AdminDataTable<T>({
   minWidth = "760px",
   tableClassName = "",
   containerClassName = "",
-  maxRows = 7,
+  maxRows = 3,
+  maxHeight = "max-h-[380px]",
   pagination,
 }: AdminDataTableProps<T>) {
   const isScrollable = data.length > maxRows
@@ -57,7 +59,7 @@ export function AdminDataTable<T>({
   return (
     <div
       className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
-        isScrollable ? "max-h-[480px] overflow-y-auto" : ""
+        isScrollable ? `${maxHeight} overflow-y-auto` : ""
       } ${containerClassName}`}
     >
       <table className={`w-full text-left border-collapse ${tableClassName}`} style={{ minWidth }}>

@@ -9,6 +9,9 @@ import type {
   UpdateAdminProfileInput,
   ResendActivationInput,
   UpdateTentangKamiInput,
+  CreateInternshipPositionInput,
+  UpdateInternshipPositionInput,
+  UpdateInternshipPositionsInput,
 } from './admin.schema'
 import {
   buildActivationUrl,
@@ -424,6 +427,138 @@ export class AdminController {
       return reply.code(500).send({
         success: false,
         message: 'Gagal menyimpan konfigurasi Tentang Kami',
+        error: err.message,
+      })
+    }
+  }
+
+  // ── Modul Manajemen Internship ──────────────────────────────────
+  getInternshipPublic = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getInternship(true) // Hanya yang isOpen
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil daftar posisi internship publik',
+        error: err.message,
+      })
+    }
+  }
+
+  getInternship = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getInternship(false) // Seluruh posisi untuk admin
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil daftar posisi internship untuk admin',
+        error: err.message,
+      })
+    }
+  }
+
+  createInternship = async (
+    request: FastifyRequest<{ Body: CreateInternshipPositionInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const created = await this.service.createInternship(request.body)
+      return reply.code(201).send({
+        success: true,
+        message: 'Posisi internship berhasil ditambahkan ke database',
+        data: created,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menambahkan posisi internship ke database',
+        error: err.message,
+      })
+    }
+  }
+
+  updateInternshipItem = async (
+    request: FastifyRequest<{ Params: { id: string }; Body: UpdateInternshipPositionInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.updateInternshipPosition(request.params.id, request.body)
+      return reply.code(200).send({
+        success: true,
+        message: 'Posisi internship berhasil diperbarui di database',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal memperbarui posisi internship',
+        error: err.message,
+      })
+    }
+  }
+
+  toggleInternshipStatus = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.toggleInternshipStatus(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Status visibilitas posisi internship berhasil diubah',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengubah status posisi internship',
+        error: err.message,
+      })
+    }
+  }
+
+  deleteInternship = async (
+    request: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      await this.service.deleteInternship(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Posisi internship berhasil dihapus dari database',
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menghapus posisi internship',
+        error: err.message,
+      })
+    }
+  }
+
+  updateInternship = async (
+    request: FastifyRequest<{ Body: UpdateInternshipPositionsInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.syncAllInternshipPositions(request.body.positions)
+      return reply.code(200).send({
+        success: true,
+        message: 'Daftar posisi internship berhasil disimpan ke database',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal memperbarui posisi internship',
         error: err.message,
       })
     }

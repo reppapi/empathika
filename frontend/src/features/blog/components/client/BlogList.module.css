@@ -271,7 +271,7 @@
 .cardFooter {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding-top: 12px;
   border-top: 1px solid #f5f0fb;
   margin-top: auto;
@@ -288,21 +288,28 @@
 .cardFooterRight {
   display: flex;
   align-items: center;
-  gap: 16px;
+  margin-left: auto;
 }
 
 .readMoreLink {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  color: #561269;
+  background-color: #EAB308 !important;
+  color: #0f172a !important;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
 }
 
 .blogCard:hover .readMoreLink {
-  color: #8b3a9c;
+  background-color: #CA8A04 !important;
+  color: #0f172a !important;
+  box-shadow: 0 3px 8px rgba(234, 179, 8, 0.35);
+  transform: translateY(-1px);
 }
 
 .readMoreArrow {
@@ -310,7 +317,7 @@
 }
 
 .blogCard:hover .readMoreArrow {
-  transform: translateX(4px);
+  transform: translateX(3px);
 }
 
 .readTimeText {

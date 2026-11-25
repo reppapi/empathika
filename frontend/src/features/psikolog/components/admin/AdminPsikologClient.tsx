@@ -404,6 +404,9 @@ export default function AdminPsikologClient() {
           data={filteredList}
           keyExtractor={(item) => item.id}
           emptyMessage="Tidak ditemukan data tenaga ahli yang sesuai."
+          minWidth="940px"
+          maxRows={3}
+          maxHeight="max-h-[380px]"
         />
       </AdminTableContainer>
 

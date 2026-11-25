@@ -46,6 +46,7 @@ export default function AdminKerjaSamaClient() {
     handleUpdateCurrentForm,
     handleSaveAllFormConfigs,
     handleDeleteQuestion,
+    handleUpdateQuestion,
     handleAddNewQuestion,
     handleUpdateLeadStatus,
     handleDeleteLead,
@@ -254,6 +255,7 @@ export default function AdminKerjaSamaClient() {
           newQuestionOptions={newQuestionOptions}
           setNewQuestionOptions={setNewQuestionOptions}
           handleAddNewQuestion={handleAddNewQuestion}
+          handleUpdateQuestion={handleUpdateQuestion}
           handleDeleteQuestion={(qId) => setQuestionIdToDelete(qId)}
         />
       )}

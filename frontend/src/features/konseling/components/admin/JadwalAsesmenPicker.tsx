@@ -1,13 +1,12 @@
 "use client"
 
-import { Calendar as CalendarIcon, Sparkles, ChevronDown } from "lucide-react"
+import { Calendar as CalendarIcon, Sparkles, ChevronDown, Building2 } from "lucide-react"
 import { PilihTanggalBox } from "@/components/shared/PilihTanggalBox"
 import { BookedAssessment } from "@/features/konseling/types"
 import {
   useJadwalAsesmenPicker,
   formatFullDateIndonesian,
 } from "@/features/konseling/hooks/useJadwalAsesmenPicker"
-import JadwalMetodeSelector from "./JadwalMetodeSelector"
 import JadwalSlotItem from "./JadwalSlotItem"
 import JadwalCustomTimeSection from "./JadwalCustomTimeSection"
 
@@ -71,7 +70,7 @@ export default function JadwalAsesmenPicker({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch">
         {/* Calendar Picker (Left) */}
         <PilihTanggalBox
           date={date}
@@ -143,57 +142,13 @@ export default function JadwalAsesmenPicker({
               </div>
             </div>
 
-            {/* Pilihan Metode Layanan Asesmen: Online, Offline, atau Keduanya */}
-            <JadwalMetodeSelector
-              metode={metode}
-              setMetode={setMetode}
-              allowedMetode={allowedMetode}
-            />
-
-            {/* Info Helper: Cakupan Layanan Asesmen berdasarkan Metode Terpilih */}
-            {selectedLayanan === "Semua Layanan Asesmen" && (
-              <div className="mb-3.5 -mt-2 text-[11px] leading-relaxed">
-                {(() => {
-                  const applicable = serviceItems.filter((s) => {
-                    const m = (s.metode || "Online/Offline").toLowerCase()
-                    if (metode === "Online") return m.includes("online") || m.includes("keduanya") || m === "semua"
-                    if (metode === "Offline") return m.includes("offline") || m.includes("keduanya") || m === "semua"
-                    return true
-                  })
-                  const excluded = serviceItems.filter((s) => {
-                    const m = (s.metode || "Online/Offline").toLowerCase()
-                    if (metode === "Online") return !m.includes("online") && !m.includes("keduanya") && m !== "semua"
-                    if (metode === "Offline") return !m.includes("offline") && !m.includes("keduanya") && m !== "semua"
-                    return false
-                  })
-
-                  if (excluded.length > 0) {
-                    return (
-                      <div className="bg-amber-50/90 text-amber-900 border border-amber-200 p-2.5 rounded-xl flex items-start gap-1.5">
-                        <span className="shrink-0 text-amber-600 font-bold">ℹ️</span>
-                        <span>
-                          Slot <strong>{metode}</strong> ini hanya berlaku untuk layanan asesmen yang mendukung {metode}:{" "}
-                          <strong className="text-gray-900">{applicable.map((s) => s.nama || s.layanan).join(", ") || "Semua Asesmen Aktif"}</strong>.
-                          <br />
-                          <span className="text-amber-800/80">
-                            Layanan <em>{excluded.map((s) => s.nama || s.layanan).join(", ")}</em> tidak dibuka untuk slot ini karena diatur {metode === "Offline" ? "hanya Online" : "hanya Offline"} oleh Admin.
-                          </span>
-                        </span>
-                      </div>
-                    )
-                  }
-
-                  return (
-                    <div className="text-purple-700 font-medium flex items-center gap-1.5 px-1 py-0.5">
-                      <span className="text-purple-600 font-bold">✓</span>
-                      <span>
-                        Slot <strong>{metode}</strong> ini berlaku untuk seluruh layanan asesmen aktif yang mendukung metode ini.
-                      </span>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
+            {/* Informasi: Jadwal Asesmen Khusus Sesi Offline (Tatap Muka di Klinik) */}
+            <div className="mb-3 flex items-center gap-2.5 rounded-xl bg-purple-50/70 border border-purple-200/80 px-3.5 py-2.5 text-xs text-[#561269]">
+              <Building2 className="w-4 h-4 shrink-0 text-[#561269]" />
+              <span className="font-medium">
+                Pengaturan jadwal asesmen ini dikhususkan untuk <strong>Sesi Tatap Muka di Klinik (Offline)</strong>.
+              </span>
+            </div>
 
             <p className="text-xs text-gray-500 mb-3">
               Pilih slot jam yang ingin Anda buka (bisa pilih beberapa sekaligus):

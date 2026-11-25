@@ -11,17 +11,20 @@ interface JadwalSummaryCardsProps {
   }
   activeStatus?: string
   onStatusChange?: (status: string) => void
+  isLoading?: boolean
 }
 
 export default function JadwalSummaryCards({
   stats,
   activeStatus = "semua",
   onStatusChange,
+  isLoading = false,
 }: JadwalSummaryCardsProps) {
   const isAll = !activeStatus || activeStatus === "semua"
   const isBerlangsung = activeStatus === "berlangsung"
   const isSelesai = activeStatus === "selesai"
   const isMenunggu = activeStatus === "menunggu"
+  const showSkeleton = isLoading && stats.total === 0
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 font-poppins">
@@ -42,7 +45,11 @@ export default function JadwalSummaryCards({
         </div>
         <div className="flex flex-col">
           <p className="text-xs font-semibold text-gray-500">Total Sesi hari ini</p>
-          <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+          {showSkeleton ? (
+            <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1" />
+          ) : (
+            <p className="text-xl font-bold text-gray-900">{stats.total}</p>
+          )}
         </div>
       </div>
 
@@ -63,7 +70,11 @@ export default function JadwalSummaryCards({
         </div>
         <div className="flex flex-col">
           <p className="text-xs font-semibold text-gray-500">Sedang Berlangsung</p>
-          <p className="text-xl font-bold text-gray-900">{stats.sedangBerlangsung}</p>
+          {showSkeleton ? (
+            <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1" />
+          ) : (
+            <p className="text-xl font-bold text-gray-900">{stats.sedangBerlangsung}</p>
+          )}
         </div>
       </div>
 
@@ -84,7 +95,11 @@ export default function JadwalSummaryCards({
         </div>
         <div className="flex flex-col">
           <p className="text-xs font-semibold text-gray-500">Sesi Selesai</p>
-          <p className="text-xl font-bold text-gray-900">{stats.selesai}</p>
+          {showSkeleton ? (
+            <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1" />
+          ) : (
+            <p className="text-xl font-bold text-gray-900">{stats.selesai}</p>
+          )}
         </div>
       </div>
 
@@ -105,7 +120,11 @@ export default function JadwalSummaryCards({
         </div>
         <div className="flex flex-col">
           <p className="text-xs font-semibold text-gray-500">Menunggu Jadwal</p>
-          <p className="text-xl font-bold text-gray-900">{stats.menunggu}</p>
+          {showSkeleton ? (
+            <div className="h-6 w-12 bg-gray-200 animate-pulse rounded mt-1" />
+          ) : (
+            <p className="text-xl font-bold text-gray-900">{stats.menunggu}</p>
+          )}
         </div>
       </div>
     </div>

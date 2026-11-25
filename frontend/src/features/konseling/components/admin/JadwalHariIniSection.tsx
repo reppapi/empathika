@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
 import {
   getWhatsAppUrl,
@@ -21,6 +22,8 @@ import {
   ExternalLink,
   Copy,
   CalendarClock,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 interface JadwalHariIniSectionProps {
@@ -40,6 +43,7 @@ interface JadwalHariIniSectionProps {
   onCopyWhatsAppPsikolog?: (session: ClientSessionToday) => void
   onResetFilter: () => void
   isReadOnly?: boolean
+  isLoading?: boolean
 }
 
 export default function JadwalHariIniSection({
@@ -59,7 +63,9 @@ export default function JadwalHariIniSection({
   onCopyWhatsAppPsikolog,
   onResetFilter,
   isReadOnly = false,
+  isLoading = false,
 }: JadwalHariIniSectionProps) {
+  const parallelScrollRef = useRef<HTMLDivElement>(null)
   const activeNearestList: ClientSessionToday[] =
     nearestSessions && nearestSessions.length > 0
       ? nearestSessions
@@ -81,8 +87,19 @@ export default function JadwalHariIniSection({
         </span>
       </div>
 
-      {/* Card Highlight: Sesi Terdekat Berikutnya (Mendukung Sesi Paralel Banyak Psikolog di Jam yang Sama) */}
-      {activeNearestList.length > 1 ? (
+      {/* Card Highlight: Sesi Terdekat Berikutnya */}
+      {isLoading && activeNearestList.length === 0 ? (
+        <div className="bg-purple-50/40 border border-purple-200/50 rounded-2xl p-4 sm:p-5 animate-pulse flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-purple-200/60" />
+            <div className="flex flex-col gap-2">
+              <div className="h-4 w-32 bg-purple-200/50 rounded-md" />
+              <div className="h-5 w-48 bg-purple-200/40 rounded-md" />
+            </div>
+          </div>
+          <div className="h-8 w-28 bg-purple-200/40 rounded-lg" />
+        </div>
+      ) : activeNearestList.length > 1 ? (
         <div className="bg-gradient-to-r from-purple-50 via-[#FAF4FC] to-purple-50 border-2 border-[#561269]/40 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-purple-200/60 pb-3">
             <div className="flex items-center gap-3">
@@ -103,16 +120,47 @@ export default function JadwalHariIniSection({
                 </p>
               </div>
             </div>
-            <span className="text-[11px] font-semibold text-[#561269] bg-purple-100/90 px-3 py-1 rounded-full self-start sm:self-auto border border-purple-200">
-              Jadwal Paralel Hari Ini
-            </span>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <span className="text-[11px] font-semibold text-[#561269] bg-purple-100/90 px-3 py-1 rounded-full border border-purple-200">
+                Jadwal Paralel Hari Ini
+              </span>
+              {activeNearestList.length > 2 && (
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => parallelScrollRef.current?.scrollBy({ left: -360, behavior: "smooth" })}
+                    className="p-1.5 rounded-lg bg-white/90 border border-purple-200 hover:bg-purple-100 text-[#561269] transition shadow-2xs cursor-pointer"
+                    title="Geser sesi ke kiri"
+                    aria-label="Geser ke kiri"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => parallelScrollRef.current?.scrollBy({ left: 360, behavior: "smooth" })}
+                    className="p-1.5 rounded-lg bg-white/90 border border-purple-200 hover:bg-purple-100 text-[#561269] transition shadow-2xs cursor-pointer"
+                    title="Geser sesi ke kanan"
+                    aria-label="Geser ke kanan"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+          <div
+            ref={parallelScrollRef}
+            className="flex gap-3.5 overflow-x-auto pb-2.5 pt-0.5 px-0.5 admin-table-scrollbar scroll-smooth"
+          >
             {activeNearestList.map((session) => (
               <div
                 key={session.id}
-                className="bg-white/95 border border-purple-200/90 rounded-xl p-3.5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between gap-3"
+                className={`bg-white/95 border border-purple-200/90 rounded-xl p-3.5 shadow-2xs hover:shadow-xs transition flex flex-col justify-between gap-3 shrink-0 ${
+                  activeNearestList.length === 2
+                    ? "w-full md:w-[calc(50%-7px)] min-w-[300px]"
+                    : "w-[330px] sm:w-[370px] md:w-[400px]"
+                }`}
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -275,7 +323,7 @@ export default function JadwalHariIniSection({
 
       {/* Tabel Sesi Klien dalam Satu Hari */}
       <div
-        className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${todaySessionsCount > 7 ? "max-h-[480px] overflow-y-auto" : ""
+        className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${todaySessionsCount > 3 ? "max-h-[380px] overflow-y-auto" : ""
           }`}
       >
         <table className="w-full text-left border-collapse min-w-[880px]">
@@ -290,7 +338,32 @@ export default function JadwalHariIniSection({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200 text-xs sm:text-sm">
-            {filteredTodaySessions.length > 0 ? (
+            {isLoading && filteredTodaySessions.length === 0 ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <tr key={`skeleton-${i}`} className="animate-pulse">
+                  <td className="py-4 px-6">
+                    <div className="h-4 w-24 bg-gray-200/80 rounded mb-1.5" />
+                    <div className="h-3 w-14 bg-gray-100 rounded" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 w-28 bg-gray-200/80 rounded mb-1.5" />
+                    <div className="h-3 w-16 bg-gray-100 rounded" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 w-32 bg-gray-200/80 rounded" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-4 w-28 bg-gray-200/80 rounded" />
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="h-7 w-36 bg-gray-200/80 rounded-full" />
+                  </td>
+                  <td className="py-4 px-4 text-center">
+                    <div className="h-6 w-6 bg-gray-200/80 rounded mx-auto" />
+                  </td>
+                </tr>
+              ))
+            ) : filteredTodaySessions.length > 0 ? (
               filteredTodaySessions.map((item, index) => {
                 const isNearest = activeNearestList.some((s) => s.id === item.id)
                 return (
