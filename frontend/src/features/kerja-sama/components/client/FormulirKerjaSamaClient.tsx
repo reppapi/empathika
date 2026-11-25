@@ -979,7 +979,13 @@ export default function FormulirKerjaSamaClient({
                 <PhoneInputField
                   value={nomorWhatsapp}
                   label="No WhatsApp"
+                  labelClassName="font-bold"
                   required
+                  inputClassName={`px-4 py-3 text-sm rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
+                    hasAttemptedSubmit && formErrors.nomorWhatsapp
+                      ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
+                      : "border-gray-300"
+                  }`}
                   onChange={(val) => {
                     setNomorWhatsapp(val)
                     if (formErrors.nomorWhatsapp && val.replace(/\D/g, "").length >= 9) {
