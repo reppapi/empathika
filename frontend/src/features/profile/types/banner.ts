@@ -1,5 +1,6 @@
 export interface BannerPromoItem {
   id: string
+  nama?: string | null // Label/nama internal banner di admin dashboard
   judul: string
   gambar: string
   linkTujuan: string
