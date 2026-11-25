@@ -496,6 +496,14 @@ export default function AdminLayananView() {
               }
 
               if (activeExperts.length === 0) {
+                const wkndVal = parseRupiahNumber(item.weekend)
+                if (!item.weekend || wkndVal === 0) {
+                  return (
+                    <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
+                      -
+                    </span>
+                  )
+                }
                 return (
                   <span className="text-gray-900 font-bold text-xs sm:text-sm tabular-nums whitespace-nowrap">
                     {formatPrice(item.weekend)}
@@ -525,10 +533,10 @@ export default function AdminLayananView() {
               const isOnlyOnline = (item.metode || "").toLowerCase().includes("online") && !(item.metode || "").toLowerCase().includes("offline")
               const offlineWknd = (t as any)?.asesmen?.offline?.weekend ?? (t as any)?.offline?.weekend ?? item.weekend
 
-              if (isOnlyOnline) {
+              if (isOnlyOnline || !offlineWknd || Number(parseRupiahNumber(offlineWknd)) === 0) {
                 return (
-                  <span className="text-gray-400 font-medium text-xs italic whitespace-nowrap">
-                    - (Sama)
+                  <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
+                    -
                   </span>
                 )
               }
@@ -544,6 +552,15 @@ export default function AdminLayananView() {
                     </span>
                   )}
                 </div>
+              )
+            }
+
+            const wkndVal = parseRupiahNumber(item.weekend)
+            if (!item.weekend || wkndVal === 0) {
+              return (
+                <span className="text-gray-400 font-medium text-xs whitespace-nowrap">
+                  -
+                </span>
               )
             }
 
