@@ -3,6 +3,7 @@ import {
   KerjaSamaPageConfig,
   PengajuanKerjaSama,
   FormulirConfigItem,
+  FormulirPertanyaan,
 } from "../types"
 
 export const LOCAL_STORAGE_KEY_KERJASAMA_ITEMS = "empathika_kerjasama_items"
@@ -296,6 +297,52 @@ export const INITIAL_FORMULIR_CONFIGS: FormulirConfigItem[] = [
   },
 ]
 
+const FORMULIR_SLUG_ORDER = ["asesmen", "in-house-training", "lainnya"]
+
+export function isFormulirFileQuestion(q: {
+  type?: string
+  label?: string
+  key?: string
+}): boolean {
+  const type = (q.type || "").toLowerCase()
+  if (type === "file" || type === "upload") return true
+  if (!type || type === "text") {
+    const label = (q.label || "").toLowerCase()
+    const key = (q.key || "").toLowerCase()
+    if (key.includes("proposal") || label.includes("upload proposal") || label.includes("upload dokumen")) {
+      return true
+    }
+  }
+  return false
+}
+
+export function mapBackendFormulirToConfig(item: any): FormulirConfigItem {
+  const rawQuestions: FormulirPertanyaan[] = Array.isArray(item.pertanyaan_khusus)
+    ? item.pertanyaan_khusus
+    : Array.isArray(item.pertanyaanKhusus)
+    ? item.pertanyaanKhusus
+    : []
+
+  return {
+    id: item.id || `f_${item.slug}`,
+    slug: item.slug,
+    title: item.title || item.slug,
+    categoryDefault: item.kategori_default || item.categoryDefault || "Lainnya",
+    description: item.deskripsi ?? item.description ?? "",
+    pertanyaanKhusus: rawQuestions,
+  }
+}
+
+export function sortFormulirConfigs(configs: FormulirConfigItem[]): FormulirConfigItem[] {
+  return [...configs].sort((a, b) => {
+    const idxA = FORMULIR_SLUG_ORDER.indexOf(a.slug)
+    const idxB = FORMULIR_SLUG_ORDER.indexOf(b.slug)
+    const orderA = idxA === -1 ? 999 : idxA
+    const orderB = idxB === -1 ? 999 : idxB
+    return orderA - orderB
+  })
+}
+
 export function getFormulirConfigs(): FormulirConfigItem[] {
   if (typeof window === "undefined") return INITIAL_FORMULIR_CONFIGS
   try {
@@ -304,54 +351,7 @@ export function getFormulirConfigs(): FormulirConfigItem[] {
     const parsed: FormulirConfigItem[] = JSON.parse(saved)
     const filtered = parsed.filter((item) => item.slug !== "affiliate")
 
-    // Pastikan formulir In House Training menyertakan pertanyaan Estimasi Budget berbentuk select
-    const budgetOptions = [
-      "< Rp 5 juta",
-      "Rp 5–10 juta",
-      "Rp 10–25 juta",
-      "Rp 25–50 juta",
-      "> Rp 50 juta",
-    ]
-    const inHouse = filtered.find((f) => f.slug === "in-house-training" || f.id === "f_in_house")
-    if (inHouse) {
-      const budgetQ = inHouse.pertanyaanKhusus.find(
-        (q) => q.key === "estimasiBudget" || q.label.toLowerCase().includes("budget")
-      )
-      if (budgetQ) {
-        budgetQ.type = "select"
-        budgetQ.options = budgetOptions
-      } else {
-        inHouse.pertanyaanKhusus.push({
-          id: "q_budget",
-          label: "Estimasi Budget",
-          key: "estimasiBudget",
-          type: "select",
-          options: budgetOptions,
-        })
-      }
-    }
-
-    // Pastikan formulir Kerjasama Lainnya menyertakan pertanyaan upload proposal
-    const lainnya = filtered.find((f) => f.slug === "lainnya" || f.id === "f_lainnya")
-    if (lainnya) {
-      const proposalQ = lainnya.pertanyaanKhusus.find(
-        (q) => q.key === "proposalKerjaSama" || q.label.toLowerCase().includes("proposal")
-      )
-      if (proposalQ) {
-        proposalQ.type = "file"
-      } else {
-        lainnya.pertanyaanKhusus.push({
-          id: "q_proposal",
-          label: "Upload Proposal Kerja Sama (Opsional)",
-          key: "proposalKerjaSama",
-          type: "file",
-          placeholder: "Pilih file proposal (PDF, DOC, DOCX, maks 15MB)",
-          required: false,
-        })
-      }
-    }
-
-    return filtered.length > 0 ? filtered : INITIAL_FORMULIR_CONFIGS
+    return filtered.length > 0 ? sortFormulirConfigs(filtered) : INITIAL_FORMULIR_CONFIGS
   } catch {
     return INITIAL_FORMULIR_CONFIGS
   }
@@ -361,6 +361,7 @@ export function saveFormulirConfigs(configs: FormulirConfigItem[]): void {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_FORMS, JSON.stringify(configs))
+    window.dispatchEvent(new Event("empathika_formulir_updated"))
   } catch (err) {
     console.error("Gagal menyimpan form configs:", err)
   }

@@ -24,8 +24,12 @@ import {
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
   getFormulirConfigs,
+  saveFormulirConfigs,
   getKerjaSamaConfig,
   getCleanWhatsAppNumber,
+  isFormulirFileQuestion,
+  mapBackendFormulirToConfig,
+  sortFormulirConfigs,
   INITIAL_FORMULIR_CONFIGS,
 } from "../../data/initialData"
 import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
@@ -338,9 +342,35 @@ export default function FormulirKerjaSamaClient({
     setIsMounted(true)
     setAllFormConfigs(getFormulirConfigs())
 
+    const fetchLatestForms = () => {
+      kerjaSamaService
+        .getFormulirList()
+        .then((res: any) => {
+          if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+            const mapped = sortFormulirConfigs(
+              res.data
+                .map(mapBackendFormulirToConfig)
+                .filter((f: FormulirConfigItem) => f.slug !== "affiliate")
+            )
+            if (mapped.length > 0) {
+              setAllFormConfigs(mapped)
+              saveFormulirConfigs(mapped)
+            }
+          }
+        })
+        .catch(() => {})
+    }
+
+    fetchLatestForms()
+
     const refreshWaNumber = () => {
       const cfg = getKerjaSamaConfig()
       setWaNumber(getCleanWhatsAppNumber(cfg?.kontak?.whatsapp))
+    }
+
+    const handleFormSync = () => {
+      setAllFormConfigs(getFormulirConfigs())
+      fetchLatestForms()
     }
 
     refreshWaNumber()
@@ -371,13 +401,19 @@ export default function FormulirKerjaSamaClient({
       .catch(() => {})
 
     window.addEventListener("empathika_admin_profile_updated", refreshWaNumber)
+    window.addEventListener("empathika_formulir_updated", handleFormSync)
     window.addEventListener("storage", refreshWaNumber)
+    window.addEventListener("storage", handleFormSync)
     window.addEventListener("focus", refreshWaNumber)
+    window.addEventListener("focus", handleFormSync)
 
     return () => {
       window.removeEventListener("empathika_admin_profile_updated", refreshWaNumber)
+      window.removeEventListener("empathika_formulir_updated", handleFormSync)
       window.removeEventListener("storage", refreshWaNumber)
+      window.removeEventListener("storage", handleFormSync)
       window.removeEventListener("focus", refreshWaNumber)
+      window.removeEventListener("focus", handleFormSync)
     }
   }, [])
 
@@ -405,15 +441,19 @@ export default function FormulirKerjaSamaClient({
   const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    const initial: Record<string, string> = {}
-    formConfig.pertanyaanKhusus.forEach((p) => {
-      if (p.options && p.options.length > 0) {
-        initial[p.key] = p.options[0]
-      } else {
-        initial[p.key] = ""
-      }
+    setJawabanKhusus((prev) => {
+      const next: Record<string, string> = {}
+      formConfig.pertanyaanKhusus.forEach((p) => {
+        if (prev[p.key] !== undefined && prev[p.key] !== "") {
+          next[p.key] = prev[p.key]
+        } else if (p.options && p.options.length > 0) {
+          next[p.key] = p.options[0]
+        } else {
+          next[p.key] = ""
+        }
+      })
+      return next
     })
-    setJawabanKhusus(initial)
   }, [formConfig])
 
   // Helper cek apakah pertanyaan tertentu bersifat opsional
@@ -421,6 +461,7 @@ export default function FormulirKerjaSamaClient({
     if (q.required === false) return true
     const lowerLabel = q.label.toLowerCase()
     if (lowerLabel.includes("opsional") || lowerLabel.includes("(opsional)")) return true
+    if (q.required === true) return false
     if (q.key.toLowerCase().includes("proposal")) return true
     return false
   }
@@ -743,17 +784,9 @@ export default function FormulirKerjaSamaClient({
     )
   }
 
-  // Filter out any proposal/file question from Section 2 so it can be cleanly placed in Section 3
-  const isQuestionFile = (q: any) =>
-    q.type === "file" ||
-    q.type === "upload" ||
-    q.label.toLowerCase().includes("proposal") ||
-    q.label.toLowerCase().includes("upload") ||
-    q.key.toLowerCase().includes("proposal")
-
-  const formQuestions = formConfig.pertanyaanKhusus.filter((q) => !isQuestionFile(q))
-  const proposalQuestion = formConfig.pertanyaanKhusus.find((q) => isQuestionFile(q))
-  const proposalKey = proposalQuestion ? proposalQuestion.key : "proposalKerjaSama"
+  // Pisahkan pertanyaan isian/pilihan (Bagian 2) dan pertanyaan upload file (Bagian 3)
+  const formQuestions = formConfig.pertanyaanKhusus.filter((q) => !isFormulirFileQuestion(q))
+  const fileQuestions = formConfig.pertanyaanKhusus.filter((q) => isFormulirFileQuestion(q))
 
   return (
     <div className="min-h-screen bg-[#FAF7FB] font-poppins pb-24">
@@ -1082,6 +1115,18 @@ export default function FormulirKerjaSamaClient({
                           )
                         })}
                       </div>
+                    ) : q.type === "textarea" ? (
+                      <textarea
+                        rows={3}
+                        value={jawabanKhusus[q.key] || ""}
+                        onChange={(e) => handleKhususChange(q.key, e.target.value)}
+                        placeholder={q.placeholder || "Tuliskan jawaban Anda..."}
+                        className={`w-full px-4 py-3 rounded-xl border text-sm text-gray-900 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
+                          !isOptional && hasAttemptedSubmit && formErrors[q.key]
+                            ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
+                            : "border-gray-300"
+                        }`}
+                      />
                     ) : (
                       <input
                         type="text"
@@ -1123,29 +1168,45 @@ export default function FormulirKerjaSamaClient({
           </div>
 
           {/* ── SECTION 3: BERKAS PROPOSAL & PENDUKUNG ── */}
-          <div>
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                3
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Lampiran Dokumen & Proposal</h2>
-                <p className="text-xs text-gray-500">
-                  Unggah berkas Term of Reference (TOR) atau proposal kerja sama jika tersedia (opsional).
-                </p>
-              </div>
-            </div>
-
+          {fileQuestions.length > 0 && (
             <div>
-              <label className="block text-xs font-bold text-gray-700 mb-2">
-                DOKUMEN PROPOSAL / TOR (OPSIONAL)
-              </label>
-              <FormProposalUpload
-                value={jawabanKhusus[proposalKey] || ""}
-                onChange={(val) => handleKhususChange(proposalKey, val)}
-              />
+              <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
+                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Lampiran Dokumen & Proposal</h2>
+                  <p className="text-xs text-gray-500">
+                    Unggah berkas dokumen atau proposal kerja sama sesuai kebutuhan formulir di bawah ini.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                {fileQuestions.map((q) => {
+                  const isOptional = isQuestionOptional(q)
+                  return (
+                    <div key={q.key} id={`field-${q.key}`}>
+                      <label className="block text-xs font-bold text-gray-700 mb-2 uppercase">
+                        {q.label}
+                        {!isOptional && <span className="text-rose-500 font-bold ml-1">*</span>}
+                      </label>
+                      <FormProposalUpload
+                        value={jawabanKhusus[q.key] || ""}
+                        onChange={(val) => handleKhususChange(q.key, val)}
+                      />
+                      {!isOptional && hasAttemptedSubmit && formErrors[q.key] && (
+                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                          <span>{formErrors[q.key]}</span>
+                        </p>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* ── SUBMIT BUTTON & FOOTER NOTE ── */}
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-gray-100">

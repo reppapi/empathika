@@ -37,6 +37,8 @@ export default function AdminKerjaSamaClient() {
     setNewQuestionType,
     newQuestionOptions,
     setNewQuestionOptions,
+    newQuestionRequired,
+    setNewQuestionRequired,
     handleImageUpload,
     handleToggleStatus,
     handleOpenAddModal,
@@ -254,6 +256,8 @@ export default function AdminKerjaSamaClient() {
           setNewQuestionType={setNewQuestionType}
           newQuestionOptions={newQuestionOptions}
           setNewQuestionOptions={setNewQuestionOptions}
+          newQuestionRequired={newQuestionRequired}
+          setNewQuestionRequired={setNewQuestionRequired}
           handleAddNewQuestion={handleAddNewQuestion}
           handleUpdateQuestion={handleUpdateQuestion}
           handleDeleteQuestion={(qId) => setQuestionIdToDelete(qId)}

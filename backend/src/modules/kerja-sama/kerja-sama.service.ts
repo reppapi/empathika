@@ -214,6 +214,14 @@ const DEFAULT_FORMULIRS = [
         placeholder: 'Jelaskan secara singkat rencana program dan apa yang diharapkan dari Empathika...',
         required: false,
       },
+      {
+        id: 'q_proposal',
+        label: 'Upload Proposal Kerja Sama (Opsional)',
+        key: 'proposalKerjaSama',
+        type: 'file',
+        placeholder: 'Pilih file proposal (PDF, DOC, DOCX, maks 15MB)',
+        required: false,
+      },
     ],
   },
 ]
