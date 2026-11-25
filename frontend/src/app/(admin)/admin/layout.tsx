@@ -51,6 +51,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   } else if (pathname?.startsWith("/admin/kerja-sama")) {
     pageTitle = "Manajemen Kerja Sama"
     pageDescription = "Kelola data mitra, pengajuan kerja sama, dan status kolaborasi dengan Empathika."
+  } else if (pathname?.startsWith("/admin/internship")) {
+    pageTitle = "Manajemen Internship"
+    pageDescription = "Kelola lowongan magang, pertanyaan seleksi, dan tinjau lamaran pelamar yang masuk."
   } else if (pathname?.startsWith("/admin/profile")) {
     pageTitle = "Pengaturan Profil"
     pageDescription = "Kelola informasi identitas, foto profil, dan kredensial akun administrator."

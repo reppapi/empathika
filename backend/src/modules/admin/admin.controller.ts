@@ -1,4 +1,7 @@
 import type { FastifyRequest, FastifyReply, FastifyInstance } from 'fastify'
+import { createWriteStream, mkdirSync, existsSync } from 'node:fs'
+import { join, extname } from 'node:path'
+import { env } from '../../config/env'
 import { AdminService } from './admin.service'
 import type {
   GetAdminJadwalQuery,
@@ -13,6 +16,9 @@ import type {
   CreateInternshipPositionInput,
   UpdateInternshipPositionInput,
   UpdateInternshipPositionsInput,
+  InternshipIdParams,
+  CreateInternshipApplicationInput,
+  UpdateInternshipApplicationStatusInput,
 } from './admin.schema'
 import {
   buildActivationUrl,
@@ -519,6 +525,31 @@ export class AdminController {
     }
   }
 
+  getInternshipById = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getInternshipById(request.params.id)
+      if (!data) {
+        return reply.code(404).send({
+          success: false,
+          message: 'Posisi internship tidak ditemukan',
+        })
+      }
+      return reply.code(200).send({
+        success: true,
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil detail posisi internship',
+        error: err.message,
+      })
+    }
+  }
+
   createInternship = async (
     request: FastifyRequest<{ Body: CreateInternshipPositionInput }>,
     reply: FastifyReply
@@ -614,6 +645,201 @@ export class AdminController {
         success: false,
         message: 'Gagal memperbarui posisi internship',
         error: err.message,
+      })
+    }
+  }
+
+  // ── Modul Pengajuan Pelamar Magang (Internship Applications) ──────
+
+  getInternshipApplications = async (_request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await this.service.getInternshipApplications()
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil daftar pelamar internship dari database',
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengambil data pelamar internship',
+        error: err.message,
+      })
+    }
+  }
+
+  getInternshipApplicationById = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.getInternshipApplicationById(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Berhasil mengambil detail pelamar internship dari database',
+        data,
+      })
+    } catch (err: any) {
+      return reply.code(404).send({
+        success: false,
+        message: 'Pelamar internship tidak ditemukan',
+        error: err.message,
+      })
+    }
+  }
+
+  createInternshipApplication = async (
+    request: FastifyRequest<{ Body: CreateInternshipApplicationInput }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const created = await this.service.createInternshipApplication(request.body)
+      return reply.code(201).send({
+        success: true,
+        message: 'Lamaran internship berhasil dikirimkan ke database',
+        data: created,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal mengirimkan lamaran internship',
+        error: err.message,
+      })
+    }
+  }
+
+  updateInternshipApplicationStatus = async (
+    request: FastifyRequest<{
+      Params: InternshipIdParams
+      Body: UpdateInternshipApplicationStatusInput
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const updated = await this.service.updateInternshipApplicationStatus(
+        request.params.id,
+        request.body.status,
+        request.body.catatanAdmin
+      )
+      return reply.code(200).send({
+        success: true,
+        message: 'Status lamaran internship berhasil diperbarui di database',
+        data: updated,
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal memperbarui status lamaran internship',
+        error: err.message,
+      })
+    }
+  }
+
+  deleteInternshipApplication = async (
+    request: FastifyRequest<{ Params: InternshipIdParams }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      await this.service.deleteInternshipApplication(request.params.id)
+      return reply.code(200).send({
+        success: true,
+        message: 'Data pelamar internship berhasil dihapus dari database',
+      })
+    } catch (err: any) {
+      return reply.code(500).send({
+        success: false,
+        message: 'Gagal menghapus data pelamar internship',
+        error: err.message,
+      })
+    }
+  }
+
+  uploadInternshipFile = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await request.file()
+      if (!data) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Tidak ada berkas yang diunggah',
+        })
+      }
+
+      const ALLOWED_MIME = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/x-zip',
+        'application/octet-stream',
+      ]
+
+      if (!ALLOWED_MIME.includes(data.mimetype)) {
+        return reply.code(400).send({
+          success: false,
+          message:
+            'Format berkas tidak didukung. Harap unggah berkas PDF, Word (DOC/DOCX), ZIP, atau Gambar.',
+        })
+      }
+
+      const MAX_SIZE = 25 * 1024 * 1024 // 25MB
+      let totalBytes = 0
+      const chunks: Buffer[] = []
+
+      for await (const chunk of data.file) {
+        totalBytes += chunk.length
+        if (totalBytes > MAX_SIZE) {
+          return reply.code(413).send({
+            success: false,
+            message: 'Ukuran berkas terlalu besar. Maksimal 25MB.',
+          })
+        }
+        chunks.push(chunk)
+      }
+
+      const dir = join(process.cwd(), 'public', 'uploads', 'internship')
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+
+      const originalName = data.filename || 'cv.pdf'
+      const ext = extname(originalName) || '.pdf'
+      const cleanBaseName = originalName
+        .replace(ext, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 40)
+      const filename = `${Date.now()}_${cleanBaseName}${ext}`
+      const filepath = join(dir, filename)
+
+      const writeStream = createWriteStream(filepath)
+      writeStream.write(Buffer.concat(chunks))
+      writeStream.end()
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on('finish', () => resolve())
+        writeStream.on('error', (err) => reject(err))
+      })
+
+      const baseUrl = env.BASE_URL ?? `http://localhost:${env.PORT ?? 3001}`
+      const url = `${baseUrl}/uploads/internship/${filename}`
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Berkas berhasil diunggah',
+        data: {
+          url,
+          filename,
+          originalName,
+          size: totalBytes,
+        },
+      })
+    } catch (err: any) {
+      request.log.error(err)
+      return reply.code(500).send({
+        success: false,
+        message: 'Terjadi kesalahan saat mengunggah berkas',
       })
     }
   }

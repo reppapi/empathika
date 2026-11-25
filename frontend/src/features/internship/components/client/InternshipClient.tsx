@@ -20,6 +20,9 @@ import {
   HelpCircle,
   AlertCircle,
   GraduationCap,
+  Compass,
+  Users,
+  Award,
 } from "lucide-react"
 import HeroStarryOverlay from "@/components/shared/HeroStarryOverlay"
 import {
@@ -78,17 +81,11 @@ export default function InternshipClient() {
         <HeroStarryOverlay density="dense" showAurora showFlare />
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-semibold tracking-wide text-[#EAB308] mb-6 shadow-sm">
-            <Sparkles className="w-4 h-4 text-[#EAB308]" />
-            Program Magang Empathika
-          </div>
-
           {/* Headline */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-6">
-            Tumbuh Bersama, Berkarya untuk{" "}
+            Eksplorasi Potensi, Kolaborasi & Beri{" "}
             <span className="text-[#EAB308] underline decoration-wavy decoration-[#EAB308]/60 underline-offset-8">
-              Kesehatan Mental
+              Kontribusi Nyata
             </span>
           </h1>
 
@@ -101,8 +98,8 @@ export default function InternshipClient() {
               Empathika membuka kesempatan bagi mahasiswa dan fresh graduate untuk bergabung
               dalam Program Internship yang dirancang untuk memberikan pengalaman langsung dalam
               industri kesehatan mental dan digital media. Melalui program ini, peserta akan
-              mendapatkan kesempatan untuk belajar, berkembang, dan berkontribusi dalam proyek
-              nyata yang berdampak bagi masyarakat.
+              mendapatkan kesempatan untuk mengeksplorasi minat, berkolaborasi dalam tim profesional,
+              dan berkontribusi dalam proyek nyata yang berdampak bagi masyarakat.
             </p>
           </div>
 
@@ -130,10 +127,7 @@ export default function InternshipClient() {
       <section id="tiga-pilar" className="py-16 sm:py-24 bg-white border-b border-purple-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#561269] bg-purple-100/60 px-3.5 py-1 rounded-full">
-              Fondasi Program
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-4">
               3 Nilai Utama Internship Empathika
             </h2>
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
@@ -142,67 +136,67 @@ export default function InternshipClient() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Pilar 1: BELAJAR */}
-            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+            {/* Pilar 1: EKSPLORASI */}
+            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <BookOpen className="w-8 h-8 text-[#EAB308]" />
+                <Compass className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 01
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BELAJAR
+                EKSPLORASI
               </h3>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Mendapatkan bimbingan dan mentorship intensif dari praktisi kesehatan mental,
-                psikolog, dan tim kreatif profesional yang berpengalaman di industri.
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+                Menjelajahi dinamika industri kesehatan mental dan digital media, serta mengasah keahlian
+                baru secara aplikatif melalui bimbingan dan mentorship intensif dari praktisi berpengalaman.
               </p>
-              <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Mentorship 1-on-1 & Evaluasi Rutin
+              <div className="mt-auto pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#EAB308] shrink-0" />
+                <span>Mentorship 1-on-1 & Pembelajaran Aplikatif</span>
               </div>
             </div>
 
-            {/* Pilar 2: BERKARYA */}
-            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
+            {/* Pilar 2: KOLABORASI */}
+            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <Sparkles className="w-8 h-8 text-[#EAB308]" />
+                <Users className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 02
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BERKARYA
+                KOLABORASI
               </h3>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Memproduksi karya nyata, mulai dari kampanye digital, edukasi konten, hingga
-                program layanan psikologi yang menjangkau puluhan ribu audiens.
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+                Bekerja berdampingan dalam tim multidisiplin yang suportif—mulai dari psikolog, content creator,
+                hingga tim operasional—untuk merancang program dan kampanye kreatif yang inovatif.
               </p>
-              <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Portofolio Nyata & Terpublikasi
+              <div className="mt-auto pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#EAB308] shrink-0" />
+                <span>Lingkungan Inklusif & Kerja Tim Multidisiplin</span>
               </div>
             </div>
 
-            {/* Pilar 3: BERTUMBUH */}
-            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
+            {/* Pilar 3: KONTRIBUSI */}
+            <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1 flex flex-col h-full">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-8 h-8 text-[#EAB308]" />
+                <Award className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 03
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                BERTUMBUH
+                KONTRIBUSI
               </h3>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Mengasah kemampuan interpersonal, pemecahan masalah, kepemimpinan, dan membangun
-                jejaring karir yang solid untuk masa depan profesionalmu.
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
+                Memberikan sumbangsih nyata dalam meningkatkan kesadaran kesehatan mental masyarakat luas,
+                sekaligus membangun portofolio kredibel dan jejaring karir masa depanmu.
               </p>
-              <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Sertifikat Resmi & Surat Rekomendasi
+              <div className="mt-auto pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-[#EAB308] shrink-0" />
+                <span>Sertifikat Resmi & Portofolio Berdampak</span>
               </div>
             </div>
           </div>
@@ -262,43 +256,16 @@ export default function InternshipClient() {
                   >
                     {/* Header Kartu Posisi */}
                     <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-white via-white to-purple-50/40">
-                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                        <div className="space-y-3">
-                          <div className="flex flex-wrap items-center gap-2.5">
-                            {pos.divisi && (
-                              <span className="px-3 py-1 text-xs font-bold bg-purple-100 text-[#561269] rounded-full">
-                                {pos.divisi}
-                              </span>
-                            )}
-                            <span className="px-3 py-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                              Dibuka
-                            </span>
-                          </div>
+                      <div className="space-y-3">
+                        <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
+                          {pos.judul}
+                        </h3>
 
-                          <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
-                            {pos.judul}
-                          </h3>
-
-                          {pos.deskripsi && (
-                            <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed">
-                              {pos.deskripsi}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* Tombol Apply Now di Header */}
-                        <div className="shrink-0 flex items-center gap-3">
-                          <a
-                            href={pos.applyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-6 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5"
-                          >
-                            <span>APPLY NOW</span>
-                            <ExternalLink className="w-4 h-4 text-[#0f172a]" />
-                          </a>
-                        </div>
+                        {pos.deskripsi && (
+                          <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed">
+                            {pos.deskripsi}
+                          </p>
+                        )}
                       </div>
 
                       {/* Info Pills Grid */}
@@ -407,15 +374,13 @@ export default function InternshipClient() {
                             </p>
                           </div>
 
-                          <a
-                            href={pos.applyUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                          <Link
+                            href={`/internship/apply/${pos.id}`}
+                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span>APPLY NOW</span>
-                            <ExternalLink className="w-4 h-4 text-[#0f172a]" />
-                          </a>
+                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
+                          </Link>
                         </div>
                       </div>
                     )}
@@ -432,9 +397,6 @@ export default function InternshipClient() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#561269] bg-purple-100 px-3.5 py-1 rounded-full">
-                Benefit Program
-              </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight leading-snug">
                 Apa yang Akan Kamu Dapatkan Selama Magang di Empathika?
               </h2>
@@ -486,9 +448,6 @@ export default function InternshipClient() {
             <div className="bg-gradient-to-br from-[#561269] to-[#8B3A9C] text-white rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-10 -mt-10 w-44 h-44 rounded-full bg-white/10 blur-2xl pointer-events-none" />
               <div className="relative z-10 space-y-6">
-                <span className="px-3 py-1 bg-white/20 text-[#EAB308] font-bold text-xs rounded-full">
-                  Komitmen Kami
-                </span>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-snug">
                   &ldquo;Setiap langkah kecil yang kamu buat membawa dampak besar bagi kesehatan mental
                   banyak orang.&rdquo;

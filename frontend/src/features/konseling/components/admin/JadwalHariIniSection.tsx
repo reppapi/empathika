@@ -414,7 +414,7 @@ export default function JadwalHariIniSection({
                         return (
                           <div className="flex flex-col gap-1 items-start">
                             <span>{item.psikolog}</span>
-                            {item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                            {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                               <a
                                 href={getWhatsAppPsikologUrl(item)}
                                 target="_blank"
@@ -427,7 +427,7 @@ export default function JadwalHariIniSection({
                                 <ExternalLink className="w-2.5 h-2.5 opacity-80" />
                               </a>
                             )}
-                            {(item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
+                            {!isReadOnly && (item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
                               <a
                                 href={getWhatsAppPsikologCancelUrl(item)}
                                 target="_blank"
@@ -440,7 +440,7 @@ export default function JadwalHariIniSection({
                                 <ExternalLink className="w-2.5 h-2.5 opacity-80" />
                               </a>
                             )}
-                            {item.status === "Reschedule" && (
+                            {!isReadOnly && item.status === "Reschedule" && (
                               <a
                                 href={getWhatsAppPsikologRescheduleUrl(item)}
                                 target="_blank"
@@ -552,7 +552,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologUrl(item)}
@@ -581,7 +581,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {(item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
+                              {!isReadOnly && (item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologCancelUrl(item)}
@@ -610,7 +610,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status === "Reschedule" && (
+                              {!isReadOnly && item.status === "Reschedule" && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologRescheduleUrl(item)}
@@ -700,10 +700,10 @@ export default function JadwalHariIniSection({
                                   ) : (
                                     <div
                                       className="w-full text-left px-4 py-2 text-xs font-medium text-gray-400 bg-gray-50/50 flex items-center gap-2.5 cursor-not-allowed border-t border-gray-100"
-                                      title="Sesi pada hari H tidak dapat dibatalkan (Batas maksimal H-1 hari)"
+                                      title="Sesi tidak dapat dibatalkan karena sudah melewati batas pengajuan maksimal H-3 jam"
                                     >
                                       <XCircle className="w-4 h-4 text-gray-300 shrink-0" />
-                                      <span>Batalkan (Hari H)</span>
+                                      <span>Batal (&lt; 3 Jam)</span>
                                     </div>
                                   )}
                                 </>

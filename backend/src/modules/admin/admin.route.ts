@@ -18,6 +18,9 @@ import {
   createInternshipPositionSchema,
   updateInternshipPositionSchema,
   updateInternshipPositionsSchema,
+  internshipIdParamsSchema,
+  createInternshipApplicationSchema,
+  updateInternshipApplicationStatusSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -143,6 +146,16 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.getInternshipPublic,
   })
 
+  // 1b. Publik: Klien mengambil detail satu posisi internship yang dibuka untuk form pendaftaran
+  fastify.get('/internship/public/:id', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan detail satu posisi internship untuk publik / apply dari database',
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.getInternshipById,
+  })
+
   // 2. Terproteksi: Admin mengambil seluruh daftar posisi internship dari database
   fastify.get('/internship', {
     preHandler: [adminGuard],
@@ -152,6 +165,18 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       security: [{ bearerAuth: [] }],
     },
     handler: controller.getInternship,
+  })
+
+  // 2b. Terproteksi: Admin mengambil detail satu posisi internship berdasarkan ID
+  fastify.get('/internship/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan detail satu posisi internship dari database',
+      security: [{ bearerAuth: [] }],
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.getInternshipById,
   })
 
   // 3. Terproteksi: Admin membuat posisi internship baru di database
@@ -173,11 +198,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Memperbarui data lowongan posisi internship di database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
       body: updateInternshipPositionSchema,
     },
     handler: controller.updateInternshipItem,
@@ -190,11 +211,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Mengubah status visibilitas lowongan posisi (buka/tutup) di database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
     },
     handler: controller.toggleInternshipStatus,
   })
@@ -206,11 +223,7 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       tags: ['Admin - Internship'],
       summary: 'Menghapus posisi internship dari database',
       security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: { id: { type: 'string' } },
-        required: ['id'],
-      },
+      params: internshipIdParamsSchema,
     },
     handler: controller.deleteInternship,
   })
@@ -225,6 +238,77 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateInternshipPositionsSchema,
     },
     handler: controller.updateInternship,
+  })
+
+  // ── Modul Pengajuan Pelamar Magang (Internship Applications) ──────
+  // 8. Publik: Klien / Pelamar mengirimkan formulir lamaran magang
+  fastify.post('/internship/apply', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Klien mengirimkan formulir lamaran magang dan jawaban pertanyaan',
+      body: createInternshipApplicationSchema,
+    },
+    handler: controller.createInternshipApplication,
+  })
+
+  // 8b. Publik: Klien mengunggah berkas dokumen CV atau Portofolio (PDF, Word, Gambar, maks 15MB)
+  fastify.post('/internship/upload-file', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Upload berkas CV atau portofolio pelamar internship (PDF, DOC, DOCX, Gambar, maks 15MB)',
+      consumes: ['multipart/form-data'],
+    },
+    validatorCompiler: () => () => true,
+    serializerCompiler: () => (data) => JSON.stringify(data),
+    handler: controller.uploadInternshipFile,
+  })
+
+  // 9. Terproteksi: Admin mengambil seluruh daftar pelamar internship
+  fastify.get('/internship/applications', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan daftar seluruh pelamar internship dari database',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getInternshipApplications,
+  })
+
+  // 10. Terproteksi: Admin mengambil detail 1 pelamar internship
+  fastify.get('/internship/applications/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan detail jawaban dan profil satu pelamar internship',
+      security: [{ bearerAuth: [] }],
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.getInternshipApplicationById,
+  })
+
+  // 11. Terproteksi: Admin memperbarui status lamaran internship
+  fastify.patch('/internship/applications/:id/status', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Memperbarui status lamaran (Menunggu, Review, Diterima, Ditolak) dan catatan',
+      security: [{ bearerAuth: [] }],
+      params: internshipIdParamsSchema,
+      body: updateInternshipApplicationStatusSchema,
+    },
+    handler: controller.updateInternshipApplicationStatus,
+  })
+
+  // 12. Terproteksi: Admin menghapus data pelamar internship
+  fastify.delete('/internship/applications/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Menghapus data pelamar internship dari database',
+      security: [{ bearerAuth: [] }],
+      params: internshipIdParamsSchema,
+    },
+    handler: controller.deleteInternshipApplication,
   })
 
   // ── Modul Dashboard & Ringkasan Operasional Admin & Biro ───────────

@@ -1,7 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useState, useRef, useEffect } from "react"
+import { Filter, ChevronDown, Check } from "lucide-react"
 import { PengajuanKerjaSama } from "../../types"
+import { isKerjaSamaLeadRead } from "../../data/initialData"
 
 interface TabPengajuanLeadsProps {
   filteredLeads: PengajuanKerjaSama[]
@@ -20,6 +22,34 @@ export default function TabPengajuanLeads({
   onUpdateLeadStatus,
   onDeleteLead,
 }: TabPengajuanLeadsProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Tutup dropdown saat klik di luar atau saat tekan Escape
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside)
+      document.addEventListener("keydown", handleKeyDown)
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isDropdownOpen])
+
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden flex flex-col">
       <div className="p-5 sm:p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -30,21 +60,77 @@ export default function TabPengajuanLeads({
           </p>
         </div>
 
-        {/* Filter buttons */}
-        <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-full text-xs font-semibold self-start sm:self-auto">
-          {["Semua", "Menunggu", "Dihubungi", "Disetujui"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setLeadFilter(status)}
-              className={`px-3 py-1.5 rounded-full transition-all cursor-pointer ${
-                leadFilter === status
-                  ? "bg-[#EAB308] text-gray-950 font-bold shadow-sm"
-                  : "text-gray-600 hover:text-gray-900 font-medium"
+        {/* Tombol Filter Status Dropdown (Sesuai Gaya Filter Topik Event & Workshop) */}
+        <div ref={dropdownRef} className="relative self-start sm:self-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen((prev) => !prev)}
+            className="flex items-center justify-between gap-2 w-48 sm:w-52 h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-xs hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-200 cursor-pointer active:scale-95 shrink-0"
+          >
+            <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
+              <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
+              <span className="text-gray-400 font-medium text-xs shrink-0">Status:</span>
+              <span
+                className="text-[#561269] font-bold text-xs sm:text-sm truncate min-w-0"
+                title={leadFilter}
+              >
+                {leadFilter === "Semua" ? "Semua Status" : leadFilter}
+              </span>
+            </div>
+            <ChevronDown
+              className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
+                isDropdownOpen ? "rotate-180" : ""
               }`}
-            >
-              {status}
-            </button>
-          ))}
+            />
+          </button>
+
+          {/* Dropdown Floating di Atas Table Sesuai Desain Event Workshop */}
+          {isDropdownOpen && (
+            <div className="absolute right-0 top-full mt-2 z-20 w-56 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+              <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
+                Pilih Status Pengajuan
+              </p>
+              <div className="space-y-0.5">
+                {[
+                  { id: "Semua", label: "Semua Status" },
+                  { id: "Menunggu", label: "Menunggu" },
+                  { id: "Dihubungi", label: "Dihubungi" },
+                  { id: "Disetujui", label: "Disetujui" },
+                  { id: "Ditolak", label: "Ditolak" },
+                ].map((item) => {
+                  const isSelected = leadFilter === item.id
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setLeadFilter(item.id)
+                        setIsDropdownOpen(false)
+                      }}
+                      className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-purple-50 text-[#561269] font-bold"
+                          : "text-gray-700 hover:bg-gray-50 font-semibold"
+                      }`}
+                    >
+                      <span
+                        className={
+                          isSelected
+                            ? "font-bold text-[#561269]"
+                            : "font-semibold text-gray-800"
+                        }
+                      >
+                        {item.label}
+                      </span>
+                      {isSelected && (
+                        <Check className="h-3.5 w-3.5 text-[#561269] shrink-0 ml-2" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -69,7 +155,16 @@ export default function TabPengajuanLeads({
               filteredLeads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-gray-50/60 transition">
                   <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">{lead.tanggal}</td>
-                  <td className="py-3.5 px-4 font-bold text-gray-900">{lead.namaInstansi}</td>
+                  <td className="py-3.5 px-4 font-bold text-gray-900">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{lead.namaInstansi}</span>
+                      {!isKerjaSamaLeadRead(lead.id) && lead.status === "Menunggu" && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
+                          Baru
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4">
                     <span className="font-semibold text-gray-800 block text-xs">
                       {lead.formTitle || `Formulir ${lead.kategori}`}

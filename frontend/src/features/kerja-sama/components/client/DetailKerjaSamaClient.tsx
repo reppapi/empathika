@@ -1,6 +1,7 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useTenantContext } from '@/context/TenantContext';
 import { getKerjaSamaConfig, getCleanWhatsAppNumber, INITIAL_KERJASAMA_CONFIG } from '../../data/initialData';
 import { KerjaSamaItem, KerjaSamaPageConfig } from '../../types';
 import { kerjaSamaService } from '@/services/kerja-sama.service';
@@ -11,6 +12,8 @@ interface DetailKerjaSamaClientProps {
 }
 
 export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClientProps) {
+  const { isBiro, biroProfile } = useTenantContext();
+  const brandName = isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro : "Empathika";
   const [items, setItems] = useState<KerjaSamaItem[]>([]);
   const [config, setConfig] = useState<KerjaSamaPageConfig>(INITIAL_KERJASAMA_CONFIG);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,15 +109,14 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
   // Temukan item berdasarkan slug category (misal: "mahasiswa", "sekolah", dll.)
   const item = activeItems.find((it: KerjaSamaItem) => it.slug === category);
 
-  // Jika item di-nonaktifkan atau tidak ditemukan, kita tampilkan fallback title
-  const title = item ? item.title : `Empathika untuk ${category}`;
-  const shortTitle = item?.shortName || title.replace('Empathika untuk ', '');
-  const description = item?.description || "Empathika membuka ruang sinergi dan kolaborasi profesional untuk menciptakan dampak nyata bagi kesehatan psikologis.";
-  const pelatihanTitle = item?.pelatihanTitle || `Pelatihan ${shortTitle}`;
-  const pelatihanDeskripsi = item?.pelatihanDeskripsi || "Membekali peserta dengan keterampilan kesehatan mental, resiliensi, dan pendampingan psikologis terstruktur.";
+  const title = item ? item.title.replace('Empathika', brandName) : `${brandName} untuk ${category}`;
+  const shortTitle = item?.shortName || title.replace('Empathika untuk ', '').replace(`${brandName} untuk `, '');
+  const description = item?.description?.replace(/Empathika/g, brandName) || "";
+  const pelatihanTitle = item?.pelatihanTitle || "";
+  const pelatihanDeskripsi = item?.pelatihanDeskripsi || "";
   const pelatihanImage = item?.pelatihanImage;
-  const mitraTitle = item?.mitraTitle || "Empathika x Mitra";
-  const mitraDeskripsi = item?.mitraDeskripsi || "Sinergi berkelanjutan untuk mendukung ekosistem kesehatan mental dan program komprehensif.";
+  const mitraTitle = item?.mitraTitle || "";
+  const mitraDeskripsi = item?.mitraDeskripsi || "";
   const mitraImage = item?.mitraImage;
 
   return (
@@ -150,13 +152,39 @@ export default function DetailKerjaSamaClient({ category }: DetailKerjaSamaClien
           </div>
         )}
 
-        {!isLoading && !isError && (
+        {/* Not Found State */}
+        {!isLoading && !isError && !item && (
+          <div className="py-20 text-center max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full bg-purple-50 text-[#561269] flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
+              ?
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Program Tidak Ditemukan</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Program kerja sama yang Anda cari tidak tersedia atau belum dipublikasikan.
+            </p>
+            <Link
+              href="/kerja-sama"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#561269] hover:bg-[#430e52] text-white text-xs sm:text-sm font-bold rounded-full transition shadow-xs cursor-pointer"
+            >
+              Kembali ke Halaman Kerja Sama
+            </Link>
+          </div>
+        )}
+
+        {!isLoading && !isError && item && (
           <div className="flex flex-col gap-6">
           
           {/* Elegant & Clean Title Section with Gradient Accent */}
           <div className="flex flex-col items-center justify-center mb-2 mt-4 text-center">
             <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
-              <span className="text-[#561269]">Empathika untuk </span>
+              <span
+                style={{
+                  color: isBiro ? "color-mix(in srgb, var(--biro-theme-color, #561269) 35%, #0a040d)" : "#2a0835",
+                }}
+                className="text-[#2a0835]"
+              >
+                {brandName} untuk{" "}
+              </span>
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#561269] via-[#8e4a9e] to-[#ba68c8]">
                 {shortTitle}
               </span>

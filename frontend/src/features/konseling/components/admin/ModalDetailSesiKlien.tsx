@@ -9,6 +9,7 @@ import {
   formatWhatsAppPsikologCancellation,
   getWhatsAppClientRescheduleUrl,
   getWhatsAppPsikologRescheduleUrl,
+  parseTimeRangeMinutes,
 } from "@/features/konseling/data/jadwalAdminData"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
 import ModalInvoice from "./ModalInvoice"
@@ -79,7 +80,18 @@ export default function ModalDetailSesiKlien({
   const sessionDate = session.date || session.tanggal || ""
   const isCancelled = session.status === "Dibatalkan" || session.status === "Dibatalkan (Refund)"
   const isRescheduled = session.status === "Reschedule"
-  const isCompleted = session.status === "Selesai"
+
+  // Hitung apakah sesi sudah lewat waktunya secara riil
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+  const { endMinutes } = parseTimeRangeMinutes(session.waktu)
+  const currentMinutes = now.getHours() * 60 + now.getMinutes()
+  const isPastTime =
+    Boolean(sessionDate && sessionDate < todayKey) ||
+    Boolean(sessionDate && sessionDate === todayKey && endMinutes > 0 && currentMinutes >= endMinutes)
+
+  const isCompleted = session.status === "Selesai" || (session.status as string) === "COMPLETED" || (!isCancelled && !isRescheduled && isPastTime)
+  const displayStatus = isCompleted ? "Selesai" : session.status
 
   // Aturan Bisnis: Batas maksimal Reschedule adalah H-3 jam sebelum jam mulai sesi
   const isRescheduleAllowed = canRescheduleSession(sessionDate, session.waktu)
@@ -240,58 +252,59 @@ export default function ModalDetailSesiKlien({
                         {isAsesmen ? <span className="text-gray-400 font-semibold text-sm">-</span> : session.psikolog}
                       </p>
                     </div>
-                    {!isPsikologPortal && !isAsesmen && !isCompleted && !isCancelled && !isRescheduled && (
-                      <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-1.5 flex-wrap">
+                    {!isReadOnly && !isPsikologPortal && !isAsesmen && !isCompleted && !isCancelled && !isRescheduled && (
+                      <div className="mt-2 pt-1.5 border-t border-purple-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-[#561269] hover:bg-[#430c52] text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
-                          title={`Kirim pesan pengingat jadwal ke ${session.psikolog} via WhatsApp`}
+                          className="px-3.5 py-1.5 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
+                          title={`Buka WhatsApp ${session.psikolog} dengan rincian jadwal otomatis`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Ingatkan (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Chat WA</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                         {onCopyWhatsAppPsikolog && (
                           <button
                             type="button"
                             onClick={() => onCopyWhatsAppPsikolog(session)}
-                            className="p-1 rounded-full border border-purple-200 hover:bg-purple-100 text-gray-600 transition cursor-pointer"
-                            title="Salin Pesan Pengingat Psikolog"
+                            className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
+                            title="Salin Rincian Pesan WA ke Clipboard"
                           >
-                            <Copy className="w-3 h-3" />
+                            <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                            <span>Salin</span>
                           </button>
                         )}
                       </div>
                     )}
-                    {!isPsikologPortal && !isAsesmen && isRescheduled && (
-                      <div className="mt-2 pt-1.5 border-t border-amber-200/50 flex items-center gap-1.5 flex-wrap">
+                    {!isReadOnly && !isPsikologPortal && !isAsesmen && isRescheduled && (
+                      <div className="mt-2 pt-1.5 border-t border-amber-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologRescheduleUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
-                          title={`Kirim pemberitahuan reschedule ke ${session.psikolog} via WhatsApp`}
+                          className="px-3.5 py-1.5 rounded-full bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
+                          title={`Buka WhatsApp ${session.psikolog} dengan rincian jadwal reschedule baru`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Info Reschedule (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Info Reschedule (WA)</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                       </div>
                     )}
-                    {!isPsikologPortal && !isAsesmen && isCancelled && (
-                      <div className="mt-2 pt-1.5 border-t border-rose-200/50 flex items-center gap-1.5 flex-wrap">
+                    {!isReadOnly && !isPsikologPortal && !isAsesmen && isCancelled && (
+                      <div className="mt-2 pt-1.5 border-t border-rose-200/50 flex items-center gap-2 flex-wrap">
                         <a
                           href={getWhatsAppPsikologCancelUrl(session)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs active:scale-95 transition cursor-pointer"
+                          className="px-3.5 py-1.5 rounded-full bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition active:scale-95 cursor-pointer max-w-full"
                           title={`Kirim pemberitahuan pembatalan sesi ke ${session.psikolog} via WhatsApp`}
                         >
-                          <MessageCircle className="w-3 h-3 text-[#25D366] shrink-0" />
-                          <span>Info Batal (WA)</span>
-                          <ExternalLink className="w-2.5 h-2.5 opacity-80 shrink-0" />
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">Info Batal (WA)</span>
+                          <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                         </a>
                         <button
                           type="button"
@@ -300,10 +313,11 @@ export default function ModalDetailSesiKlien({
                             navigator.clipboard.writeText(text)
                             alert("Template pesan pembatalan untuk psikolog berhasil disalin ke clipboard!")
                           }}
-                          className="p-1 rounded-full border border-rose-200 hover:bg-rose-100 text-rose-700 transition cursor-pointer"
+                          className="px-3 py-1.5 rounded-full border border-gray-300 hover:bg-gray-100 bg-white text-gray-700 text-xs font-semibold inline-flex items-center gap-1.5 transition active:scale-95 cursor-pointer shrink-0"
                           title="Salin Template Pesan Pembatalan untuk Psikolog"
                         >
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3.5 h-3.5 text-gray-500 shrink-0" />
+                          <span>Salin</span>
                         </button>
                       </div>
                     )}
@@ -336,19 +350,19 @@ export default function ModalDetailSesiKlien({
           {/* Batas Refund & Status Pembayaran */}
           <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/70 space-y-1">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-amber-900">Batas Pengajuan Refund (H-1):</span>
+              <span className="font-semibold text-amber-900">Batas Pengajuan Refund (H-3 Jam):</span>
               <span className="font-bold text-amber-950">
                 {session.refundDeadline
                   ? new Date(session.refundDeadline).toLocaleString("id-ID", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   }) + " WIB"
-                  : "Maksimal 24 jam sebelum sesi"}
+                  : "Maksimal 3 jam sebelum sesi"}
               </span>
             </div>
             {session.canRefund ? (
               <p className="text-[10px] text-emerald-700 font-medium">
-                ✓ Sesi ini masih dapat diajukan refund penuh 100%.
+                ✓ Sesi ini masih dapat diajukan refund (kebijakan batas pengajuan maksimal H-3 jam).
               </p>
             ) : (
               <p className="text-[10px] text-red-600 font-medium">
@@ -357,7 +371,7 @@ export default function ModalDetailSesiKlien({
                   : session.status === "Selesai"
                     ? "Sesi telah selesai."
                     : session.isPastH1
-                      ? "Sudah melewati batas pengajuan refund (maksimal H-1)."
+                      ? "Sudah melewati batas pengajuan refund (maksimal H-3 jam sebelum sesi)."
                       : "Sesi belum memenuhi syarat refund."}
               </p>
             )}
@@ -368,11 +382,11 @@ export default function ModalDetailSesiKlien({
             <span className="font-semibold text-gray-700">Status Saat Ini:</span>
             <AdminStatusBadge
               variant={
-                session.status === "Selesai"
+                displayStatus === "Selesai"
                   ? "success"
-                  : session.status === "Segera Dimulai"
+                  : displayStatus === "Segera Dimulai"
                     ? "info"
-                    : session.status === "Sedang Berlangsung"
+                    : displayStatus === "Sedang Berlangsung"
                       ? "danger"
                       : isRescheduled
                         ? "warning"
@@ -382,7 +396,7 @@ export default function ModalDetailSesiKlien({
               }
               className="w-40"
             >
-              {session.status}
+              {displayStatus}
             </AdminStatusBadge>
           </div>
 
@@ -432,7 +446,7 @@ export default function ModalDetailSesiKlien({
         {/* Footer Modal */}
         <div className="flex items-center justify-end gap-2.5 pt-5 mt-5 border-t border-gray-100 flex-wrap">
           {/* Tombol Kirim Info Batal ke Tenaga Ahli (Psikolog) jika status dibatalkan (Hanya untuk Admin Portal) */}
-          {isCancelled && !isPsikologPortal && (
+          {isCancelled && !isPsikologPortal && !isReadOnly && (
             <a
               href={getWhatsAppPsikologCancelUrl(session)}
               target="_blank"
@@ -447,7 +461,7 @@ export default function ModalDetailSesiKlien({
           )}
 
           {/* Tombol Kirim Info Reschedule ke Tenaga Ahli jika status Reschedule (Hanya untuk Admin Portal) */}
-          {isRescheduled && !isPsikologPortal && (
+          {isRescheduled && !isPsikologPortal && !isReadOnly && (
             <a
               href={getWhatsAppPsikologRescheduleUrl(session)}
               target="_blank"
@@ -468,8 +482,8 @@ export default function ModalDetailSesiKlien({
               onClick={() => setShowInvoice(true)}
               disabled={!canShowInvoice}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${canShowInvoice
-                  ? "border border-blue-200 text-blue-700 hover:bg-blue-50 cursor-pointer"
-                  : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                ? "border border-blue-200 text-blue-700 hover:bg-blue-50 cursor-pointer"
+                : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
                 }`}
               title={canShowInvoice ? "Lihat dan kirim invoice via WhatsApp" : "Invoice hanya tersedia untuk transaksi yang sudah lunas"}
             >
@@ -581,11 +595,10 @@ export default function ModalDetailSesiKlien({
                   type="button"
                   onClick={() => onRescheduleClick(session)}
                   disabled={!isRescheduleAllowed}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${
-                    isRescheduleAllowed
-                      ? "border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 cursor-pointer shadow-2xs active:scale-95"
-                      : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${isRescheduleAllowed
+                    ? "border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 cursor-pointer shadow-2xs active:scale-95"
+                    : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                    }`}
                   title={
                     isRescheduleAllowed
                       ? "Pindahkan jadwal sesi ke tanggal & jam lain (Maksimal H-3 Jam)"
@@ -602,18 +615,17 @@ export default function ModalDetailSesiKlien({
                 type="button"
                 onClick={() => onCancelClick(session)}
                 disabled={!isCancellable}
-                className={`px-4 py-2 rounded-full border text-xs font-bold transition ${
-                  isCancellable
-                    ? "border-red-200 text-red-600 hover:bg-red-50 cursor-pointer shadow-2xs active:scale-95"
-                    : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
-                }`}
+                className={`px-4 py-2 rounded-full border text-xs font-bold transition ${isCancellable
+                  ? "border-red-200 text-red-600 hover:bg-red-50 cursor-pointer shadow-2xs active:scale-95"
+                  : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                  }`}
                 title={
                   isCancellable
-                    ? "Batalkan sesi konsultasi klien ini (Maksimal H-1 Hari)"
-                    : "Sesi tidak dapat dibatalkan karena sudah masuk hari H (Batas pembatalan maksimal H-1 hari)"
+                    ? "Batalkan sesi konsultasi klien ini (Maksimal H-3 Jam)"
+                    : "Sesi tidak dapat dibatalkan karena sudah melewati batas pengajuan maksimal H-3 jam"
                 }
               >
-                {isCancellable ? "Batalkan Sesi" : "Batalkan (Hari H)"}
+                {isCancellable ? "Batalkan Sesi" : "Batal (< 3 Jam)"}
               </button>
 
               {/* Tombol Tandai Selesai */}
@@ -625,6 +637,17 @@ export default function ModalDetailSesiKlien({
                 Tandai Selesai
               </button>
             </>
+          )}
+
+          {!isReadOnly && isCompleted && (
+            <button
+              type="button"
+              disabled
+              className="px-4 py-2 rounded-full bg-gray-100 text-gray-400 border border-gray-200 text-xs font-bold cursor-not-allowed select-none opacity-80"
+              title="Sesi ini telah selesai dan tidak dapat diubah lagi"
+            >
+              Sesi Selesai
+            </button>
           )}
 
           <button

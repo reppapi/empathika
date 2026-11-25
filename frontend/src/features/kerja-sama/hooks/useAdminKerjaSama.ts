@@ -16,8 +16,14 @@ import {
   saveKerjaSamaConfig,
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
+  getReadKerjaSamaLeadIds,
+  isKerjaSamaLeadRead,
+  markKerjaSamaLeadAsRead,
+  getUnreadKerjaSamaCount,
   getFormulirConfigs,
   saveFormulirConfigs,
+  mapBackendFormulirToConfig,
+  sortFormulirConfigs,
   INITIAL_KERJASAMA_ITEMS,
   INITIAL_KERJASAMA_CONFIG,
   INITIAL_PENGAJUAN_KERJASAMA,
@@ -109,6 +115,7 @@ export function useAdminKerjaSama() {
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
   const [newQuestionType, setNewQuestionType] = useState<"radio" | "select" | "text" | "file">("radio")
   const [newQuestionOptions, setNewQuestionOptions] = useState<string>("Opsi 1, Opsi 2, Opsi 3")
+  const [newQuestionRequired, setNewQuestionRequired] = useState<boolean>(true)
 
   // Filter Leads
   const [leadFilter, setLeadFilter] = useState<string>("Semua")
@@ -168,15 +175,8 @@ export function useAdminKerjaSama() {
               }
             })
 
-            // Gabungkan data backend dengan cache lokal jika ada item baru di lokal
-            const combined = [...mappedFromBackend]
-            localLeads.forEach((ll) => {
-              if (!combined.some((c) => c.id === ll.id)) {
-                combined.push(ll)
-              }
-            })
-            setLeads(combined)
-            savePengajuanKerjaSama(combined)
+            setLeads(mappedFromBackend)
+            savePengajuanKerjaSama(mappedFromBackend)
           }
         })
         .catch((err) => {
@@ -185,6 +185,28 @@ export function useAdminKerjaSama() {
     }
 
     fetchLeads()
+
+    // Ambil konfigurasi formulir kerja sama dari Backend API agar sinkron dengan client
+    const fetchFormulirs = () => {
+      kerjaSamaService
+        .getFormulirList()
+        .then((res: any) => {
+          if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+            const mapped = sortFormulirConfigs(
+              res.data
+                .map(mapBackendFormulirToConfig)
+                .filter((f: FormulirConfigItem) => f.slug !== "affiliate")
+            )
+            if (mapped.length > 0) {
+              setFormConfigs(mapped)
+              saveFormulirConfigs(mapped)
+            }
+          }
+        })
+        .catch(() => {})
+    }
+
+    fetchFormulirs()
 
     // Real-time synchronization saat tab admin aktif kembali atau ada pengajuan baru
     const handleSync = () => {
@@ -200,7 +222,7 @@ export function useAdminKerjaSama() {
     kerjaSamaService
       .getProgramList()
       .then((res: any) => {
-        if (res?.data && Array.isArray(res.data) && res.data.length > 0) {
+        if (res?.data && Array.isArray(res.data)) {
           const mappedPrograms: KerjaSamaItem[] = res.data.map((p: any) => ({
             id: p.id,
             slug: p.slug,
@@ -306,6 +328,17 @@ export function useAdminKerjaSama() {
   // ── Handlers Kelola Formulir ──
   const currentFormConfig = formConfigs[selectedFormIndex]
 
+  const syncFormulirToBackend = (form: FormulirConfigItem) => {
+    kerjaSamaService
+      .updateFormulir(form.slug, {
+        title: form.title,
+        kategori_default: form.categoryDefault,
+        deskripsi: form.description,
+        pertanyaan_khusus: form.pertanyaanKhusus,
+      })
+      .catch(() => {})
+  }
+
   const handleUpdateCurrentForm = (fields: Partial<FormulirConfigItem>) => {
     const updated = formConfigs.map((f, idx) =>
       idx === selectedFormIndex ? { ...f, ...fields } : f
@@ -315,16 +348,8 @@ export function useAdminKerjaSama() {
 
   const handleSaveAllFormConfigs = () => {
     saveFormulirConfigs(formConfigs)
-    // Sinkronkan ke Backend API jika formulir aktif
     if (currentFormConfig) {
-      kerjaSamaService
-        .updateFormulir(currentFormConfig.slug, {
-          title: currentFormConfig.title,
-          kategori_default: currentFormConfig.categoryDefault,
-          deskripsi: currentFormConfig.description,
-          pertanyaan_khusus: currentFormConfig.pertanyaanKhusus,
-        })
-        .catch(() => {})
+      syncFormulirToBackend(currentFormConfig)
     }
     showToast("Perubahan struktur formulir berhasil disimpan!")
   }
@@ -332,11 +357,13 @@ export function useAdminKerjaSama() {
   const handleDeleteQuestion = (qId: string) => {
     if (!currentFormConfig) return
     const updatedQuestions = currentFormConfig.pertanyaanKhusus.filter((q) => q.id !== qId)
+    const updatedForm = { ...currentFormConfig, pertanyaanKhusus: updatedQuestions }
     const updated = formConfigs.map((f, idx) =>
-      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+      idx === selectedFormIndex ? updatedForm : f
     )
     setFormConfigs(updated)
     saveFormulirConfigs(updated)
+    syncFormulirToBackend(updatedForm)
     showToast("Pertanyaan berhasil dihapus!")
   }
 
@@ -351,11 +378,13 @@ export function useAdminKerjaSama() {
       }
       return q
     })
+    const updatedForm = { ...currentFormConfig, pertanyaanKhusus: updatedQuestions }
     const updated = formConfigs.map((f, idx) =>
-      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+      idx === selectedFormIndex ? updatedForm : f
     )
     setFormConfigs(updated)
     saveFormulirConfigs(updated)
+    syncFormulirToBackend(updatedForm)
     showToast("Pertanyaan berhasil diperbarui!")
   }
 
@@ -363,7 +392,10 @@ export function useAdminKerjaSama() {
     e.preventDefault()
     if (!currentFormConfig || !newQuestionLabel.trim()) return
 
-    const qKey = `pertanyaan_${Date.now()}`
+    const qKey =
+      newQuestionType === "file"
+        ? `lampiran_${Date.now()}`
+        : `pertanyaan_${Date.now()}`
     const newQuestion: FormulirPertanyaan = {
       id: `q_${Date.now()}`,
       label: newQuestionLabel.trim(),
@@ -376,22 +408,31 @@ export function useAdminKerjaSama() {
               .map((s) => s.trim())
               .filter(Boolean)
           : undefined,
-      required: true,
+      required: newQuestionRequired,
     }
 
     const updatedQuestions = [...currentFormConfig.pertanyaanKhusus, newQuestion]
+    const updatedForm = { ...currentFormConfig, pertanyaanKhusus: updatedQuestions }
     const updated = formConfigs.map((f, idx) =>
-      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+      idx === selectedFormIndex ? updatedForm : f
     )
     setFormConfigs(updated)
     saveFormulirConfigs(updated)
+    syncFormulirToBackend(updatedForm)
     setNewQuestionLabel("")
+    setNewQuestionRequired(true)
     setIsAddingQuestion(false)
     showToast("Pertanyaan baru berhasil ditambahkan ke formulir!")
   }
 
   // ── Handlers Leads / Pengajuan ──
+  const handleOpenLeadDetail = (lead: PengajuanKerjaSama) => {
+    markKerjaSamaLeadAsRead(lead.id)
+    setSelectedLead(lead)
+  }
+
   const handleUpdateLeadStatus = (id: string, newStatus: PengajuanKerjaSama["status"]) => {
+    markKerjaSamaLeadAsRead(id)
     const updated = leads.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
     setLeads(updated)
     savePengajuanKerjaSama(updated)
@@ -428,6 +469,7 @@ export function useAdminKerjaSama() {
   // Quick stats
   const activeCount = items.filter((it) => it.status === "AKTIF").length
   const waitingLeads = leads.filter((l) => l.status === "Menunggu").length
+  const unreadLeadsCount = getUnreadKerjaSamaCount(leads)
 
   return {
     activeTab,
@@ -456,6 +498,8 @@ export function useAdminKerjaSama() {
     setNewQuestionType,
     newQuestionOptions,
     setNewQuestionOptions,
+    newQuestionRequired,
+    setNewQuestionRequired,
     handleImageUpload,
     handleToggleStatus,
     handleOpenAddModal,
@@ -467,10 +511,12 @@ export function useAdminKerjaSama() {
     handleDeleteQuestion,
     handleUpdateQuestion,
     handleAddNewQuestion,
+    handleOpenLeadDetail,
     handleUpdateLeadStatus,
     handleDeleteLead,
     activeCount,
     waitingLeads,
+    unreadLeadsCount,
   }
 }
 

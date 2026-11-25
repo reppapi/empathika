@@ -37,6 +37,8 @@ export default function AdminKerjaSamaClient() {
     setNewQuestionType,
     newQuestionOptions,
     setNewQuestionOptions,
+    newQuestionRequired,
+    setNewQuestionRequired,
     handleImageUpload,
     handleToggleStatus,
     handleOpenAddModal,
@@ -48,10 +50,12 @@ export default function AdminKerjaSamaClient() {
     handleDeleteQuestion,
     handleUpdateQuestion,
     handleAddNewQuestion,
+    handleOpenLeadDetail,
     handleUpdateLeadStatus,
     handleDeleteLead,
     activeCount,
     waitingLeads,
+    unreadLeadsCount,
   } = useAdminKerjaSama()
 
   // State Modal Konfirmasi Hapus
@@ -208,11 +212,15 @@ export default function AdminKerjaSamaClient() {
           }`}
         >
           <span>Pengajuan Masuk (Leads)</span>
-          {waitingLeads > 0 && (
+          {unreadLeadsCount > 0 ? (
+            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white shadow-xs animate-pulse shrink-0">
+              {unreadLeadsCount > 99 ? "99+" : unreadLeadsCount}
+            </span>
+          ) : waitingLeads > 0 ? (
             <span className="w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
               {waitingLeads}
             </span>
-          )}
+          ) : null}
         </button>
       </div>
 
@@ -254,6 +262,8 @@ export default function AdminKerjaSamaClient() {
           setNewQuestionType={setNewQuestionType}
           newQuestionOptions={newQuestionOptions}
           setNewQuestionOptions={setNewQuestionOptions}
+          newQuestionRequired={newQuestionRequired}
+          setNewQuestionRequired={setNewQuestionRequired}
           handleAddNewQuestion={handleAddNewQuestion}
           handleUpdateQuestion={handleUpdateQuestion}
           handleDeleteQuestion={(qId) => setQuestionIdToDelete(qId)}
@@ -266,7 +276,7 @@ export default function AdminKerjaSamaClient() {
           filteredLeads={filteredLeads}
           leadFilter={leadFilter}
           setLeadFilter={setLeadFilter}
-          onSelectLead={setSelectedLead}
+          onSelectLead={handleOpenLeadDetail}
           onUpdateLeadStatus={handleUpdateLeadStatus}
           onDeleteLead={(id) => setLeadIdToDelete(id)}
         />

@@ -5,10 +5,17 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
 import { adminService } from "@/services/admin.service"
+import { kerjaSamaService } from "@/services/kerja-sama.service"
+import {
+  getUnreadKerjaSamaCount,
+  getPengajuanKerjaSama,
+} from "@/features/kerja-sama/data/initialData"
+import { PengajuanKerjaSama } from "@/features/kerja-sama/types"
 
 export interface NavItem {
   name: string
   path: string
+  badge?: number
 }
 
 export const navItems: NavItem[] = [
@@ -36,9 +43,72 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
   const pathname = usePathname()
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [unreadKerjaSamaCount, setUnreadKerjaSamaCount] = useState<number>(0)
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const updateUnreadKerjaSama = () => {
+      try {
+        const localCount = getUnreadKerjaSamaCount()
+        setUnreadKerjaSamaCount(localCount)
+      } catch {}
+
+      kerjaSamaService
+        .getPengajuanList()
+        .then((res: any) => {
+          if (res?.data && Array.isArray(res.data)) {
+            const mappedLeads: PengajuanKerjaSama[] = res.data.map((item: any) => ({
+              id: item.id,
+              tanggal: "",
+              namaInstansi: item.nama_instansi || "",
+              kategori: item.kategori || "",
+              namaPIC: item.nama_pic || "",
+              email: item.email || "",
+              telepon: item.no_telepon || "",
+              pesan: item.pesan || "",
+              status:
+                item.status === "DIHUBUNGI"
+                  ? "Dihubungi"
+                  : item.status === "DISETUJUI"
+                  ? "Disetujui"
+                  : item.status === "DITOLAK"
+                  ? "Ditolak"
+                  : "Menunggu",
+              tipeFormulir: item.tipe_formulir || "lainnya",
+              formTitle: "",
+              jawabanDetail: item.jawaban_detail || {},
+            }))
+
+            const localLeads = getPengajuanKerjaSama()
+            const combined = [...mappedLeads]
+            localLeads.forEach((ll) => {
+              if (!combined.some((c) => c.id === ll.id)) {
+                combined.push(ll)
+              }
+            })
+
+            const count = getUnreadKerjaSamaCount(combined)
+            setUnreadKerjaSamaCount(count)
+          }
+        })
+        .catch(() => {
+          setUnreadKerjaSamaCount(getUnreadKerjaSamaCount())
+        })
+    }
+
+    updateUnreadKerjaSama()
+    window.addEventListener("storage", updateUnreadKerjaSama)
+    window.addEventListener("focus", updateUnreadKerjaSama)
+    window.addEventListener("empathika_kerjasama_leads_updated", updateUnreadKerjaSama)
+
+    return () => {
+      window.removeEventListener("storage", updateUnreadKerjaSama)
+      window.removeEventListener("focus", updateUnreadKerjaSama)
+      window.removeEventListener("empathika_kerjasama_leads_updated", updateUnreadKerjaSama)
+    }
   }, [])
 
   useEffect(() => {
@@ -128,18 +198,26 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
           <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               const active = isActive(item.path)
+              const badge = item.name === "Kerja Sama" ? unreadKerjaSamaCount : item.badge
+
               return (
                 <Link
                   key={item.name}
                   href={item.path as any}
                   prefetch={true}
                   onClick={onClose}
-                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors [-webkit-tap-highlight-color:transparent] ${active
+                  className={`px-6 py-3.5 text-[15px] font-normal capitalize tracking-wide transition-colors flex items-center justify-between gap-2 [-webkit-tap-highlight-color:transparent] ${
+                    active
                       ? "w-full bg-white/25 text-white shadow-sm font-semibold"
                       : "text-white/90 hover:bg-white/10"
-                    }`}
+                  }`}
                 >
-                  {item.name}
+                  <span className="truncate">{item.name}</span>
+                  {badge !== undefined && badge > 0 && (
+                    <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500 text-white shadow-xs animate-pulse shrink-0">
+                      {badge > 99 ? "99+" : badge}
+                    </span>
+                  )}
                 </Link>
               )
             })}

@@ -185,6 +185,13 @@ export type DefaultSlideConfigInput = z.infer<typeof defaultSlideConfigSchema>
 export type UpdateHeroBannersInput = z.infer<typeof updateHeroBannersSchema>
 
 // ── Modul Manajemen Internship ────────────────────────────────────
+export const internshipQuestionItemSchema = z.object({
+  id: z.string().optional(),
+  label: z.string().trim().min(1, 'Pertanyaan tidak boleh kosong'),
+  type: z.enum(['text', 'textarea', 'url']).default('textarea'),
+  required: z.boolean().default(false),
+})
+
 export const internshipPositionSchema = z.object({
   id: z.string().optional(),
   judul: z.string().trim().min(1, 'Judul posisi wajib diisi'),
@@ -197,7 +204,8 @@ export const internshipPositionSchema = z.object({
   deskripsi: z.string().trim().optional().nullable(),
   responsibilities: z.array(z.string()).default([]),
   qualifications: z.array(z.string()).default([]),
-  applyUrl: z.string().trim().min(1, 'URL pendaftaran wajib diisi'),
+  questions: z.array(internshipQuestionItemSchema).optional().default([]),
+  applyUrl: z.string().trim().default(''),
   isOpen: z.boolean().default(true),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -208,9 +216,46 @@ export const updateInternshipPositionSchema = internshipPositionSchema.partial()
 export const updateInternshipPositionsSchema = z.object({
   positions: z.array(internshipPositionSchema),
 })
+export const internshipIdParamsSchema = z.object({
+  id: z.string().trim().min(1, 'ID posisi wajib diisi'),
+})
+
+// Schema Pengajuan Pelamar Magang (Internship Applications)
+export const createInternshipApplicationSchema = z.object({
+  positionId: z.string().trim().min(1, 'ID posisi wajib diisi'),
+  positionTitle: z.string().trim().min(1, 'Judul posisi wajib diisi'),
+  nama: z.string().trim().min(1, 'Nama lengkap wajib diisi'),
+  email: z.string().trim().email('Format email tidak valid'),
+  telepon: z.string().trim().min(5, 'Nomor telepon/WhatsApp wajib diisi'),
+  universitas: z.string().trim().min(1, 'Asal universitas/institusi wajib diisi'),
+  jurusan: z.string().trim().optional().nullable(),
+  semester: z.string().trim().optional().nullable(),
+  cvUrl: z.string().trim().min(1, 'Link CV/Resume wajib diisi'),
+  portfolioUrl: z.string().trim().optional().nullable(),
+  jawaban: z
+    .array(
+      z.object({
+        questionId: z.string().optional(),
+        question: z.string(),
+        answer: z.string(),
+      })
+    )
+    .optional()
+    .default([]),
+})
+
+export const updateInternshipApplicationStatusSchema = z.object({
+  status: z.enum(['MENUNGGU', 'REVIEW', 'DITERIMA', 'DITOLAK']),
+  catatanAdmin: z.string().trim().optional().nullable(),
+})
 
 export type InternshipPositionItem = z.infer<typeof internshipPositionSchema>
 export type CreateInternshipPositionInput = z.infer<typeof createInternshipPositionSchema>
 export type UpdateInternshipPositionInput = z.infer<typeof updateInternshipPositionSchema>
 export type UpdateInternshipPositionsInput = z.infer<typeof updateInternshipPositionsSchema>
+export type InternshipIdParams = z.infer<typeof internshipIdParamsSchema>
+export type CreateInternshipApplicationInput = z.infer<typeof createInternshipApplicationSchema>
+export type UpdateInternshipApplicationStatusInput = z.infer<
+  typeof updateInternshipApplicationStatusSchema
+>
 

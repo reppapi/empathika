@@ -208,7 +208,11 @@ export class BookingService {
         no_telepon: isBookingCancelled || !isBookingForThisBiro ? null : clientPhone,
         klienId: isBookingCancelled || !isBookingForThisBiro ? null : clientId,
         catatan: isBookingCancelled || !isBookingForThisBiro ? null : (slot.booking_konsultasi?.deskripsi_trauma || null),
-        status: isBookingCancelled || !isBookingForThisBiro ? 'Tersedia' : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
+        status: isBookingCancelled || !isBookingForThisBiro
+          ? 'Tersedia'
+          : slot.booking_konsultasi?.status === 'COMPLETED'
+            ? 'Selesai'
+            : (slot.status === 'TERSEDIA' ? 'Tersedia' : 'Aktif'),
         psikologName: isAsesmen ? '' : (slot.psikolog?.nama_gelar || (slot.psikolog as any)?.account?.nama || ''),
         id_psikolog: slot.id_psikolog || null,
         noTeleponPsikolog: (slot.psikolog as any)?.account?.no_telepon || null,

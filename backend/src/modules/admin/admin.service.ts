@@ -1063,5 +1063,28 @@ export class AdminService {
   async syncAllInternshipPositions(positions: any[]): Promise<any[]> {
     return this.repo.syncAllInternshipPositions(positions)
   }
+
+  // ── Modul Pengajuan Pelamar Magang (Internship Applications) ──────
+  async getInternshipApplications(): Promise<any[]> {
+    return this.repo.getInternshipApplications()
+  }
+
+  async getInternshipApplicationById(id: string): Promise<any> {
+    const app = await this.repo.getInternshipApplicationById(id)
+    if (!app) throw new Error("Lamaran internship tidak ditemukan")
+    return app
+  }
+
+  async createInternshipApplication(data: any): Promise<any> {
+    return this.repo.createInternshipApplication(data)
+  }
+
+  async updateInternshipApplicationStatus(id: string, status: string, catatanAdmin?: string | null): Promise<any> {
+    return this.repo.updateInternshipApplicationStatus(id, status, catatanAdmin)
+  }
+
+  async deleteInternshipApplication(id: string): Promise<void> {
+    await this.repo.deleteInternshipApplication(id)
+  }
 }
 
