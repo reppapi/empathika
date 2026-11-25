@@ -76,13 +76,21 @@ export default function InternshipApplyClient({ positionId }: Props) {
   // Dynamic answers to questions
   const [answers, setAnswers] = useState<Record<string, string>>({})
 
-  // File Upload State
+  // File Upload State (CV)
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [cvFileName, setCvFileName] = useState<string>("")
   const [cvFileSize, setCvFileSize] = useState<string>("")
   const [uploadingCv, setUploadingCv] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const [cvUploadMode, setCvUploadMode] = useState<"file" | "link">("file")
+
+  // File Upload State (Portofolio)
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null)
+  const [portfolioFileName, setPortfolioFileName] = useState<string>("")
+  const [portfolioFileSize, setPortfolioFileSize] = useState<string>("")
+  const [uploadingPortfolio, setUploadingPortfolio] = useState(false)
+  const [isDraggingPortfolio, setIsDraggingPortfolio] = useState(false)
+  const [portfolioUploadMode, setPortfolioUploadMode] = useState<"file" | "link">("file")
 
   const handleCvFileChange = async (file: File) => {
     if (!file) return
@@ -107,6 +115,32 @@ export default function InternshipApplyClient({ positionId }: Props) {
       setCvFileName("")
     } finally {
       setUploadingCv(false)
+    }
+  }
+
+  const handlePortfolioFileChange = async (file: File) => {
+    if (!file) return
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMessage("Ukuran berkas portofolio terlalu besar. Maksimal 25 MB.")
+      return
+    }
+
+    setPortfolioFile(file)
+    setPortfolioFileName(file.name)
+    setPortfolioFileSize((file.size / (1024 * 1024)).toFixed(2) + " MB")
+    setUploadingPortfolio(true)
+    setErrorMessage(null)
+
+    try {
+      const res = await internshipService.uploadFile(file)
+      setFormData((prev) => ({ ...prev, portfolioUrl: res.url }))
+    } catch (err: any) {
+      console.error("Gagal upload berkas portofolio:", err)
+      setErrorMessage("Gagal mengunggah berkas portofolio: " + (err.message || "Kesalahan server"))
+      setPortfolioFile(null)
+      setPortfolioFileName("")
+    } finally {
+      setUploadingPortfolio(false)
     }
   }
 
@@ -173,6 +207,10 @@ export default function InternshipApplyClient({ positionId }: Props) {
     }
     if (uploadingCv) {
       setErrorMessage("Harap tunggu hingga proses unggah berkas CV selesai.")
+      return
+    }
+    if (uploadingPortfolio) {
+      setErrorMessage("Harap tunggu hingga proses unggah berkas portofolio selesai.")
       return
     }
     if (!formData.cvUrl.trim()) {
@@ -628,21 +666,147 @@ export default function InternshipApplyClient({ positionId }: Props) {
                 )}
               </div>
 
-              {/* Portfolio Link */}
+              {/* Portfolio Upload & Switch */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  LINK PORTOFOLIO / LINKEDIN (OPSIONAL)
-                </label>
-                <div className="relative">
-                  <Globe className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="url"
-                    value={formData.portfolioUrl}
-                    onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
-                    placeholder="https://behance.net/... atau https://linkedin.com/in/..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-gray-700">
+                    BERKAS PORTOFOLIO / KARYA (OPSIONAL)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPortfolioUploadMode(portfolioUploadMode === "file" ? "link" : "file")
+                    }}
+                    className="text-xs text-[#561269] hover:underline font-semibold transition-colors"
+                  >
+                    {portfolioUploadMode === "file" ? "Gunakan tautan online (Drive/Behance)" : "Unggah Berkas Langsung"}
+                  </button>
                 </div>
+
+                {portfolioUploadMode === "file" ? (
+                  <div>
+                    {uploadingPortfolio ? (
+                      <div className="border border-purple-200 bg-purple-50/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                        <Loader2 className="w-8 h-8 text-[#561269] animate-spin mb-2" />
+                        <p className="text-sm font-bold text-gray-900">
+                          Mengunggah berkas portofolio...
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {portfolioFileName} ({portfolioFileSize})
+                        </p>
+                      </div>
+                    ) : formData.portfolioUrl && portfolioFileName ? (
+                      <div className="border border-emerald-200 bg-emerald-50/40 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {portfolioFileName}
+                              </p>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
+                                <Check className="w-3 h-3" /> Terunggah
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {portfolioFileSize && <span>{portfolioFileSize} • </span>}
+                              <a
+                                href={formData.portfolioUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#561269] hover:underline font-medium inline-flex items-center gap-0.5"
+                              >
+                                Lihat Berkas <ExternalLink className="w-3 h-3 inline" />
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <label className="text-xs font-semibold text-[#561269] bg-purple-100 hover:bg-purple-200 px-3.5 py-2 rounded-xl cursor-pointer transition-colors shrink-0">
+                            Ganti
+                            <input
+                              type="file"
+                              accept=".pdf,.doc,.docx,.zip,.rar,.jpg,.jpeg,.png,.webp,application/pdf,application/zip,application/x-zip-compressed"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0]
+                                if (file) handlePortfolioFileChange(file)
+                              }}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData((prev) => ({ ...prev, portfolioUrl: "" }))
+                              setPortfolioFile(null)
+                              setPortfolioFileName("")
+                              setPortfolioFileSize("")
+                            }}
+                            className="text-xs font-semibold text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl cursor-pointer transition-colors"
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          setIsDraggingPortfolio(true)
+                        }}
+                        onDragLeave={() => setIsDraggingPortfolio(false)}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          setIsDraggingPortfolio(false)
+                          const file = e.dataTransfer.files?.[0]
+                          if (file) handlePortfolioFileChange(file)
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                          isDraggingPortfolio
+                            ? "border-[#561269] bg-purple-100/50 scale-[1.01]"
+                            : "border-gray-300 hover:border-[#561269] bg-purple-50/20 hover:bg-purple-50/50"
+                        } group`}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-800 mb-1">
+                          Pilih berkas portofolio atau seret ke sini
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Format PDF, DOC, ZIP, atau Gambar (Maksimal 25 MB)
+                        </p>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.zip,.rar,.jpg,.jpeg,.png,.webp,application/pdf,application/zip,application/x-zip-compressed"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handlePortfolioFileChange(file)
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="relative">
+                      <Globe className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        value={formData.portfolioUrl}
+                        onChange={(e) => setFormData({ ...formData, portfolioUrl: e.target.value })}
+                        placeholder="https://behance.net/... atau https://linkedin.com/in/..."
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      *Cantumkan tautan publik (Behance, Dribbble, LinkedIn, atau Google Drive).
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

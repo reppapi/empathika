@@ -717,17 +717,21 @@ export class AdminController {
         'image/jpeg',
         'image/png',
         'image/webp',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/x-zip',
+        'application/octet-stream',
       ]
 
       if (!ALLOWED_MIME.includes(data.mimetype)) {
         return reply.code(400).send({
           success: false,
           message:
-            'Format berkas tidak didukung. Harap unggah berkas PDF, Word (DOC/DOCX), atau Gambar.',
+            'Format berkas tidak didukung. Harap unggah berkas PDF, Word (DOC/DOCX), ZIP, atau Gambar.',
         })
       }
 
-      const MAX_SIZE = 15 * 1024 * 1024 // 15MB
+      const MAX_SIZE = 25 * 1024 * 1024 // 25MB
       let totalBytes = 0
       const chunks: Buffer[] = []
 
@@ -736,7 +740,7 @@ export class AdminController {
         if (totalBytes > MAX_SIZE) {
           return reply.code(413).send({
             success: false,
-            message: 'Ukuran berkas terlalu besar. Maksimal 15MB.',
+            message: 'Ukuran berkas terlalu besar. Maksimal 25MB.',
           })
         }
         chunks.push(chunk)
