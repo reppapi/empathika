@@ -855,17 +855,17 @@ export default function InternshipApplyClient({ positionId }: Props) {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full sm:w-auto shrink-0 px-5 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 whitespace-nowrap"
             >
               {submitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin shrink-0" />
                   <span>Mengirimkan Lamaran...</span>
                 </>
               ) : (
                 <>
                   <span>Kirim Lamaran</span>
-                  <Send className="w-4 h-4 text-[#0f172a]" />
+                  <Send className="w-3.5 h-3.5 text-[#0f172a] shrink-0" />
                 </>
               )}
             </button>
