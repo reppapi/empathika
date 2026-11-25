@@ -101,6 +101,7 @@ function PaymentSuccessContent({ type }: { type: PaymentType }) {
   const metode = searchParams.get("metode") ?? "qris"
   const bank = searchParams.get("bank")
   const ewallet = searchParams.get("ewallet")
+  const harga = searchParams.get("harga")
   const kategori = searchParams.get("kategori") ?? ""
   const tipe = searchParams.get("tipe") ?? "Online"
   const linkMeet = searchParams.get("linkMeet")
@@ -468,6 +469,20 @@ Silakan buka link di atas dan masukkan kode akses tersebut untuk mulai mengerjak
                   LUNAS
                 </span>
               </div>
+
+              {/* Total Pembayaran */}
+              {harga && (
+                <div className="pt-3 mt-3 border-t border-dashed border-[#DCD0E1] flex items-center justify-between">
+                  <div>
+                    <div className="text-[9px] font-bold text-gray-500 mb-0.5 uppercase tracking-wider">
+                      TOTAL PEMBAYARAN
+                    </div>
+                    <div className="text-sm font-extrabold text-[#2F2F2F]">
+                      {harga}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Akses Event: Google Meet link & copy box */}
               {type === "event" && isOnlineEvent && linkMeet && (

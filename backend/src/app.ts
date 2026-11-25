@@ -28,6 +28,7 @@ import uploadRoutes from "./modules/upload/upload.route"
 import kerjaSamaRoutes from "./modules/kerja-sama/kerja-sama.route"
 import invoiceRoutes from "./modules/invoice/invoice.route"
 import accountSettingsRoutes from "./modules/psikolog/account-settings.route"
+import testimoniRoutes from "./modules/testimoni/testimoni.route"
 
 // Jobs
 import { startExpiredBookingCleanupJob } from "./jobs/expired-booking.job"
@@ -73,6 +74,7 @@ app.register(uploadRoutes, { prefix: "/upload" })
 app.register(kerjaSamaRoutes, { prefix: "/kerja-sama" })
 app.register(invoiceRoutes, { prefix: "/invoice" })
 app.register(accountSettingsRoutes, { prefix: "/api" })
+app.register(testimoniRoutes, { prefix: "/testimoni" })
 
 // Background Job Scheduler: Jalankan pembersihan slot pending kedaluwarsa tiap 5 menit
 app.addHook("onReady", async () => {

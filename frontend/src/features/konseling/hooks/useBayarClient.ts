@@ -431,7 +431,7 @@ export function useBayarClient() {
           : qPsikologName
             ? `Bersama ${qPsikologName}`
             : "Psikolog Profesional Empathika",
-        harga: qHarga,
+        harga: hargaNominal,
         ...(qHari && { hari: qHari }),
         bottomDate: qBottomDate,
         bottomTime: cleanBottomTime,

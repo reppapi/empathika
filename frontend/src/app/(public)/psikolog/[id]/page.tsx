@@ -6,6 +6,7 @@ import { useTenant } from "@/hooks/useTenant"
 import { getDetailPsikolog, DetailPsikologUI } from "@/features/psikolog/data/detailDummy"
 import { DetailPsikologContent } from "@/features/psikolog/components/client/DetailPsikologContent"
 import { psikologService } from "@/services/psikolog.service"
+import { testimoniService } from "@/services/testimoni.service"
 
 interface PageProps {
   params: { id: string }
@@ -149,7 +150,7 @@ function resolveDetailSchedule(psikologId: string, psikologNama?: string, rawBac
     return a.startMinutes - b.startMinutes
   })
 
-  return result.slice(0, 3).map((s) => ({ waktu: s.waktu, tipe: s.tipe }))
+  return result.slice(0, 4).map((s) => ({ waktu: s.waktu, tipe: s.tipe }))
 }
 
 export default function DetailPsikologPage({ params }: PageProps) {
@@ -250,6 +251,24 @@ export default function DetailPsikologPage({ params }: PageProps) {
             jadwalAssociate: scheduleList,
             testimoni: [],
           }
+
+          // Fetch testimoni klien dari backend
+          testimoniService
+            .getByPsikologId(data.id)
+            .then((tRes) => {
+              if (!isMounted) return
+              if (tRes?.data && tRes.data.length > 0) {
+                const testiMapped = tRes.data.map((item) => ({
+                  kutipan: item.isi,
+                  pemberi: item.pemberi,
+                  rating: item.rating,
+                  layanan: item.layanan,
+                }))
+                mapped.testimoni = testiMapped
+                setPsikolog({ ...mapped })
+              }
+            })
+            .catch(() => {})
 
           setPsikolog(mapped)
           setLoading(false)
