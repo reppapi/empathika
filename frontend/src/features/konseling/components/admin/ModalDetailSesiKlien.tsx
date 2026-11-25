@@ -27,7 +27,11 @@ import {
   AlertCircle,
   Info,
   CalendarClock,
+  Star,
+  Check,
+  Loader2,
 } from "lucide-react"
+import { testimoniService } from "@/services/testimoni.service"
 
 interface ModalDetailSesiKlienProps {
   session: ClientSessionToday | null
@@ -53,6 +57,10 @@ export default function ModalDetailSesiKlien({
   isPsikologPortal = false,
 }: ModalDetailSesiKlienProps) {
   const [showInvoice, setShowInvoice] = useState(false)
+  const [isGeneratingTestimoni, setIsGeneratingTestimoni] = useState(false)
+  const [testimoniLink, setTestimoniLink] = useState<string | null>(null)
+  const [testimoniCopied, setTestimoniCopied] = useState(false)
+  const [testimoniError, setTestimoniError] = useState<string | null>(null)
 
   if (!session) return null
 
@@ -482,6 +490,101 @@ export default function ModalDetailSesiKlien({
               <Receipt className="w-3.5 h-3.5" />
               Lihat Invoice
             </button>
+          )}
+
+          {/* Tombol Kirim Link Testimoni: Hanya untuk Admin pada sesi yang sudah Selesai */}
+          {!isPsikologPortal && isCompleted && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {!testimoniLink ? (
+                <button
+                  type="button"
+                  disabled={isGeneratingTestimoni}
+                  onClick={async () => {
+                    try {
+                      setIsGeneratingTestimoni(true)
+                      setTestimoniError(null)
+                      const res = await testimoniService.generateLink(session.id)
+                      const origin = typeof window !== "undefined" ? window.location.origin : ""
+                      const url = `${origin}/testimoni/${res.data.token}`
+                      setTestimoniLink(url)
+                    } catch (err: any) {
+                      setTestimoniError(err?.response?.data?.message || "Gagal membuat tautan testimoni")
+                    } finally {
+                      setIsGeneratingTestimoni(false)
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-purple-200 text-[#561269] bg-purple-50 hover:bg-purple-100 text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
+                  title="Generate dan kirim link testimoni ke klien"
+                >
+                  {isGeneratingTestimoni ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Memproses Link...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                      <span>Kirim Link Testimoni</span>
+                    </>
+                  )}
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 bg-purple-50/80 border border-purple-200 rounded-full px-3 py-1.5 animate-in fade-in">
+                  <span className="text-[11px] font-semibold text-[#561269]">Link Testimoni Siap:</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof navigator !== "undefined" && navigator.clipboard) {
+                        navigator.clipboard.writeText(testimoniLink)
+                        setTestimoniCopied(true)
+                        setTimeout(() => setTestimoniCopied(false), 2500)
+                      }
+                    }}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white text-gray-700 hover:text-purple-700 border border-purple-200 text-[11px] font-bold shadow-2xs transition cursor-pointer"
+                    title="Salin tautan ke clipboard"
+                  >
+                    {testimoniCopied ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-600" />
+                        <span className="text-emerald-700">Tersalin!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-purple-600" />
+                        <span>Salin Link</span>
+                      </>
+                    )}
+                  </button>
+
+                  {/* Tombol Kirim WhatsApp ke Klien */}
+                  {(() => {
+                    const cleanPhone = (session.kontak || "").replace(/\D/g, "")
+                    const waPhone = cleanPhone.startsWith("0") ? "62" + cleanPhone.slice(1) : cleanPhone
+                    const waMessage = encodeURIComponent(
+                      `Halo Kak ${session.namaKlien},\n\nTerima kasih telah mempercayakan sesi konseling bersama ${session.psikolog} di Empathika.\n\nKami sangat menghargai masukan dan cerita pengalaman Kakak. Mohon luangkan waktu 1 menit untuk memberikan ulasan dan rating pada tautan berikut:\n${testimoniLink}\n\nUlasan Kakak sangat berarti bagi kami. Salam hangat, Tim Empathika.`
+                    )
+                    const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${waMessage}` : `https://wa.me/?text=${waMessage}`
+
+                    return (
+                      <a
+                        href={waUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-2xs transition cursor-pointer"
+                        title="Kirim link testimoni via WhatsApp ke klien"
+                      >
+                        <MessageCircle className="w-3 h-3" />
+                        <span>Kirim WA</span>
+                        <ExternalLink className="w-2.5 h-2.5 opacity-80" />
+                      </a>
+                    )
+                  })()}
+                </div>
+              )}
+              {testimoniError && (
+                <span className="text-[10px] text-rose-600 font-medium">{testimoniError}</span>
+              )}
+            </div>
           )}
 
           {!isReadOnly && !isCompleted && !isCancelled && (

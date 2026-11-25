@@ -4,6 +4,67 @@ import type { AdminTransaksiQueryInput } from './transaksi.schema'
 export class TransaksiRepository {
   constructor(private prisma: PrismaClient) {}
 
+  /**
+   * Hitung summary aggregate langsung dari DB — tidak tergantung pagination list.
+   * Dipakai untuk kartu ringkasan di dashboard admin transaksi.
+   */
+  async getSummary(params?: { bulan?: number; tahun?: number; tanggal?: string; biroId?: string }) {
+    const now = new Date()
+    const tahun = params?.tahun ?? now.getFullYear()
+
+    const baseWhere: any = {
+      OR: [
+        { booking_konsultasi: { isNot: null } },
+        { booking_psikotes: { isNot: null } },
+        { booking_event: { isNot: null } },
+      ],
+    }
+
+    if (params?.biroId) {
+      baseWhere.AND = [
+        {
+          OR: [
+            { id_biro_tenant: params.biroId },
+            { client: { id_biro: params.biroId } },
+          ],
+        },
+      ]
+    }
+
+    // Filter periode
+    let periodeWhere: any = {}
+    if (params?.tanggal) {
+      // Filter hari tertentu
+      const start = new Date(`${params.tanggal}T00:00:00.000Z`)
+      const end = new Date(`${params.tanggal}T23:59:59.999Z`)
+      periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
+    } else if (params?.bulan) {
+      const start = new Date(tahun, params.bulan - 1, 1)
+      const end = new Date(tahun, params.bulan, 0, 23, 59, 59, 999)
+      periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
+    } else {
+      // Default: tahun berjalan
+      const start = new Date(tahun, 0, 1)
+      const end = new Date(tahun, 11, 31, 23, 59, 59, 999)
+      periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
+    }
+
+    const paidWhere = { ...baseWhere, status_pembayaran: 'PAID', ...periodeWhere }
+    const menungguWhere = { ...baseWhere, status_pembayaran: 'PENDING' }
+
+    const [paidAgg, transaksiBerhasil, menungguBayar] = await Promise.all([
+      this.prisma.transaksi.aggregate({ _sum: { total: true }, where: paidWhere }),
+      this.prisma.transaksi.count({ where: paidWhere }),
+      this.prisma.transaksi.count({ where: menungguWhere }),
+    ])
+
+    return {
+      totalPendapatan: Number(paidAgg._sum.total ?? 0),
+      transaksiBerhasil,
+      menungguBayar,
+    }
+  }
+
   async findAll(_params?: AdminTransaksiQueryInput & { clientId?: string }) {
     const page = _params?.page ?? 1
     const limit = _params?.limit ?? 20

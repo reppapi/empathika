@@ -27,6 +27,16 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     handler: controller.getAll,
   })
 
+  fastify.get('/admin/summary', {
+    preHandler: [adminOrBiroGuard],
+    schema: {
+      tags: ['Transaksi - Admin'],
+      summary: 'Aggregate summary: total pendapatan, transaksi berhasil, menunggu bayar — dihitung langsung dari DB',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getSummary,
+  })
+
   fastify.post('/:id/refund', {
     preHandler: [adminGuard],
     schema: {

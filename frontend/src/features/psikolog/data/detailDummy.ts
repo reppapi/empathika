@@ -16,6 +16,8 @@ export interface DetailPsikologUI extends PsikologUI {
   testimoni: {
     kutipan: string;
     pemberi: string;
+    rating?: number;
+    layanan?: string;
   }[];
 }
 

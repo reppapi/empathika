@@ -7,6 +7,21 @@ export interface NilaiItem {
   icon: "heart" | "star" | "shield" | "users" | "lightbulb" | "award"
 }
 
+export interface PemimpinProfile {
+  nama?: string
+  peran?: string
+  bio?: string
+  foto?: string
+}
+
+export interface PemimpinSection {
+  judulSection?: string
+  fotoBersama?: string
+  pendiri?: PemimpinProfile
+  manager?: PemimpinProfile
+  items?: any[]
+}
+
 export interface TentangKamiContent {
   hero: {
     tagline: string
@@ -33,6 +48,7 @@ export interface TentangKamiContent {
     judul?: string
     deskripsi?: string
   }
+  pemimpinSection?: PemimpinSection
 }
 
 export const DEFAULT_TENTANG_KAMI: TentangKamiContent = {
@@ -100,6 +116,22 @@ export const DEFAULT_TENTANG_KAMI: TentangKamiContent = {
     deskripsi:
       "Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.",
   },
+  pemimpinSection: {
+    judulSection: "Berawal dari Mereka",
+    fotoBersama: "",
+    pendiri: {
+      nama: "",
+      peran: "",
+      bio: "",
+      foto: "",
+    },
+    manager: {
+      nama: "",
+      peran: "",
+      bio: "",
+      foto: "",
+    },
+  },
 }
 
 const STORAGE_KEY = "empathika_tentang_kami_content_cache"
@@ -124,6 +156,20 @@ export const tentangKamiService = {
           layananSection: {
             ...DEFAULT_TENTANG_KAMI.layananSection,
             ...(response.data.data.layananSection || {}),
+          },
+          pemimpinSection: {
+            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+            ...(response.data.data.pemimpinSection || {}),
+            pendiri: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+              ...(response.data.data.pemimpinSection?.pendiri || {}),
+              foto: response.data.data.pemimpinSection?.pendiri?.foto ?? "",
+            },
+            manager: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+              ...(response.data.data.pemimpinSection?.manager || {}),
+              foto: response.data.data.pemimpinSection?.manager?.foto ?? "",
+            },
           },
         }
         if (typeof window !== "undefined") {
@@ -150,6 +196,18 @@ export const tentangKamiService = {
               layananSection: {
                 ...DEFAULT_TENTANG_KAMI.layananSection,
                 ...(parsed.layananSection || {}),
+              },
+              pemimpinSection: {
+                ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+                ...(parsed.pemimpinSection || {}),
+                pendiri: {
+                  ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+                  ...(parsed.pemimpinSection?.pendiri || {}),
+                },
+                manager: {
+                  ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+                  ...(parsed.pemimpinSection?.manager || {}),
+                },
               },
             }
           }
@@ -178,6 +236,20 @@ export const tentangKamiService = {
           layananSection: {
             ...DEFAULT_TENTANG_KAMI.layananSection,
             ...(response.data.data.layananSection || {}),
+          },
+          pemimpinSection: {
+            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+            ...(response.data.data.pemimpinSection || {}),
+            pendiri: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+              ...(response.data.data.pemimpinSection?.pendiri || {}),
+              foto: response.data.data.pemimpinSection?.pendiri?.foto ?? "",
+            },
+            manager: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+              ...(response.data.data.pemimpinSection?.manager || {}),
+              foto: response.data.data.pemimpinSection?.manager?.foto ?? "",
+            },
           },
         }
       }

@@ -14,6 +14,7 @@ import {
   dashboardChartQuerySchema,
   dashboardMetricsQuerySchema,
   updateTentangKamiSchema,
+  updateHeroBannersSchema,
   createInternshipPositionSchema,
   updateInternshipPositionSchema,
   updateInternshipPositionsSchema,
@@ -100,6 +101,39 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateTentangKamiSchema,
     },
     handler: controller.updateTentangKami,
+  })
+
+  // ── Modul Banner Promosi Hero Beranda ───────────────────────────
+  // 1. Publik: Tamu mengambil banner aktif dan konfigurasi slide default
+  fastify.get('/banners/public', {
+    schema: {
+      tags: ['Admin - Banners'],
+      summary: 'Mendapatkan daftar banner hero promosi yang sedang aktif untuk publik',
+    },
+    handler: controller.getHeroBannersPublic,
+  })
+
+  // 2. Terproteksi: Admin mengambil seluruh banner (termasuk nonaktif/terjadwal/kadaluarsa)
+  fastify.get('/banners', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Banners'],
+      summary: 'Mendapatkan seluruh banner promosi dan pengaturan slide utama untuk admin',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getHeroBanners,
+  })
+
+  // 3. Terproteksi: Admin menyimpan seluruh banner promosi dan pengaturan slide utama
+  fastify.put('/banners', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Banners'],
+      summary: 'Memperbarui banner promosi beranda dan slide utama',
+      security: [{ bearerAuth: [] }],
+      body: updateHeroBannersSchema,
+    },
+    handler: controller.updateHeroBanners,
   })
 
   // ── Modul Manajemen Internship (Database Murni) ──────────────────
