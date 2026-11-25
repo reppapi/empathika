@@ -133,10 +133,7 @@ export default function InternshipClient() {
       <section id="tiga-pilar" className="py-16 sm:py-24 bg-white border-b border-purple-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#561269] bg-purple-100/60 px-3.5 py-1 rounded-full">
-              Fondasi Program
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mt-3 mb-4">
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-gray-900 mb-4">
               3 Nilai Utama Internship Empathika
             </h2>
             <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
