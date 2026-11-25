@@ -272,14 +272,6 @@ export default function InternshipApplyClient({ positionId }: Props) {
       {/* ── HEADER NAVIGATION ── */}
       <div className="bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <Link
-            href="/internship"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-xs sm:text-sm font-semibold mb-6 transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Kembali ke Daftar Posisi Magang</span>
-          </Link>
-
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
               Formulir Pendaftaran
