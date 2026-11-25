@@ -67,36 +67,21 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
   // State Form
   const [formData, setFormData] = useState({
     judul: "",
-    divisi: "Digital Media & Creative",
-    durasi: "6 Month",
-    lokasi: "WFA",
+    divisi: "",
+    durasi: "",
+    lokasi: "",
     workMode: "Remote",
     kompensasi: "Unpaid",
-    deadline: "30/11/2026",
+    deadline: "",
     deskripsi: "",
-    responsibilitiesText:
-      "Membantu merencanakan dan mengembangkan ide konten untuk media sosial Empathika.\nMembuat konten edukatif, informatif dan engaging terkait kesehatan mental dan layanan Empathika.\nMembantu membuat konten untuk Instagram, TikTok, Threads, Linkedin dan platform media sosial lainnya.\nMembantu membuat copywriting untuk caption, carousel, reels, story dan konten lainnya.\nMengikuti tren media sosial dan mengidentifikasi ide konten yang relevan dengan target audiens.\nMembantu proses produksi foto, video dan konten visual.\nMembantu mengelola content calendar dan jadwal publikasi.\nMembantu memantau performa konten dan membuat evaluasi sederhana berdasarkan insight media sosial.\nBerkontribusi dalam campaign dan program Empathika melalui konten media sosial.",
-    qualificationsText:
-      "Mahasiswa aktif atau fresh graduate dari Ilmu Komunikasi, Marketing, Desain, Psikologi, atau bidang terkait.\nMemiliki ketertarikan pada social media, content creation, digital marketing, dan kesehatan mental.\nKreatif dan mampu menghasilkan ide konten yang menarik.\nMemiliki kemampuan dasar copywriting.\nFamiliar dengan Instagram dan TikTok.\nMemiliki kemampuan dasar menggunakan Canva atau tools desain lainnya.\nMemiliki kemampuan dasar editing video menggunakan CapCut atau aplikasi sejenis menjadi nilai tambah.\nMemahami tren dan karakteristik konten di media sosial.\nMemiliki kemampuan komunikasi yang baik dan mampu bekerja dalam tim.\nProaktif, bertanggung jawab, dan memiliki kemauan belajar yang tinggi.\nMemiliki portfolio atau contoh konten yang pernah dibuat menjadi nilai tambah.",
-    applyUrl: "https://empathika.id/daftar-internship",
+    responsibilitiesText: "",
+    qualificationsText: "",
+    applyUrl: "",
     isOpen: true,
   })
 
   // State Pertanyaan Seleksi
-  const [questions, setQuestions] = useState<InternshipQuestion[]>([
-    {
-      id: "q-1",
-      label: "Mengapa Anda tertarik untuk mengikuti program magang pada posisi ini di Empathika?",
-      type: "textarea",
-      required: true,
-    },
-    {
-      id: "q-2",
-      label: "Ceritakan pengalaman, keterampilan, atau proyek terbaik yang relevan dengan posisi yang Anda lamar!",
-      type: "textarea",
-      required: true,
-    },
-  ])
+  const [questions, setQuestions] = useState<InternshipQuestion[]>([])
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
   const [newQuestionType, setNewQuestionType] = useState<"text" | "textarea">("textarea")
   const [newQuestionRequired, setNewQuestionRequired] = useState(true)
