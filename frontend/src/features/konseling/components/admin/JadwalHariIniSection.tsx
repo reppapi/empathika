@@ -414,7 +414,7 @@ export default function JadwalHariIniSection({
                         return (
                           <div className="flex flex-col gap-1 items-start">
                             <span>{item.psikolog}</span>
-                            {item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                            {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                               <a
                                 href={getWhatsAppPsikologUrl(item)}
                                 target="_blank"
@@ -427,7 +427,7 @@ export default function JadwalHariIniSection({
                                 <ExternalLink className="w-2.5 h-2.5 opacity-80" />
                               </a>
                             )}
-                            {(item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
+                            {!isReadOnly && (item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
                               <a
                                 href={getWhatsAppPsikologCancelUrl(item)}
                                 target="_blank"
@@ -440,7 +440,7 @@ export default function JadwalHariIniSection({
                                 <ExternalLink className="w-2.5 h-2.5 opacity-80" />
                               </a>
                             )}
-                            {item.status === "Reschedule" && (
+                            {!isReadOnly && item.status === "Reschedule" && (
                               <a
                                 href={getWhatsAppPsikologRescheduleUrl(item)}
                                 target="_blank"
@@ -552,7 +552,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologUrl(item)}
@@ -581,7 +581,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {(item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
+                              {!isReadOnly && (item.status === "Dibatalkan" || item.status === "Dibatalkan (Refund)") && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologCancelUrl(item)}
@@ -610,7 +610,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {item.status === "Reschedule" && (
+                              {!isReadOnly && item.status === "Reschedule" && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologRescheduleUrl(item)}

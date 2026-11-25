@@ -391,7 +391,7 @@ export default function PsikologJadwalClient() {
           window.dispatchEvent(new Event("storage"))
         }
       }
-    } catch {}
+    } catch { }
 
     // 3. Hapus dari Backend Database jika memiliki slot ID riil
     if (targetSession && targetSession.id && !targetSession.id.startsWith("mock-") && !targetSession.id.startsWith("slot-")) {
@@ -914,7 +914,7 @@ export default function PsikologJadwalClient() {
             })
           }
         }
-      } catch {}
+      } catch { }
 
       // 4. Terapkan status pembatalan admin: jika dibatalkan, tidak ada klien aktif -> slot kembali menjadi Tersedia
       try {
@@ -926,7 +926,7 @@ export default function PsikologJadwalClient() {
             }
           })
         }
-      } catch {}
+      } catch { }
 
       // 5. Terapkan status reschedule admin / psikolog pada slot tanggal awal
       try {
@@ -1037,7 +1037,7 @@ export default function PsikologJadwalClient() {
             const t = l.tarif_tenaga_ahli
             if (cleanRole === "psikolog") {
               matchProf = Boolean((t?.psikolog && (Number(t.psikolog.weekday) > 0 || Number(t.psikolog.weekend) > 0)) ||
-                     (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0)))
+                (!t && (Number(l.harga_weekday) > 0 || Number(l.harga_weekend) > 0)))
             } else if (cleanRole === "konselor") {
               matchProf = Boolean(t?.konselor && (Number(t.konselor.weekday) > 0 || Number(t.konselor.weekend) > 0))
             } else if (cleanRole === "peer") {
@@ -1077,7 +1077,7 @@ export default function PsikologJadwalClient() {
               }
             }
           })
-        } catch {}
+        } catch { }
 
         if (activeServices.length === 0) {
           activeServices.push({
@@ -1375,11 +1375,11 @@ export default function PsikologJadwalClient() {
       if (bookingIdToCancel && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(bookingIdToCancel)) {
         try {
           await bookingService.cancelBooking(bookingIdToCancel)
-        } catch {}
+        } catch { }
       } else if (matchedCancelled?.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(matchedCancelled.id)) {
         try {
           await bookingService.cancelBooking(matchedCancelled.id)
-        } catch {}
+        } catch { }
       }
 
       // 1. Simpan ke Backend Database PostgreSQL (dengan force_release jika membuka kembali slot yang pernah dibatalkan)
@@ -1479,7 +1479,7 @@ export default function PsikologJadwalClient() {
       })
       localStorage.setItem("empathika_custom_jadwal_slots", JSON.stringify(current))
       window.dispatchEvent(new Event("storage"))
-    } catch {}
+    } catch { }
 
     // Bersihkan status pembatalan dan reschedule di penyimpanan lokal jika slot jam dibuka kembali
     try {
@@ -1487,7 +1487,7 @@ export default function PsikologJadwalClient() {
         removeCancelledSession({ date: dateKey, waktu: tw })
         removeRescheduledSession({ date: dateKey, waktu: tw })
       })
-    } catch {}
+    } catch { }
 
     // 3. Update state secara optimis
     setBookedSessions((prev) => {
@@ -1628,13 +1628,12 @@ export default function PsikologJadwalClient() {
                     type="button"
                     disabled={!allowedMetode.online}
                     onClick={() => allowedMetode.online && setSelectedMetode("Online")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${
-                      !allowedMetode.online
-                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
-                        : selectedMetode === "Online"
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${!allowedMetode.online
+                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                      : selectedMetode === "Online"
                         ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
                         : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
-                    }`}
+                      }`}
                     title={!allowedMetode.online ? "Metode Online tidak tersedia untuk layanan ini" : "Pilih metode Online"}
                   >
                     <Video className={`w-3.5 h-3.5 ${!allowedMetode.online ? "text-gray-400" : "text-[#561269]"}`} />
@@ -1644,13 +1643,12 @@ export default function PsikologJadwalClient() {
                     type="button"
                     disabled={!allowedMetode.offline}
                     onClick={() => allowedMetode.offline && setSelectedMetode("Offline")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${
-                      !allowedMetode.offline
-                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
-                        : selectedMetode === "Offline"
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border text-xs font-bold transition-all ${!allowedMetode.offline
+                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                      : selectedMetode === "Offline"
                         ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
                         : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
-                    }`}
+                      }`}
                     title={!allowedMetode.offline ? "Metode Offline tidak tersedia untuk layanan ini" : "Pilih metode Offline"}
                   >
                     <Building2 className={`w-3.5 h-3.5 ${!allowedMetode.offline ? "text-gray-400" : "text-[#561269]"}`} />
@@ -1660,13 +1658,12 @@ export default function PsikologJadwalClient() {
                     type="button"
                     disabled={!allowedMetode.both}
                     onClick={() => allowedMetode.both && setSelectedMetode("Keduanya")}
-                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all ${
-                      !allowedMetode.both
-                        ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
-                        : selectedMetode === "Keduanya"
+                    className={`flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl border text-xs font-bold transition-all ${!allowedMetode.both
+                      ? "border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60 pointer-events-none"
+                      : selectedMetode === "Keduanya"
                         ? "border-[#561269] bg-white text-[#561269] shadow-xs ring-1 ring-[#561269] cursor-pointer"
                         : "border-gray-200 bg-white/70 text-gray-600 hover:bg-white cursor-pointer"
-                    }`}
+                      }`}
                     title={!allowedMetode.both ? "Layanan ini tidak mendukung metode fleksibel Keduanya" : "Pilih metode Keduanya (Fleksibel)"}
                   >
                     <Layers className={`w-3.5 h-3.5 ${!allowedMetode.both ? "text-gray-400" : "text-[#561269]"}`} />
@@ -1945,11 +1942,10 @@ export default function PsikologJadwalClient() {
             disabled={!canGoPrevWeek}
             aria-label="Minggu Sebelumnya"
             title={canGoPrevWeek ? "Minggu Sebelumnya" : "Batas awal jadwal bulan berjalan (tanggal 1)"}
-            className={`p-1.5 rounded-full transition-colors border ${
-              canGoPrevWeek
-                ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
-                : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
-            }`}
+            className={`p-1.5 rounded-full transition-colors border ${canGoPrevWeek
+              ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
+              : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
+              }`}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -1966,11 +1962,10 @@ export default function PsikologJadwalClient() {
                 ? "Minggu Berikutnya"
                 : "Batas akhir jadwal (tidak ada jadwal aktif berikutnya di masa mendatang)"
             }
-            className={`p-1.5 rounded-full transition-colors border ${
-              canGoNextWeek
-                ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
-                : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
-            }`}
+            className={`p-1.5 rounded-full transition-colors border ${canGoNextWeek
+              ? "hover:bg-gray-100 border-gray-200 text-gray-600 cursor-pointer"
+              : "border-gray-100 text-gray-300 opacity-40 cursor-not-allowed pointer-events-none"
+              }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -2002,25 +1997,24 @@ export default function PsikologJadwalClient() {
                       handleSelectDate(targetDate)
                     }}
                     title={isPastDay ? "Tanggal telah lewat" : "Klik untuk memilih tanggal ini"}
-                    className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 transition-colors ${
-                      isPastDay
-                        ? "cursor-default opacity-60 bg-gray-50/50"
-                        : "cursor-pointer hover:bg-purple-50/50"
-                    } ${wd.isSameAsSelected ? "bg-purple-50/80 ring-1 ring-inset ring-[#561269]/20" : ""}`}
+                    className={`py-3 flex flex-col items-center justify-center border-r border-gray-200 last:border-0 transition-colors ${isPastDay
+                      ? "cursor-default opacity-60 bg-gray-50/50"
+                      : "cursor-pointer hover:bg-purple-50/50"
+                      } ${wd.isSameAsSelected ? "bg-purple-50/80 ring-1 ring-inset ring-[#561269]/20" : ""}`}
                   >
-                  <span
-                    className={`text-[13px] font-bold ${wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
-                      }`}
-                  >
-                    {wd.dayName}
-                  </span>
-                  <span
-                    className={`text-[11px] ${wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
-                      }`}
-                  >
-                    {wd.dateLabel}
-                  </span>
-                </div>
+                    <span
+                      className={`text-[13px] font-bold ${wd.isSameAsSelected ? "text-[#561269]" : "text-gray-800"
+                        }`}
+                    >
+                      {wd.dayName}
+                    </span>
+                    <span
+                      className={`text-[11px] ${wd.isSameAsSelected ? "text-[#561269] font-bold" : "text-gray-500"
+                        }`}
+                    >
+                      {wd.dateLabel}
+                    </span>
+                  </div>
                 )
               })}
             </div>
@@ -2306,23 +2300,19 @@ export default function PsikologJadwalClient() {
                             targetDate.setDate(currentWeekMonday.getDate() + i)
                             handleSelectDate(targetDate)
                           }}
-                          className={`flex-1 min-h-[140px] flex flex-col items-center justify-center p-3 text-center rounded-xl border border-dashed border-gray-200 bg-gray-50/40 transition-all ${
-                            isPastDay
-                              ? "cursor-default opacity-60"
-                              : "cursor-pointer hover:bg-purple-50/30 hover:border-purple-200 group"
-                          }`}
+                          className={`flex-1 min-h-[140px] flex flex-col items-center justify-center p-3 text-center rounded-xl border border-dashed border-gray-200 bg-gray-50/40 transition-all ${isPastDay
+                            ? "cursor-default opacity-60"
+                            : "cursor-pointer hover:bg-purple-50/30 hover:border-purple-200 group"
+                            }`}
                         >
-                          <CalendarIcon className={`w-5 h-5 text-gray-300 mb-1 transition-colors ${
-                            isPastDay ? "" : "group-hover:text-purple-400"
-                          }`} />
-                          <span className={`text-[11px] font-medium text-gray-400 transition-colors ${
-                            isPastDay ? "" : "group-hover:text-purple-700"
-                          }`}>
+                          <CalendarIcon className={`w-5 h-5 text-gray-300 mb-1 transition-colors ${isPastDay ? "" : "group-hover:text-purple-400"
+                            }`} />
+                          <span className={`text-[11px] font-medium text-gray-400 transition-colors ${isPastDay ? "" : "group-hover:text-purple-700"
+                            }`}>
                             Tidak ada jadwal
                           </span>
-                          <span className={`text-[10px] text-gray-300 mt-0.5 transition-colors ${
-                            isPastDay ? "" : "group-hover:text-purple-500"
-                          }`}>
+                          <span className={`text-[10px] text-gray-300 mt-0.5 transition-colors ${isPastDay ? "" : "group-hover:text-purple-500"
+                            }`}>
                             {isPastDay ? "Hari telah lewat" : "Klik untuk buka slot"}
                           </span>
                         </div>
