@@ -81,12 +81,6 @@ export default function InternshipClient() {
         <HeroStarryOverlay density="dense" showAurora showFlare />
 
         <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs sm:text-sm font-semibold tracking-wide text-[#EAB308] mb-6 shadow-sm">
-            <Sparkles className="w-4 h-4 text-[#EAB308]" />
-            Program Magang Empathika
-          </div>
-
           {/* Headline */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-6">
             Eksplorasi Potensi, Kolaborasi & Beri{" "}
