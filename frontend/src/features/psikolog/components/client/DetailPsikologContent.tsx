@@ -287,20 +287,25 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
             <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
               JADWAL PRAKTEK
             </h3>
-            <div className="flex flex-wrap gap-3.5">
+            
+            {/* Tampilan Flat 4 Slot Saja, tidak bisa diklik */}
+            <div className="flex flex-wrap gap-3">
               {(psikolog.jadwalAssociate && psikolog.jadwalAssociate.length > 0
-                ? psikolog.jadwalAssociate.slice(0, 3)
-                : psikolog.jadwalTersedia?.slice(0, 3)
+                ? psikolog.jadwalAssociate.slice(0, 4)
+                : psikolog.jadwalTersedia?.slice(0, 4)
               )?.map((jadwal: { waktu: string }, idx: number) => (
-                <Link 
+                <div 
                   key={idx}
-                  href={withBiro(`/konseling/jadwal?psikologId=${psikolog.id}&psikologName=${encodeURIComponent(psikolog.nama_gelar || (psikolog as any).account?.nama || "")}&layanan=${encodeURIComponent(resolvedLayanan)}`) as any}
-                  className="bg-[#FAF5FD] border border-purple-200/80 px-5 py-2.5 rounded-2xl text-xs sm:text-sm md:text-base font-medium text-gray-800 hover:bg-[#F3E8F7] hover:border-purple-300 transition-all cursor-pointer shadow-2xs hover:scale-105"
+                  className="bg-[#FAF5FD] border border-purple-200/80 px-4 py-2 rounded-2xl text-xs sm:text-sm font-medium text-gray-800 select-none shadow-2xs"
                 >
                   {jadwal.waktu}
-                </Link>
+                </div>
               ))}
             </div>
+
+            <p className="text-xs text-gray-500 font-normal leading-relaxed pt-1">
+              *Jadwal di atas adalah perkiraan sesi terdekat. Kamu juga bisa bebas melihat kalender ketersediaan tanggal & jam secara lengkap pada tahap pemesanan, tanpa harus langsung melakukan pembayaran.
+            </p>
           </section>
         ) : (
           <section className="space-y-3 pt-2">
@@ -315,19 +320,41 @@ export function DetailPsikologContent({ psikolog }: DetailContentProps) {
 
         {/* 6. TESTIMONI */}
         {psikolog.testimoni && psikolog.testimoni.length > 0 && (
-          <section className="space-y-4 pt-2 pb-6">
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
-              TESTIMONI
-            </h3>
-            <div className="space-y-4 max-w-5xl">
-              {psikolog.testimoni.map((testi: { kutipan: string; pemberi: string }, idx: number) => (
+          <section className="space-y-4 pt-3 pb-6">
+            <div className="flex items-center gap-2">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-[#561269] uppercase tracking-wider">
+                TESTIMONI KLIEN
+              </h3>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-[#561269]">
+                {psikolog.testimoni.length}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl">
+              {psikolog.testimoni.map((testi: { kutipan: string; rating?: number }, idx: number) => (
                 <div 
                   key={idx} 
-                  className="border-l-[3px] border-[#561269] pl-4 sm:pl-6 py-1.5"
+                  className="bg-[#FAF5FD]/80 border border-purple-100/90 rounded-3xl p-5 sm:p-6 shadow-[0_2px_12px_rgba(86,18,105,0.03)] hover:border-purple-200 transition-all flex flex-col justify-between gap-3"
                 >
-                  <p className="text-gray-800 text-sm sm:text-base md:text-lg leading-relaxed">
-                    &ldquo;{testi.kutipan}&rdquo; <span className="text-gray-700 ml-2 whitespace-nowrap">- {testi.pemberi}</span>
-                  </p>
+                  <div className="space-y-2.5">
+                    {/* Bintang 1-5 */}
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <span
+                          key={s}
+                          className={`text-base leading-none ${
+                            s <= (testi.rating || 5) ? "text-amber-400" : "text-gray-200"
+                          }`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+
+                    <p className="text-gray-800 text-xs sm:text-sm md:text-base leading-relaxed italic">
+                      &ldquo;{testi.kutipan}&rdquo;
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>

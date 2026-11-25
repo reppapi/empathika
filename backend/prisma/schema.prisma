@@ -384,8 +384,25 @@ model BookingKonsultasi {
   layanan   Layanan    @relation(fields: [id_layanan], references: [id], onDelete: Restrict)
   jadwal    JadwalSlot @relation(fields: [id_jadwal], references: [id], onDelete: Restrict)
   transaksi Transaksi? @relation(fields: [id_transaksi], references: [id], onDelete: SetNull)
+  testimoni Testimoni?
 
   @@map("booking_konsultasi")
+}
+
+model Testimoni {
+  id           String            @id @default(uuid())
+  id_booking   String            @unique
+  token        String            @unique @default(uuid())
+  rating       Int               @default(5)
+  isi          String?           @db.Text
+  is_submitted Boolean           @default(false)
+  submitted_at DateTime?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  booking      BookingKonsultasi @relation(fields: [id_booking], references: [id], onDelete: Cascade)
+
+  @@map("testimoni")
 }
 
 // ==========================================

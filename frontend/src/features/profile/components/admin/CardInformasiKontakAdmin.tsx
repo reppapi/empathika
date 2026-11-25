@@ -52,7 +52,6 @@ export function CardInformasiKontakAdmin({
               value={form.email || ""}
               readOnly
               disabled
-              placeholder="nama@empathika.com"
               className="w-full rounded-2xl border border-gray-200 bg-gray-50/80 px-4 py-3 text-sm text-gray-500 cursor-not-allowed select-none focus:outline-none"
             />
           </div>
@@ -71,7 +70,6 @@ export function CardInformasiKontakAdmin({
                 target: { name: "noTelepon", value: val },
               } as any)
             }}
-            placeholder="+62 821-7373-9213"
             inputClassName="rounded-2xl border-gray-200 bg-white px-4 py-3 text-sm focus:border-[#561269] focus:ring-1 focus:ring-[#561269]"
           />
         </div>
@@ -86,7 +84,6 @@ export function CardInformasiKontakAdmin({
               name="instagram"
               value={form.instagram || ""}
               onChange={onChange}
-              placeholder="@username"
               className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
             />
           </div>
@@ -136,7 +133,6 @@ export function CardInformasiKontakAdmin({
                 name="linkMaps"
                 value={form.linkMaps || ""}
                 onChange={onChange}
-                placeholder="https://maps.app.goo.gl/..."
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
               <p className="text-[11px] text-gray-400 mt-1">
@@ -163,7 +159,6 @@ export function CardInformasiKontakAdmin({
                 name="instagram"
                 value={form.instagram || ""}
                 onChange={onChange}
-                placeholder="https://instagram.com/username atau @username"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -177,7 +172,6 @@ export function CardInformasiKontakAdmin({
                 name="tiktok"
                 value={form.tiktok || ""}
                 onChange={onChange}
-                placeholder="https://tiktok.com/@username atau @username"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -191,7 +185,6 @@ export function CardInformasiKontakAdmin({
                 name="linkedin"
                 value={form.linkedin || ""}
                 onChange={onChange}
-                placeholder="https://linkedin.com/company/empathika"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -205,7 +198,6 @@ export function CardInformasiKontakAdmin({
                 name="youtube"
                 value={form.youtube || ""}
                 onChange={onChange}
-                placeholder="https://youtube.com/@empathika"
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition"
               />
             </div>
@@ -221,7 +213,6 @@ export function CardInformasiKontakAdmin({
             rows={3}
             value={form.bio || ""}
             onChange={onChange}
-            placeholder="Tuliskan gambaran singkat mengenai peran dan fokus keahlian Anda..."
             className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition resize-none"
           />
         </div>
