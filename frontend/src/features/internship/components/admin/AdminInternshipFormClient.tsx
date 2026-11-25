@@ -68,7 +68,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
     },
   ])
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
-  const [newQuestionType, setNewQuestionType] = useState<"text" | "textarea" | "url">("textarea")
+  const [newQuestionType, setNewQuestionType] = useState<"text" | "textarea">("textarea")
   const [newQuestionRequired, setNewQuestionRequired] = useState(true)
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
 
@@ -539,7 +539,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
                     type="text"
                     value={newQuestionLabel}
                     onChange={(e) => setNewQuestionLabel(e.target.value)}
-                    placeholder="Contoh: Lampirkan link portofolio desain / Figma terbaik Anda!"
+                    placeholder="Contoh: Mengapa Anda tertarik untuk mengikuti program magang pada posisi ini?"
                     className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#561269]"
                   />
                 </div>
@@ -552,13 +552,12 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
                     <select
                       value={newQuestionType}
                       onChange={(e) =>
-                        setNewQuestionType(e.target.value as "text" | "textarea" | "url")
+                        setNewQuestionType(e.target.value as "text" | "textarea")
                       }
                       className="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg focus:outline-none focus:border-[#561269] bg-white"
                     >
                       <option value="textarea">Esai Panjang / Paragraf</option>
                       <option value="text">Teks Singkat</option>
-                      <option value="url">Tautan / URL Link</option>
                     </select>
                   </div>
 
