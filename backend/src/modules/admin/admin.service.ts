@@ -83,6 +83,22 @@ const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
     deskripsi:
       'Kami menyediakan beragam layanan psikologi untuk menemani setiap fase kehidupan dan membantu memenuhi kebutuhanmu.',
   },
+  pemimpinSection: {
+    judulSection: 'Berawal dari Mereka',
+    fotoBersama: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=800&q=80',
+    pendiri: {
+      nama: 'Nama Pendiri, M.Psi., Psikolog',
+      peran: 'Founder & Lead Psychologist',
+      bio: 'Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu, penanganan trauma, dan pengembangan diri.',
+      foto: '',
+    },
+    manager: {
+      nama: 'Nama Manajer, S.Psi.',
+      peran: 'Co-founder & Operational Manager',
+      bio: 'Berpengalaman dalam manajemen layanan klinis dan operasional organisasi. Berkomitmen memastikan setiap klien mendapatkan akses pendampingan psikologis yang cepat, nyaman, dan terpercaya.',
+      foto: '',
+    },
+  },
 }
 
 const mapsEmbedCache = new Map<string, string>()
@@ -830,6 +846,20 @@ export class AdminService {
           nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(val.nilai || {}) },
           kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(val.kenapaHadir || {}) },
           layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(val.layananSection || {}) },
+          pemimpinSection: {
+            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+            ...(val.pemimpinSection || {}),
+            pendiri: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+              ...(val.pemimpinSection?.pendiri || {}),
+              foto: val.pemimpinSection?.pendiri?.foto ?? '',
+            },
+            manager: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+              ...(val.pemimpinSection?.manager || {}),
+              foto: val.pemimpinSection?.manager?.foto ?? '',
+            },
+          },
         }
       }
     } catch {
@@ -851,6 +881,20 @@ export class AdminService {
           nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(parsed.nilai || {}) },
           kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(parsed.kenapaHadir || {}) },
           layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(parsed.layananSection || {}) },
+          pemimpinSection: {
+            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
+            ...(parsed.pemimpinSection || {}),
+            pendiri: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
+              ...(parsed.pemimpinSection?.pendiri || {}),
+              foto: parsed.pemimpinSection?.pendiri?.foto ?? '',
+            },
+            manager: {
+              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
+              ...(parsed.pemimpinSection?.manager || {}),
+              foto: parsed.pemimpinSection?.manager?.foto ?? '',
+            },
+          },
         }
       }
     } catch {
@@ -860,9 +904,30 @@ export class AdminService {
   }
 
   async updateTentangKami(input: UpdateTentangKamiInput): Promise<UpdateTentangKamiInput> {
+    const normalizedInput: UpdateTentangKamiInput = {
+      ...input,
+      pemimpinSection: input.pemimpinSection
+        ? {
+            ...input.pemimpinSection,
+            pendiri: input.pemimpinSection.pendiri
+              ? {
+                  ...input.pemimpinSection.pendiri,
+                  foto: input.pemimpinSection.pendiri.foto ?? '',
+                }
+              : undefined,
+            manager: input.pemimpinSection.manager
+              ? {
+                  ...input.pemimpinSection.manager,
+                  foto: input.pemimpinSection.manager.foto ?? '',
+                }
+              : undefined,
+          }
+        : input.pemimpinSection,
+    }
+
     // 1. Simpan ke Database (tabel SiteSetting dengan key 'tentang_kami')
     try {
-      await this.repo.upsertSiteSetting('tentang_kami', input)
+      await this.repo.upsertSiteSetting('tentang_kami', normalizedInput)
     } catch (err: any) {
       console.warn('Gagal menyimpan Tentang Kami ke database, fallback ke berkas JSON:', err.message)
     }
@@ -875,13 +940,13 @@ export class AdminService {
       if (!existsSync(dataDir)) {
         mkdirSync(dataDir, { recursive: true })
       }
-      writeFileSync(tempPath, JSON.stringify(input, null, 2), 'utf-8')
+      writeFileSync(tempPath, JSON.stringify(normalizedInput, null, 2), 'utf-8')
       renameSync(tempPath, filePath)
     } catch {
       // Abaikan error penulisan file jika environment read-only
     }
 
-    return input
+    return normalizedInput
   }
 
   // ── Manajemen Banner Hero Promosi & Slide Utama ──────────────────────

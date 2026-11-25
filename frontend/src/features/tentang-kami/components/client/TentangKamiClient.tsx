@@ -552,6 +552,115 @@ export default function TentangKamiClient() {
       </section>
 
       {/* ================================================================= */}
+      {/* 4.5. BERAWAL DARI MEREKA (Zigzag: Founder Atas, Manager Bawah)     */}
+      {/* ================================================================= */}
+      {content.pemimpinSection && (
+        <section className="w-full bg-[#FAF6EE] py-8 sm:py-10 md:py-14 border-y border-[#F3ECE0]/80">
+          <div className="max-w-[840px] mx-auto px-5 sm:px-8">
+            {/* Judul Bagian - Ditengah */}
+            <div className="text-center mb-6 sm:mb-8 md:mb-10">
+              <h2
+                style={{ color: themeColor }}
+                className="text-xl sm:text-2xl md:text-3xl font-extrabold tracking-tight"
+              >
+                {content.pemimpinSection.judulSection || "Berawal dari Mereka"}
+              </h2>
+            </div>
+
+            <div className="space-y-6 sm:space-y-8 md:space-y-10">
+              {/* Row 1: Pendiri (Foto Kiri, Tulisan Kanan) */}
+              <div
+                className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
+                  content.pemimpinSection.pendiri?.foto
+                    ? "grid-cols-1 md:grid-cols-2"
+                    : "grid-cols-1"
+                }`}
+              >
+                {/* Kiri: Foto Badan Pendiri (Tanpa Frame) */}
+                {content.pemimpinSection.pendiri?.foto && (
+                  <div className="w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-end md:pr-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={content.pemimpinSection.pendiri.foto}
+                      alt={content.pemimpinSection.pendiri?.nama || "Pendiri Empathika"}
+                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Kanan: Tulisan Profil Pendiri */}
+                <div
+                  className={`flex flex-col ${
+                    content.pemimpinSection.pendiri?.foto
+                      ? "text-center md:text-left items-center md:items-start max-w-md md:pl-4"
+                      : "text-center items-center max-w-lg mx-auto"
+                  }`}
+                >
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                    {content.pemimpinSection.pendiri?.nama || "Nama Pendiri, M.Psi., Psikolog"}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                    {content.pemimpinSection.pendiri?.peran || "Founder & Lead Psychologist"}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                    {content.pemimpinSection.pendiri?.bio ||
+                      "Lulusan Magister Psikologi Profesi yang berdedikasi membangun ruang aman bagi kesehatan mental. Memiliki pengalaman dalam pendampingan konseling individu, penanganan trauma, dan pengembangan diri."}
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 2: Manajer (Tulisan Kiri, Foto Kanan) */}
+              <div
+                className={`grid items-center gap-4 sm:gap-6 md:gap-8 ${
+                  content.pemimpinSection.manager?.foto
+                    ? "grid-cols-1 md:grid-cols-2"
+                    : "grid-cols-1"
+                }`}
+              >
+                {/* Kiri: Tulisan Profil Manajer */}
+                <div
+                  className={`order-2 md:order-1 flex flex-col ${
+                    content.pemimpinSection.manager?.foto
+                      ? "text-center md:text-left items-center md:items-start max-w-md md:ml-auto md:pr-4"
+                      : "text-center items-center max-w-lg mx-auto"
+                  }`}
+                >
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 tracking-tight">
+                    {content.pemimpinSection.manager?.nama || "Nama Manajer, S.Psi."}
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#561269] font-semibold mt-0.5 mb-2">
+                    {content.pemimpinSection.manager?.peran || "Co-founder & Operational Manager"}
+                  </p>
+                  <p className="text-xs sm:text-sm text-gray-700 leading-relaxed font-normal">
+                    {content.pemimpinSection.manager?.bio ||
+                      "Berpengalaman dalam manajemen layanan klinis dan operasional organisasi. Berkomitmen memastikan setiap klien mendapatkan akses pendampingan psikologis yang cepat, nyaman, dan terpercaya."}
+                  </p>
+                </div>
+
+                {/* Kanan: Foto Badan Manajer (Tanpa Frame) */}
+                {content.pemimpinSection.manager?.foto && (
+                  <div className="order-1 md:order-2 w-full h-[200px] sm:h-[240px] md:h-[270px] flex items-end justify-center md:justify-start md:pl-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={content.pemimpinSection.manager.foto}
+                      alt={content.pemimpinSection.manager?.nama || "Manajer Empathika"}
+                      className="max-h-full max-w-full object-contain object-bottom drop-shadow-md select-none pointer-events-none hover:scale-[1.02] transition-transform duration-300"
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none"
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ================================================================= */}
       {/* 5. ADA UNTUK SETIAP LANGKAHMU (Modern Clean Cards Grid) */}
       {/* ================================================================= */}
       <section className="w-full py-16 lg:py-20 bg-white">

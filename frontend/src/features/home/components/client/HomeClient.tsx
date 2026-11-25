@@ -182,7 +182,7 @@ export default function HomeClient() {
       window.removeEventListener("storage", fetchHomePsychologists)
       window.removeEventListener("focus", fetchHomePsychologists)
     }
-  }, [])
+  }, [isBiro, slug])
 
   useEffect(() => {
     const loadBanners = async () => {

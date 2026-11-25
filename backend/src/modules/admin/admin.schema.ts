@@ -115,6 +115,32 @@ export const updateTentangKamiSchema = z.object({
       deskripsi: z.string().trim().max(1000, 'Deskripsi section layanan maksimal 1000 karakter').optional(),
     })
     .optional(),
+  pemimpinSection: z
+    .object({
+      judulSection: z.string().trim().max(200, 'Judul section pemimpin maksimal 200 karakter').nullable().optional().or(z.literal('')),
+      fotoBersama: z.string().trim().max(1000).nullable().optional().or(z.literal('')),
+      pendiri: z
+        .object({
+          nama: z.string().trim().max(200).nullable().optional().or(z.literal('')),
+          peran: z.string().trim().max(200).nullable().optional().or(z.literal('')),
+          bio: z.string().trim().max(5000).nullable().optional().or(z.literal('')),
+          foto: z.string().trim().max(1000).nullable().optional().or(z.literal('')),
+        })
+        .nullable()
+        .optional(),
+      manager: z
+        .object({
+          nama: z.string().trim().max(200).nullable().optional().or(z.literal('')),
+          peran: z.string().trim().max(200).nullable().optional().or(z.literal('')),
+          bio: z.string().trim().max(5000).nullable().optional().or(z.literal('')),
+          foto: z.string().trim().max(1000).nullable().optional().or(z.literal('')),
+        })
+        .nullable()
+        .optional(),
+      items: z.array(z.any()).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 })
 
 export type UpdateTentangKamiInput = z.infer<typeof updateTentangKamiSchema>
