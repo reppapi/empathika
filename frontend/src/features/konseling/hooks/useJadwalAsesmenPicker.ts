@@ -117,8 +117,8 @@ export function useJadwalAsesmenPicker({
     return dates
   }, [bookedSessions])
 
-  // Pilihan metode sesi: Online (Zoom), Offline (Klinik), atau Keduanya
-  const [metode, setMetode] = useState<"Online" | "Offline" | "Keduanya">("Online")
+  // Pilihan metode sesi: Khusus Offline (Klinik)
+  const [metode, setMetode] = useState<"Online" | "Offline" | "Keduanya">("Offline")
 
   // Pilihan Layanan Asesmen
   const [selectedLayanan, setSelectedLayanan] = useState<string>("Semua Layanan Asesmen")
@@ -161,51 +161,21 @@ export function useJadwalAsesmenPicker({
     }
   }, [])
 
-  // Menentukan metode asesmen yang diperbolehkan berdasarkan pengaturan layanan di Admin
+  // Menentukan metode asesmen yang diperbolehkan (Asesmen hanya Offline)
   const allowedMetode = useMemo(() => {
-    let targetServices = serviceItems
-    if (selectedLayanan && selectedLayanan !== "Semua Layanan Asesmen") {
-      const found = serviceItems.filter(
-        (s) => (s.nama || s.layanan || "").trim().toLowerCase() === selectedLayanan.trim().toLowerCase()
-      )
-      if (found.length > 0) {
-        targetServices = found
-      }
-    }
-
-    if (targetServices.length === 0) {
-      return { online: true, offline: true, both: true }
-    }
-
-    let hasOnline = false
-    let hasOffline = false
-
-    targetServices.forEach((s) => {
-      const m = (s.metode || "Online/Offline").toLowerCase()
-      if (m.includes("online") || m.includes("keduanya") || m === "semua") {
-        hasOnline = true
-      }
-      if (m.includes("offline") || m.includes("keduanya") || m === "semua") {
-        hasOffline = true
-      }
-    })
-
     return {
-      online: hasOnline,
-      offline: hasOffline,
-      both: hasOnline && hasOffline,
+      online: false,
+      offline: true,
+      both: false,
     }
-  }, [selectedLayanan, serviceItems])
+  }, [])
 
-  // Sinkronkan metode otomatis jika metode aktif tidak didukung oleh layanan asesmen yang dipilih
+  // Pastikan metode selalu Offline
   useEffect(() => {
-    if (allowedMetode.both) return
-    if (allowedMetode.online && !allowedMetode.offline) {
-      if (metode !== "Online") setMetode("Online")
-    } else if (!allowedMetode.online && allowedMetode.offline) {
-      if (metode !== "Offline") setMetode("Offline")
+    if (metode !== "Offline") {
+      setMetode("Offline")
     }
-  }, [allowedMetode, metode])
+  }, [metode])
 
   // Multi-select slot jam & jam kustom
   const [selectedTimes, setSelectedTimes] = useState<string[]>([])

@@ -138,13 +138,13 @@ export default function AdminDokumentasiEventClient() {
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto p-1">
             <table className="w-full text-left text-sm border-separate border-spacing-y-2">
-              <thead>
-                <tr className="bg-[#561269]/10 text-gray-700 text-xs uppercase font-extrabold tracking-wider">
-                  <th className="py-3 px-4 rounded-l-xl">Event Selesai</th>
-                  <th className="py-3 px-4">Tanggal Pelaksanaan</th>
-                  <th className="py-3 px-4 rounded-r-xl text-center">Aksi</th>
+              <thead className="sticky top-0 z-10 bg-white">
+                <tr className="bg-purple-100/70 text-gray-700 text-xs uppercase font-extrabold tracking-wider">
+                  <th className="py-3 px-4 rounded-l-xl sticky top-0 bg-purple-100/90 z-10">Event Selesai</th>
+                  <th className="py-3 px-4 sticky top-0 bg-purple-100/90 z-10">Tanggal Pelaksanaan</th>
+                  <th className="py-3 px-4 rounded-r-xl text-center sticky top-0 bg-purple-100/90 z-10">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y-0">

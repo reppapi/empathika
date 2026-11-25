@@ -429,16 +429,16 @@ export default function AdminEventDetailClient({ eventId }: Props) {
               </p>
             </div>
           ) : (
-            <div className="overflow-x-auto -mx-2">
+            <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto">
               <table className="w-full text-left text-sm min-w-[700px]">
-                <thead>
-                  <tr className="bg-gray-50/80 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
-                    <th className="py-3 px-4 rounded-l-xl">Client</th>
-                    <th className="py-3 px-4">Kontak</th>
-                    <th className="py-3 px-4 text-center">Tiket</th>
-                    <th className="py-3 px-4 text-center">Status Booking</th>
-                    <th className="py-3 px-4 text-center">Status Bayar</th>
-                    <th className="py-3 px-4 text-center rounded-r-xl">Aksi</th>
+                <thead className="sticky top-0 z-10 bg-gray-50">
+                  <tr className="bg-gray-50 text-[11px] text-gray-500 uppercase font-bold tracking-wider">
+                    <th className="py-3 px-4 rounded-l-xl sticky top-0 bg-gray-50 z-10">Client</th>
+                    <th className="py-3 px-4 sticky top-0 bg-gray-50 z-10">Kontak</th>
+                    <th className="py-3 px-4 text-center sticky top-0 bg-gray-50 z-10">Tiket</th>
+                    <th className="py-3 px-4 text-center sticky top-0 bg-gray-50 z-10">Status Booking</th>
+                    <th className="py-3 px-4 text-center sticky top-0 bg-gray-50 z-10">Status Bayar</th>
+                    <th className="py-3 px-4 text-center rounded-r-xl sticky top-0 bg-gray-50 z-10">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">

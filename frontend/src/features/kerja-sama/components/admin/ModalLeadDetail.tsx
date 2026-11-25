@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { MessageCircle, ExternalLink, Copy, X } from "lucide-react"
+import { MessageCircle, ExternalLink, Copy, X, FileText } from "lucide-react"
 import { PengajuanKerjaSama } from "../../types"
 
 interface ModalLeadDetailProps {
@@ -176,19 +176,84 @@ export default function ModalLeadDetail({
 
           {selectedLead.jawabanDetail ? (
             <div className="grid grid-cols-1 gap-2.5">
-              {Object.entries(selectedLead.jawabanDetail).map(([pertanyaan, jawaban]) => (
-                <div
-                  key={pertanyaan}
-                  className="p-3.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs hover:border-purple-200 transition"
-                >
-                  <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block mb-1">
-                    {pertanyaan}
-                  </span>
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-relaxed whitespace-pre-wrap">
-                    {Array.isArray(jawaban) ? jawaban.join(", ") : String(jawaban || "-")}
-                  </p>
-                </div>
-              ))}
+              {Object.entries(selectedLead.jawabanDetail).map(([pertanyaan, jawaban]) => {
+                let parsedProposal: { url: string; filename: string; size?: number } | null = null
+                const isProposalKey =
+                  pertanyaan.toLowerCase().includes("proposal") ||
+                  pertanyaan.toLowerCase().includes("upload") ||
+                  pertanyaan.toLowerCase().includes("file")
+
+                if (typeof jawaban === "string") {
+                  if (jawaban.startsWith("{") && (jawaban.includes('"url"') || jawaban.includes("url"))) {
+                    try {
+                      parsedProposal = JSON.parse(jawaban)
+                    } catch {}
+                  } else if (
+                    isProposalKey &&
+                    jawaban !== "-" &&
+                    (jawaban.startsWith("http://") ||
+                      jawaban.startsWith("https://") ||
+                      jawaban.startsWith("/uploads") ||
+                      jawaban.startsWith("data:"))
+                  ) {
+                    parsedProposal = { url: jawaban, filename: "Proposal_Kerjasama.pdf" }
+                  }
+                } else if (typeof jawaban === "object" && jawaban !== null && "url" in (jawaban as any)) {
+                  parsedProposal = jawaban as any
+                }
+
+                return (
+                  <div
+                    key={pertanyaan}
+                    className="p-3.5 rounded-xl bg-white border border-gray-200/80 shadow-2xs hover:border-purple-200 transition"
+                  >
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide block mb-1">
+                      {pertanyaan}
+                    </span>
+
+                    {parsedProposal ? (
+                      <div className="mt-1 p-3.5 rounded-xl bg-purple-50/70 border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-[#561269] text-white flex items-center justify-center font-bold text-[10px] shrink-0 shadow-xs">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-gray-900 block truncate">
+                              {parsedProposal.filename || "Proposal_Kerjasama.pdf"}
+                            </span>
+                            {parsedProposal.size ? (
+                              <span className="text-[10px] text-gray-500">
+                                {(parsedProposal.size / (1024 * 1024)).toFixed(2)} MB
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-emerald-700 font-semibold">
+                                Dokumen Proposal Terlampir
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <a
+                            href={parsedProposal.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            download={parsedProposal.filename || "Proposal_Kerjasama.pdf"}
+                            className="px-4 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <span>Lihat / Unduh Dokumen</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-xs sm:text-sm font-semibold text-gray-900 leading-relaxed whitespace-pre-wrap">
+                        {Array.isArray(jawaban) ? jawaban.join(", ") : String(jawaban || "-")}
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-800">

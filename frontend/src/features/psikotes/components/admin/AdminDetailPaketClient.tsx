@@ -579,17 +579,17 @@ export default function AdminDetailPaketClient({ paketId }: Props) {
                   Belum ada data interpretasi yang tersimpan untuk paket ini.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50/60 text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
-                        <th scope="col" className="px-6 py-3.5 w-32 whitespace-nowrap">
+                    <thead className="sticky top-0 z-10 bg-gray-50">
+                      <tr className="border-b border-gray-200 bg-gray-50 text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
+                        <th scope="col" className="px-6 py-3.5 w-32 whitespace-nowrap sticky top-0 bg-gray-50 z-10">
                           Rentang Skor
                         </th>
-                        <th scope="col" className="px-6 py-3.5 w-48 whitespace-nowrap">
+                        <th scope="col" className="px-6 py-3.5 w-48 whitespace-nowrap sticky top-0 bg-gray-50 z-10">
                           Kategori
                         </th>
-                        <th scope="col" className="px-6 py-3.5">
+                        <th scope="col" className="px-6 py-3.5 sticky top-0 bg-gray-50 z-10">
                           Deskripsi Interpretasi
                         </th>
                       </tr>

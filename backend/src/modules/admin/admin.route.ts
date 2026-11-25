@@ -15,6 +15,9 @@ import {
   dashboardMetricsQuerySchema,
   updateTentangKamiSchema,
   updateHeroBannersSchema,
+  createInternshipPositionSchema,
+  updateInternshipPositionSchema,
+  updateInternshipPositionsSchema,
 } from './admin.schema'
 
 export default async function adminRoutes(fastify: FastifyInstance) {
@@ -128,6 +131,100 @@ export default async function adminRoutes(fastify: FastifyInstance) {
       body: updateHeroBannersSchema,
     },
     handler: controller.updateHeroBanners,
+  })
+
+  // ── Modul Manajemen Internship (Database Murni) ──────────────────
+  // 1. Publik: Klien mengambil posisi internship yang sedang aktif/dibuka dari database
+  fastify.get('/internship/public', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan daftar posisi internship yang terbuka untuk publik dari database',
+    },
+    handler: controller.getInternshipPublic,
+  })
+
+  // 2. Terproteksi: Admin mengambil seluruh daftar posisi internship dari database
+  fastify.get('/internship', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mendapatkan seluruh data posisi internship untuk dashboard admin dari database',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getInternship,
+  })
+
+  // 3. Terproteksi: Admin membuat posisi internship baru di database
+  fastify.post('/internship', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Menambahkan lowongan posisi internship baru ke database',
+      security: [{ bearerAuth: [] }],
+      body: createInternshipPositionSchema,
+    },
+    handler: controller.createInternship,
+  })
+
+  // 4. Terproteksi: Admin memperbarui rincian posisi internship di database
+  fastify.put('/internship/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Memperbarui data lowongan posisi internship di database',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        required: ['id'],
+      },
+      body: updateInternshipPositionSchema,
+    },
+    handler: controller.updateInternshipItem,
+  })
+
+  // 5. Terproteksi: Admin toggle status buka/tutup lowongan posisi di database
+  fastify.patch('/internship/:id/toggle', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Mengubah status visibilitas lowongan posisi (buka/tutup) di database',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        required: ['id'],
+      },
+    },
+    handler: controller.toggleInternshipStatus,
+  })
+
+  // 6. Terproteksi: Admin menghapus lowongan posisi dari database
+  fastify.delete('/internship/:id', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Menghapus posisi internship dari database',
+      security: [{ bearerAuth: [] }],
+      params: {
+        type: 'object',
+        properties: { id: { type: 'string' } },
+        required: ['id'],
+      },
+    },
+    handler: controller.deleteInternship,
+  })
+
+  // 7. Terproteksi: Admin sinkronisasi seluruh daftar posisi internship ke database
+  fastify.put('/internship', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Sinkronisasi seluruh daftar posisi internship ke database',
+      security: [{ bearerAuth: [] }],
+      body: updateInternshipPositionsSchema,
+    },
+    handler: controller.updateInternship,
   })
 
   // ── Modul Dashboard & Ringkasan Operasional Admin & Biro ───────────

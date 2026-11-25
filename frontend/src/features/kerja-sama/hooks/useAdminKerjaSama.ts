@@ -107,7 +107,7 @@ export function useAdminKerjaSama() {
   // State Tambah Pertanyaan Baru Formulir
   const [isAddingQuestion, setIsAddingQuestion] = useState(false)
   const [newQuestionLabel, setNewQuestionLabel] = useState("")
-  const [newQuestionType, setNewQuestionType] = useState<"radio" | "text">("radio")
+  const [newQuestionType, setNewQuestionType] = useState<"radio" | "select" | "text" | "file">("radio")
   const [newQuestionOptions, setNewQuestionOptions] = useState<string>("Opsi 1, Opsi 2, Opsi 3")
 
   // Filter Leads
@@ -340,6 +340,25 @@ export function useAdminKerjaSama() {
     showToast("Pertanyaan berhasil dihapus!")
   }
 
+  const handleUpdateQuestion = (qId: string, updatedFields: Partial<FormulirPertanyaan>) => {
+    if (!currentFormConfig) return
+    const updatedQuestions = currentFormConfig.pertanyaanKhusus.map((q) => {
+      if (q.id === qId) {
+        return {
+          ...q,
+          ...updatedFields,
+        }
+      }
+      return q
+    })
+    const updated = formConfigs.map((f, idx) =>
+      idx === selectedFormIndex ? { ...f, pertanyaanKhusus: updatedQuestions } : f
+    )
+    setFormConfigs(updated)
+    saveFormulirConfigs(updated)
+    showToast("Pertanyaan berhasil diperbarui!")
+  }
+
   const handleAddNewQuestion = (e: React.FormEvent) => {
     e.preventDefault()
     if (!currentFormConfig || !newQuestionLabel.trim()) return
@@ -351,7 +370,7 @@ export function useAdminKerjaSama() {
       key: qKey,
       type: newQuestionType,
       options:
-        newQuestionType === "radio"
+        newQuestionType === "radio" || newQuestionType === "select"
           ? newQuestionOptions
               .split(",")
               .map((s) => s.trim())
@@ -446,6 +465,7 @@ export function useAdminKerjaSama() {
     handleUpdateCurrentForm,
     handleSaveAllFormConfigs,
     handleDeleteQuestion,
+    handleUpdateQuestion,
     handleAddNewQuestion,
     handleUpdateLeadStatus,
     handleDeleteLead,

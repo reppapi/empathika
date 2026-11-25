@@ -1032,5 +1032,36 @@ export class AdminService {
 
     return dataToSave
   }
+
+  // ── Modul Manajemen Internship (Database Murni) ──────────────────
+  async getInternship(onlyOpen = false): Promise<any[]> {
+    return this.repo.getInternshipPositions(onlyOpen)
+  }
+
+  async getInternshipById(id: string): Promise<any> {
+    const pos = await this.repo.getInternshipPositionById(id)
+    if (!pos) throw new Error("Posisi internship tidak ditemukan")
+    return pos
+  }
+
+  async createInternship(data: any): Promise<any> {
+    return this.repo.createInternshipPosition(data)
+  }
+
+  async updateInternshipPosition(id: string, data: any): Promise<any> {
+    return this.repo.updateInternshipPosition(id, data)
+  }
+
+  async toggleInternshipStatus(id: string): Promise<any> {
+    return this.repo.toggleInternshipPosition(id)
+  }
+
+  async deleteInternship(id: string): Promise<void> {
+    await this.repo.deleteInternshipPosition(id)
+  }
+
+  async syncAllInternshipPositions(positions: any[]): Promise<any[]> {
+    return this.repo.syncAllInternshipPositions(positions)
+  }
 }
 

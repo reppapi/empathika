@@ -1,4 +1,7 @@
 import type { FastifyRequest, FastifyReply } from 'fastify'
+import { createWriteStream, mkdirSync, existsSync } from 'node:fs'
+import { join, extname } from 'node:path'
+import { env } from '../../config/env'
 import { KerjaSamaService } from './kerja-sama.service'
 import type {
   CreatePengajuanInput,
@@ -188,6 +191,93 @@ export class KerjaSamaController {
       reply.send(result)
     } catch (err: any) {
       reply.code(err.statusCode || 400).send({ success: false, message: err.message })
+    }
+  }
+
+  uploadProposal = async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const data = await request.file()
+      if (!data) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Tidak ada file yang diunggah',
+        })
+      }
+
+      const ALLOWED_MIME = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+      ]
+
+      if (!ALLOWED_MIME.includes(data.mimetype)) {
+        return reply.code(400).send({
+          success: false,
+          message: 'Format file tidak didukung. Harap unggah file PDF, Word (DOC/DOCX), atau Gambar.',
+        })
+      }
+
+      const MAX_SIZE = 15 * 1024 * 1024 // 15MB
+      let totalBytes = 0
+      const chunks: Buffer[] = []
+
+      for await (const chunk of data.file) {
+        totalBytes += chunk.length
+        if (totalBytes > MAX_SIZE) {
+          return reply.code(413).send({
+            success: false,
+            message: 'Ukuran file terlalu besar. Maksimal 15MB.',
+          })
+        }
+        chunks.push(chunk)
+      }
+
+      const dir = join(process.cwd(), 'public', 'uploads', 'proposals')
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true })
+      }
+
+      const originalName = data.filename || 'proposal.pdf'
+      const ext = extname(originalName) || '.pdf'
+      const cleanBaseName = originalName
+        .replace(ext, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 40)
+      const filename = `${Date.now()}_${cleanBaseName}${ext}`
+      const filepath = join(dir, filename)
+
+      const writeStream = createWriteStream(filepath)
+      writeStream.write(Buffer.concat(chunks))
+      writeStream.end()
+      await new Promise<void>((resolve, reject) => {
+        writeStream.on('finish', () => resolve())
+        writeStream.on('error', (err) => reject(err))
+      })
+
+      const baseUrl = env.BASE_URL ?? `http://localhost:${env.PORT ?? 5000}`
+      const url = `${baseUrl}/uploads/proposals/${filename}`
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Proposal berhasil diunggah',
+        data: {
+          url,
+          filename,
+          originalName,
+          size: totalBytes,
+        },
+      })
+    } catch (err: any) {
+      request.log.error(err)
+      return reply.code(500).send({
+        success: false,
+        message: 'Terjadi kesalahan saat mengunggah file proposal',
+      })
     }
   }
 }

@@ -1536,7 +1536,7 @@ export default function PsikologJadwalClient() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full items-stretch">
           {/* Step 1: Calendar Picker (Left) */}
           <PilihTanggalBox
             date={date}
@@ -1680,7 +1680,7 @@ export default function PsikologJadwalClient() {
               </p>
 
               {/* Checkbox List Slot Waktu */}
-              <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar">
+              <div className="flex flex-col gap-2.5 mb-3 max-h-[125px] overflow-y-auto pr-1.5 custom-scrollbar [scrollbar-width:thin] [scrollbar-color:#c4b0cb_#f8fafc] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-purple-200 hover:[&::-webkit-scrollbar-thumb]:bg-purple-300 [&::-webkit-scrollbar-track]:bg-gray-50">
                 {timeSlots.map((time, idx) => {
                   const isChecked = selectedTimes.includes(time)
                   const isCurrentPsikolog = (s: BookedSession) => {
@@ -1986,10 +1986,10 @@ export default function PsikologJadwalClient() {
         </div>
 
         {/* Weekly Grid */}
-        <div className="overflow-x-auto border border-gray-200 rounded-xl hide-scrollbar">
-          <div className="min-w-[980px] xl:min-w-full">
+        <div className="overflow-x-auto border border-gray-200 rounded-xl admin-table-scrollbar">
+          <div className="w-full min-w-[780px] md:min-w-full max-h-[365px] overflow-y-auto admin-table-scrollbar">
             {/* Header */}
-            <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/70">
+            <div className="sticky top-0 z-10 grid grid-cols-7 border-b border-gray-200 bg-gray-50/95 backdrop-blur-xs shadow-2xs">
               {weekDays.map((wd, i) => {
                 const isPastDay = wd.dateKey < formatDateKey(today)
                 return (
