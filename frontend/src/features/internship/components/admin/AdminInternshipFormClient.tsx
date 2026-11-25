@@ -170,6 +170,19 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
       .map((s) => s.trim())
       .filter(Boolean)
 
+    const finalQuestions: InternshipQuestion[] =
+      isAddingQuestion && newQuestionLabel.trim()
+        ? [
+            ...questions,
+            {
+              id: `q-${Date.now()}`,
+              label: newQuestionLabel.trim(),
+              type: newQuestionType,
+              required: newQuestionRequired,
+            },
+          ]
+        : questions
+
     setSubmitting(true)
     try {
       if (isEditMode && positionId) {
@@ -184,7 +197,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           deskripsi: formData.deskripsi.trim() || undefined,
           responsibilities: respList,
           qualifications: qualList,
-          questions: questions,
+          questions: finalQuestions,
           applyUrl: formData.applyUrl.trim(),
           isOpen: formData.isOpen,
         })
@@ -201,7 +214,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           deskripsi: formData.deskripsi.trim() || undefined,
           responsibilities: respList,
           qualifications: qualList,
-          questions: questions,
+          questions: finalQuestions,
           applyUrl: formData.applyUrl.trim(),
           isOpen: formData.isOpen,
         })

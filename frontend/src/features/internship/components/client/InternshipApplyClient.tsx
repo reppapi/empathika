@@ -240,8 +240,10 @@ export default function InternshipApplyClient({ positionId }: Props) {
     }
 
     // Validasi pertanyaan wajib
-    for (const q of activeQuestions) {
-      if (q.required && !answers[q.id]?.trim()) {
+    for (let idx = 0; idx < activeQuestions.length; idx++) {
+      const q = activeQuestions[idx]
+      const qKey = q.id || `q-${idx}`
+      if (q.required && !answers[qKey]?.trim()) {
         notifyError(`Harap jawab pertanyaan: "${q.label}"`)
         return
       }
@@ -249,11 +251,14 @@ export default function InternshipApplyClient({ positionId }: Props) {
 
     setSubmitting(true)
     try {
-      const formattedJawaban = activeQuestions.map((q) => ({
-        questionId: q.id,
-        question: q.label,
-        answer: answers[q.id]?.trim() || "-",
-      }))
+      const formattedJawaban = activeQuestions.map((q, idx) => {
+        const qKey = q.id || `q-${idx}`
+        return {
+          questionId: qKey,
+          question: q.label,
+          answer: answers[qKey]?.trim() || "-",
+        }
+      })
 
       await internshipService.applyInternship({
         positionId: position.id,
@@ -845,34 +850,37 @@ export default function InternshipApplyClient({ positionId }: Props) {
               </div>
 
               <div className="space-y-6">
-                {activeQuestions.map((q, idx) => (
-                  <div key={q.id || `q-${idx}`} className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/70">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
-                      {idx + 1}. {q.label}{" "}
-                      {q.required && <span className="text-rose-500">*</span>}
-                    </label>
+                {activeQuestions.map((q, idx) => {
+                  const qKey = q.id || `q-${idx}`
+                  return (
+                    <div key={qKey} className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/70">
+                      <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2">
+                        {idx + 1}. {q.label}{" "}
+                        {q.required && <span className="text-rose-500">*</span>}
+                      </label>
 
-                    {q.type === "url" ? (
-                      <input
-                        type="url"
-                        required={q.required}
-                        value={answers[q.id] || ""}
-                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                        placeholder="https://..."
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
-                      />
-                    ) : (
-                      <textarea
-                        required={q.required}
-                        rows={3}
-                        value={answers[q.id] || ""}
-                        onChange={(e) => handleAnswerChange(q.id, e.target.value)}
-                        placeholder="Tuliskan jawaban Anda di sini..."
-                        className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white leading-relaxed resize-y"
-                      />
-                    )}
-                  </div>
-                ))}
+                      {q.type === "url" ? (
+                        <input
+                          type="url"
+                          required={q.required}
+                          value={answers[qKey] || ""}
+                          onChange={(e) => handleAnswerChange(qKey, e.target.value)}
+                          placeholder="https://..."
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
+                        />
+                      ) : (
+                        <textarea
+                          required={q.required}
+                          rows={3}
+                          value={answers[qKey] || ""}
+                          onChange={(e) => handleAnswerChange(qKey, e.target.value)}
+                          placeholder="Tuliskan jawaban Anda di sini..."
+                          className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white leading-relaxed resize-y"
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
