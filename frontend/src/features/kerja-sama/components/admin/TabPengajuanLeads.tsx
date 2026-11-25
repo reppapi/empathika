@@ -2,6 +2,7 @@
 
 import React from "react"
 import { PengajuanKerjaSama } from "../../types"
+import { isKerjaSamaLeadRead } from "../../data/initialData"
 
 interface TabPengajuanLeadsProps {
   filteredLeads: PengajuanKerjaSama[]
@@ -69,7 +70,16 @@ export default function TabPengajuanLeads({
               filteredLeads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-gray-50/60 transition">
                   <td className="py-3.5 px-4 text-gray-500 whitespace-nowrap">{lead.tanggal}</td>
-                  <td className="py-3.5 px-4 font-bold text-gray-900">{lead.namaInstansi}</td>
+                  <td className="py-3.5 px-4 font-bold text-gray-900">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span>{lead.namaInstansi}</span>
+                      {!isKerjaSamaLeadRead(lead.id) && lead.status === "Menunggu" && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
+                          Baru
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4">
                     <span className="font-semibold text-gray-800 block text-xs">
                       {lead.formTitle || `Formulir ${lead.kategori}`}

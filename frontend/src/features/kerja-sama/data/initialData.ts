@@ -10,6 +10,7 @@ export const LOCAL_STORAGE_KEY_KERJASAMA_ITEMS = "empathika_kerjasama_items"
 export const LOCAL_STORAGE_KEY_KERJASAMA_CONFIG = "empathika_kerjasama_config"
 export const LOCAL_STORAGE_KEY_KERJASAMA_LEADS = "empathika_kerjasama_leads"
 export const LOCAL_STORAGE_KEY_KERJASAMA_FORMS = "empathika_kerjasama_forms"
+export const LOCAL_STORAGE_KEY_KERJASAMA_READ_LEADS = "empathika_kerjasama_read_leads"
 
 export const INITIAL_KERJASAMA_CONFIG: KerjaSamaPageConfig = {
   heroTitle: "Bangun Kolaborasi",
@@ -133,8 +134,52 @@ export function savePengajuanKerjaSama(leads: PengajuanKerjaSama[]): void {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_LEADS, JSON.stringify(leads))
+    window.dispatchEvent(new Event("empathika_kerjasama_leads_updated"))
   } catch (err) {
     console.error("Gagal menyimpan leads pengajuan kerja sama:", err)
+  }
+}
+
+// ── Helpers untuk Status Notifikasi & Unread Leads Kerja Sama ──
+export function getReadKerjaSamaLeadIds(): string[] {
+  if (typeof window === "undefined") return []
+  try {
+    const saved = localStorage.getItem(LOCAL_STORAGE_KEY_KERJASAMA_READ_LEADS)
+    return saved ? JSON.parse(saved) : []
+  } catch {
+    return []
+  }
+}
+
+export function isKerjaSamaLeadRead(id: string): boolean {
+  if (!id) return true
+  const readIds = getReadKerjaSamaLeadIds()
+  return readIds.includes(String(id))
+}
+
+export function markKerjaSamaLeadAsRead(id: string): void {
+  if (typeof window === "undefined" || !id) return
+  try {
+    const readIds = getReadKerjaSamaLeadIds()
+    if (!readIds.includes(String(id))) {
+      readIds.push(String(id))
+      localStorage.setItem(LOCAL_STORAGE_KEY_KERJASAMA_READ_LEADS, JSON.stringify(readIds))
+      window.dispatchEvent(new Event("empathika_kerjasama_leads_updated"))
+    }
+  } catch (err) {
+    console.error("Gagal menandai lead kerja sama sebagai terbaca:", err)
+  }
+}
+
+export function getUnreadKerjaSamaCount(leadsList?: PengajuanKerjaSama[]): number {
+  if (typeof window === "undefined") return 0
+  try {
+    const list = leadsList || getPengajuanKerjaSama()
+    const readIds = getReadKerjaSamaLeadIds()
+    // Hanya hitung lead baru yang berstatus 'Menunggu' dan belum pernah dibuka/dibaca oleh admin
+    return list.filter((l) => l.status === "Menunggu" && !readIds.includes(String(l.id))).length
+  } catch {
+    return 0
   }
 }
 

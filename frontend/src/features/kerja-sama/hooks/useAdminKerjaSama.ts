@@ -16,6 +16,10 @@ import {
   saveKerjaSamaConfig,
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
+  getReadKerjaSamaLeadIds,
+  isKerjaSamaLeadRead,
+  markKerjaSamaLeadAsRead,
+  getUnreadKerjaSamaCount,
   getFormulirConfigs,
   saveFormulirConfigs,
   mapBackendFormulirToConfig,
@@ -429,7 +433,13 @@ export function useAdminKerjaSama() {
   }
 
   // ── Handlers Leads / Pengajuan ──
+  const handleOpenLeadDetail = (lead: PengajuanKerjaSama) => {
+    markKerjaSamaLeadAsRead(lead.id)
+    setSelectedLead(lead)
+  }
+
   const handleUpdateLeadStatus = (id: string, newStatus: PengajuanKerjaSama["status"]) => {
+    markKerjaSamaLeadAsRead(id)
     const updated = leads.map((l) => (l.id === id ? { ...l, status: newStatus } : l))
     setLeads(updated)
     savePengajuanKerjaSama(updated)
@@ -466,6 +476,7 @@ export function useAdminKerjaSama() {
   // Quick stats
   const activeCount = items.filter((it) => it.status === "AKTIF").length
   const waitingLeads = leads.filter((l) => l.status === "Menunggu").length
+  const unreadLeadsCount = getUnreadKerjaSamaCount(leads)
 
   return {
     activeTab,
@@ -507,10 +518,12 @@ export function useAdminKerjaSama() {
     handleDeleteQuestion,
     handleUpdateQuestion,
     handleAddNewQuestion,
+    handleOpenLeadDetail,
     handleUpdateLeadStatus,
     handleDeleteLead,
     activeCount,
     waitingLeads,
+    unreadLeadsCount,
   }
 }
 

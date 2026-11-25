@@ -1,8 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 import { MessageCircle, ExternalLink, Copy, X, FileText } from "lucide-react"
 import { PengajuanKerjaSama } from "../../types"
+import { markKerjaSamaLeadAsRead } from "../../data/initialData"
 
 interface ModalLeadDetailProps {
   selectedLead: PengajuanKerjaSama | null
@@ -73,6 +74,12 @@ export default function ModalLeadDetail({
   onUpdateStatus,
   onShowToast,
 }: ModalLeadDetailProps) {
+  useEffect(() => {
+    if (selectedLead?.id) {
+      markKerjaSamaLeadAsRead(selectedLead.id)
+    }
+  }, [selectedLead])
+
   if (!selectedLead) return null
 
   const handleCopyWhatsAppMessage = () => {
