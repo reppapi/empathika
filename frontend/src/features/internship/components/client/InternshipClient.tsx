@@ -490,8 +490,8 @@ export default function InternshipClient() {
                   Komitmen Kami
                 </span>
                 <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-snug">
-                  "Setiap langkah kecil yang kamu buat membawa dampak besar bagi kesehatan mental
-                  banyak orang."
+                  &ldquo;Setiap langkah kecil yang kamu buat membawa dampak besar bagi kesehatan mental
+                  banyak orang.&rdquo;
                 </h3>
                 <p className="text-white/80 text-sm leading-relaxed">
                   Mari bergabung bersama kami menjadi jembatan empati dan perubahan positif bagi

@@ -743,7 +743,7 @@ export default function AdminInternshipClient() {
               <h3 className="text-lg font-bold text-gray-900">Hapus Posisi Internship?</h3>
               <p className="text-xs sm:text-sm text-gray-500 mt-1 leading-relaxed">
                 Apakah Anda yakin ingin menghapus posisi{" "}
-                <strong className="text-gray-900">"{itemToDelete.judul}"</strong>? Tindakan ini
+                <strong className="text-gray-900">&ldquo;{itemToDelete.judul}&rdquo;</strong>? Tindakan ini
                 tidak dapat dibatalkan.
               </p>
             </div>
