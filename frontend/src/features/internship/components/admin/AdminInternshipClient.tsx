@@ -101,6 +101,21 @@ export default function AdminInternshipClient() {
   useEffect(() => {
     fetchPositions()
     fetchApplications()
+
+    const handleSync = () => {
+      fetchPositions()
+      fetchApplications()
+    }
+
+    window.addEventListener("empathika_internship_updated", handleSync)
+    window.addEventListener("storage", handleSync)
+    window.addEventListener("focus", handleSync)
+
+    return () => {
+      window.removeEventListener("empathika_internship_updated", handleSync)
+      window.removeEventListener("storage", handleSync)
+      window.removeEventListener("focus", handleSync)
+    }
   }, [])
 
   // Tutup dropdown status saat klik di luar

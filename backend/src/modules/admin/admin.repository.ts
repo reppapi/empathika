@@ -488,7 +488,61 @@ export class AdminRepository {
 
   // ── Modul Internship (Program Magang & Karir) Database Queries ──
 
+  private internshipTablesEnsured = false
+  async ensureInternshipTables() {
+    if (this.internshipTablesEnsured) return
+    try {
+      await this.prisma.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "internship_positions" (
+          "id" TEXT NOT NULL,
+          "judul" TEXT NOT NULL,
+          "divisi" TEXT,
+          "durasi" TEXT NOT NULL,
+          "lokasi" TEXT NOT NULL,
+          "workMode" TEXT NOT NULL,
+          "kompensasi" TEXT NOT NULL,
+          "deadline" TEXT NOT NULL,
+          "deskripsi" TEXT,
+          "responsibilities" JSONB NOT NULL DEFAULT '[]'::jsonb,
+          "qualifications" JSONB NOT NULL DEFAULT '[]'::jsonb,
+          "questions" JSONB NOT NULL DEFAULT '[]'::jsonb,
+          "applyUrl" TEXT NOT NULL,
+          "isOpen" BOOLEAN NOT NULL DEFAULT true,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "internship_positions_pkey" PRIMARY KEY ("id")
+        );
+
+        ALTER TABLE "internship_positions" ADD COLUMN IF NOT EXISTS "questions" JSONB NOT NULL DEFAULT '[]'::jsonb;
+
+        CREATE TABLE IF NOT EXISTS "internship_applications" (
+          "id" TEXT NOT NULL,
+          "positionId" TEXT NOT NULL,
+          "positionTitle" TEXT NOT NULL,
+          "nama" TEXT NOT NULL,
+          "email" TEXT NOT NULL,
+          "telepon" TEXT NOT NULL,
+          "universitas" TEXT NOT NULL,
+          "jurusan" TEXT,
+          "semester" TEXT,
+          "cvUrl" TEXT,
+          "portfolioUrl" TEXT,
+          "jawaban" JSONB NOT NULL DEFAULT '[]'::jsonb,
+          "status" TEXT NOT NULL DEFAULT 'MENUNGGU',
+          "catatanAdmin" TEXT,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT "internship_applications_pkey" PRIMARY KEY ("id")
+        );
+      `)
+      this.internshipTablesEnsured = true
+    } catch (e: any) {
+      console.warn("Notice: ensureInternshipTables:", e?.message)
+    }
+  }
+
   async getInternshipPositions(onlyOpen = false) {
+    await this.ensureInternshipTables()
     const whereClause = onlyOpen ? 'WHERE "isOpen" = true' : ''
     const rows = await this.prisma.$queryRawUnsafe<any[]>(
       `SELECT "id", "judul", "divisi", "durasi", "lokasi", "workMode", "kompensasi", "deadline", "deskripsi", "responsibilities", "qualifications", "questions", "applyUrl", "isOpen", "createdAt", "updatedAt"
@@ -746,6 +800,7 @@ export class AdminRepository {
   // ── Modul Pengajuan Pelamar Magang (Internship Applications) ──
 
   async getInternshipApplications() {
+    await this.ensureInternshipTables()
     const rows = await this.prisma.$queryRawUnsafe<any[]>(
       `SELECT "id", "positionId", "positionTitle", "nama", "email", "telepon", "universitas", "jurusan", "semester", "cvUrl", "portfolioUrl", "jawaban", "status", "catatanAdmin", "createdAt", "updatedAt"
        FROM "internship_applications"
@@ -762,6 +817,7 @@ export class AdminRepository {
   }
 
   async getInternshipApplicationById(id: string) {
+    await this.ensureInternshipTables()
     const rows = await this.prisma.$queryRawUnsafe<any[]>(
       `SELECT "id", "positionId", "positionTitle", "nama", "email", "telepon", "universitas", "jurusan", "semester", "cvUrl", "portfolioUrl", "jawaban", "status", "catatanAdmin", "createdAt", "updatedAt"
        FROM "internship_applications"
@@ -797,6 +853,7 @@ export class AdminRepository {
     status?: string
     catatanAdmin?: string | null
   }) {
+    await this.ensureInternshipTables()
     const id = data.id || `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     const jawabanJson = JSON.stringify(data.jawaban || [])
     const status = data.status || 'MENUNGGU'

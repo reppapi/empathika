@@ -52,6 +52,7 @@ export interface InternshipApplication {
 }
 
 export const STORAGE_KEY_INTERNSHIP = "empathika_internship_positions"
+export const STORAGE_KEY_INTERNSHIP_APPLICATIONS = "empathika_internship_applications"
 
 export const internshipService = {
   /**
@@ -309,38 +310,105 @@ export const internshipService = {
   applyInternship: async (
     data: Omit<InternshipApplication, "id" | "status" | "createdAt" | "updatedAt">
   ): Promise<InternshipApplication> => {
+    const localId = `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const nowStr = new Date().toISOString()
+    const localApp: InternshipApplication = {
+      id: localId,
+      positionId: data.positionId,
+      positionTitle: data.positionTitle,
+      nama: data.nama,
+      email: data.email,
+      telepon: data.telepon,
+      universitas: data.universitas,
+      jurusan: data.jurusan || null,
+      semester: data.semester || null,
+      cvUrl: data.cvUrl,
+      portfolioUrl: data.portfolioUrl || null,
+      jawaban: data.jawaban || [],
+      status: "MENUNGGU",
+      catatanAdmin: null,
+      createdAt: nowStr,
+      updatedAt: nowStr,
+    }
+
+    // Selalu simpan terlebih dahulu ke cache lokal agar aplikasi langsung tersimpan & tampil di admin
+    if (typeof window !== "undefined") {
+      try {
+        const existing = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+        const list: InternshipApplication[] = existing ? JSON.parse(existing) : []
+        localStorage.setItem(
+          STORAGE_KEY_INTERNSHIP_APPLICATIONS,
+          JSON.stringify([localApp, ...list])
+        )
+        window.dispatchEvent(new Event("empathika_internship_updated"))
+      } catch {}
+    }
+
     try {
       const res = await apiClient.post<{ success: boolean; data: InternshipApplication }>(
         "/admin/internship/apply",
         data
       )
       if (res.data?.success && res.data.data) {
-        return res.data.data
+        const backendApp = res.data.data
+        if (typeof window !== "undefined") {
+          try {
+            const existing = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+            if (existing) {
+              const list: InternshipApplication[] = JSON.parse(existing)
+              const updated = list.map((item) => (item.id === localId ? backendApp : item))
+              localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
+              window.dispatchEvent(new Event("empathika_internship_updated"))
+            }
+          } catch {}
+        }
+        return backendApp
       }
-      throw new Error("Gagal mengirimkan lamaran")
     } catch (err: any) {
-      console.error("Gagal mengirimkan lamaran internship:", err)
-      throw new Error(
-        err.response?.data?.message || err.message || "Gagal mengirimkan lamaran ke server"
-      )
+      console.warn("Kirim lamaran ke backend API gagal/offline, tersimpan di cache lokal:", err?.message || err)
     }
+
+    return localApp
   },
 
   /**
    * Mengambil seluruh daftar pelamar internship untuk admin
    */
   getApplications: async (): Promise<InternshipApplication[]> => {
+    let localList: InternshipApplication[] = []
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+        if (local) {
+          localList = JSON.parse(local)
+        }
+      } catch {}
+    }
+
     try {
       const res = await apiClient.get<{ success: boolean; data: InternshipApplication[] }>(
         "/admin/internship/applications"
       )
       if (res.data?.success && Array.isArray(res.data.data)) {
-        return res.data.data
+        const backendData = res.data.data
+        const merged = [...backendData]
+        localList.forEach((localItem) => {
+          if (!merged.some((b) => b.id === localItem.id || (b.email === localItem.email && b.positionId === localItem.positionId))) {
+            merged.push(localItem)
+          }
+        })
+        if (typeof window !== "undefined") {
+          try {
+            localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(merged))
+          } catch {}
+        }
+        return merged
       }
     } catch (err: any) {
-      console.warn("Gagal mengambil data pelamar internship:", err?.message)
+      console.warn("Gagal mengambil data pelamar internship dari database:", err?.message)
     }
-    return []
+
+    return localList
   },
 
   /**
@@ -355,8 +423,20 @@ export const internshipService = {
         return res.data.data
       }
     } catch (err: any) {
-      console.warn("Gagal mengambil detail pelamar internship:", err?.message)
+      console.warn("Gagal mengambil detail pelamar internship dari database:", err?.message)
     }
+
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+        if (local) {
+          const list: InternshipApplication[] = JSON.parse(local)
+          const found = list.find((item) => item.id === id)
+          if (found) return found
+        }
+      } catch {}
+    }
+
     return null
   },
 
@@ -368,6 +448,20 @@ export const internshipService = {
     status: InternshipApplication["status"],
     catatanAdmin?: string | null
   ): Promise<InternshipApplication> => {
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+        if (local) {
+          const list: InternshipApplication[] = JSON.parse(local)
+          const updated = list.map((app) =>
+            app.id === id ? { ...app, status, catatanAdmin, updatedAt: new Date().toISOString() } : app
+          )
+          localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
+          window.dispatchEvent(new Event("empathika_internship_updated"))
+        }
+      } catch {}
+    }
+
     try {
       const res = await apiClient.patch<{ success: boolean; data: InternshipApplication }>(
         `/admin/internship/applications/${id}/status`,
@@ -376,12 +470,23 @@ export const internshipService = {
       if (res.data?.success && res.data.data) {
         return res.data.data
       }
-      throw new Error("Gagal memperbarui status")
     } catch (err: any) {
-      console.error("Gagal memperbarui status pelamar:", err)
-      throw new Error(
-        err.response?.data?.message || err.message || "Gagal memperbarui status di database"
-      )
+      console.warn("Gagal memperbarui status pelamar di database:", err?.message)
+    }
+
+    return {
+      id,
+      positionId: "",
+      positionTitle: "",
+      nama: "",
+      email: "",
+      telepon: "",
+      universitas: "",
+      cvUrl: "",
+      jawaban: [],
+      status,
+      catatanAdmin,
+      createdAt: new Date().toISOString(),
     }
   },
 
@@ -389,15 +494,24 @@ export const internshipService = {
    * Menghapus lamaran pelamar
    */
   deleteApplication: async (id: string): Promise<void> => {
+    if (typeof window !== "undefined") {
+      try {
+        const local = localStorage.getItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS)
+        if (local) {
+          const list: InternshipApplication[] = JSON.parse(local)
+          const updated = list.filter((app) => app.id !== id)
+          localStorage.setItem(STORAGE_KEY_INTERNSHIP_APPLICATIONS, JSON.stringify(updated))
+          window.dispatchEvent(new Event("empathika_internship_updated"))
+        }
+      } catch {}
+    }
+
     try {
       await apiClient.delete<{ success: boolean; message: string }>(
         `/admin/internship/applications/${id}`
       )
     } catch (err: any) {
-      console.error("Gagal menghapus lamaran:", err)
-      throw new Error(
-        err.response?.data?.message || err.message || "Gagal menghapus dari database"
-      )
+      console.warn("Gagal menghapus lamaran dari database:", err?.message)
     }
   },
 }

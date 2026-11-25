@@ -188,33 +188,38 @@ export default function InternshipApplyClient({ positionId }: Props) {
 
     if (!position) return
 
+    const notifyError = (msg: string) => {
+      setErrorMessage(msg)
+      window.scrollTo({ top: 250, behavior: "smooth" })
+    }
+
     // Validasi form dasar
     if (!formData.nama.trim()) {
-      setErrorMessage("Nama lengkap wajib diisi.")
+      notifyError("Nama lengkap wajib diisi.")
       return
     }
     if (!formData.email.trim() || !formData.email.includes("@")) {
-      setErrorMessage("Alamat email yang valid wajib diisi.")
+      notifyError("Alamat email yang valid wajib diisi.")
       return
     }
     if (!formData.telepon.trim()) {
-      setErrorMessage("Nomor WhatsApp/telepon wajib diisi.")
+      notifyError("Nomor WhatsApp/telepon wajib diisi.")
       return
     }
     if (!formData.universitas.trim()) {
-      setErrorMessage("Asal universitas / institusi wajib diisi.")
+      notifyError("Asal universitas / institusi wajib diisi.")
       return
     }
     if (uploadingCv) {
-      setErrorMessage("Harap tunggu hingga proses unggah berkas CV selesai.")
+      notifyError("Harap tunggu hingga proses unggah berkas CV selesai.")
       return
     }
     if (uploadingPortfolio) {
-      setErrorMessage("Harap tunggu hingga proses unggah berkas portofolio selesai.")
+      notifyError("Harap tunggu hingga proses unggah berkas portofolio selesai.")
       return
     }
     if (!formData.cvUrl.trim()) {
-      setErrorMessage(
+      notifyError(
         cvUploadMode === "file"
           ? "Silakan unggah berkas CV / Resume Anda terlebih dahulu."
           : "Tautan Link CV / Resume wajib dicantumkan."
@@ -225,7 +230,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
     // Validasi pertanyaan wajib
     for (const q of activeQuestions) {
       if (q.required && !answers[q.id]?.trim()) {
-        setErrorMessage(`Harap jawab pertanyaan: "${q.label}"`)
+        notifyError(`Harap jawab pertanyaan: "${q.label}"`)
         return
       }
     }
@@ -255,7 +260,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
       setIsSuccess(true)
       window.scrollTo({ top: 0, behavior: "smooth" })
     } catch (err: any) {
-      setErrorMessage(
+      notifyError(
         err?.message || "Terjadi kesalahan saat mengirim lamaran. Silakan coba lagi."
       )
     } finally {
@@ -845,6 +850,14 @@ export default function InternshipApplyClient({ positionId }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Error Banner Bawah */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5 animate-fadeIn">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500 mt-0.5" />
+              <span className="font-medium">{errorMessage}</span>
+            </div>
+          )}
 
           {/* ── SUBMIT BUTTON ── */}
           <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
