@@ -217,6 +217,18 @@ export default async function adminRoutes(fastify: FastifyInstance) {
     handler: controller.createInternshipApplication,
   })
 
+  // 8b. Publik: Klien mengunggah berkas dokumen CV atau Portofolio (PDF, Word, Gambar, maks 15MB)
+  fastify.post('/internship/upload-file', {
+    schema: {
+      tags: ['Admin - Internship'],
+      summary: 'Upload berkas CV atau portofolio pelamar internship (PDF, DOC, DOCX, Gambar, maks 15MB)',
+      consumes: ['multipart/form-data'],
+    },
+    validatorCompiler: () => () => true,
+    serializerCompiler: () => (data) => JSON.stringify(data),
+    handler: controller.uploadInternshipFile,
+  })
+
   // 9. Terproteksi: Admin mengambil seluruh daftar pelamar internship
   fastify.get('/internship/applications', {
     preHandler: [adminGuard],

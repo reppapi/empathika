@@ -23,6 +23,9 @@ import {
   FileText,
   Globe,
   HelpCircle,
+  Upload,
+  Loader2,
+  Check,
 } from "lucide-react"
 import {
   internshipService,
@@ -72,6 +75,40 @@ export default function InternshipApplyClient({ positionId }: Props) {
 
   // Dynamic answers to questions
   const [answers, setAnswers] = useState<Record<string, string>>({})
+
+  // File Upload State
+  const [cvFile, setCvFile] = useState<File | null>(null)
+  const [cvFileName, setCvFileName] = useState<string>("")
+  const [cvFileSize, setCvFileSize] = useState<string>("")
+  const [uploadingCv, setUploadingCv] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
+  const [cvUploadMode, setCvUploadMode] = useState<"file" | "link">("file")
+
+  const handleCvFileChange = async (file: File) => {
+    if (!file) return
+    if (file.size > 15 * 1024 * 1024) {
+      setErrorMessage("Ukuran berkas CV terlalu besar. Maksimal 15 MB.")
+      return
+    }
+
+    setCvFile(file)
+    setCvFileName(file.name)
+    setCvFileSize((file.size / (1024 * 1024)).toFixed(2) + " MB")
+    setUploadingCv(true)
+    setErrorMessage(null)
+
+    try {
+      const res = await internshipService.uploadFile(file)
+      setFormData((prev) => ({ ...prev, cvUrl: res.url }))
+    } catch (err: any) {
+      console.error("Gagal upload berkas:", err)
+      setErrorMessage("Gagal mengunggah berkas CV: " + (err.message || "Kesalahan server"))
+      setCvFile(null)
+      setCvFileName("")
+    } finally {
+      setUploadingCv(false)
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -134,8 +171,16 @@ export default function InternshipApplyClient({ positionId }: Props) {
       setErrorMessage("Asal universitas / institusi wajib diisi.")
       return
     }
+    if (uploadingCv) {
+      setErrorMessage("Harap tunggu hingga proses unggah berkas CV selesai.")
+      return
+    }
     if (!formData.cvUrl.trim()) {
-      setErrorMessage("Tautan Link CV / Resume wajib dicantumkan.")
+      setErrorMessage(
+        cvUploadMode === "file"
+          ? "Silakan unggah berkas CV / Resume Anda terlebih dahulu."
+          : "Tautan Link CV / Resume wajib dicantumkan."
+      )
       return
     }
 
@@ -447,31 +492,140 @@ export default function InternshipApplyClient({ positionId }: Props) {
               <div>
                 <h2 className="text-lg font-bold text-gray-900">Berkas & Tautan Portofolio</h2>
                 <p className="text-xs text-gray-500">
-                  Cantumkan tautan publik (Google Drive, LinkedIn, atau website portofolio).
+                  Unggah berkas CV dan cantumkan tautan portofolio pendukung Anda.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* CV / Resume Link */}
+              {/* CV / Resume Upload & Switch */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  LINK CV / RESUME (GOOGLE DRIVE / CLOUD) <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <FileText className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="url"
-                    required
-                    value={formData.cvUrl}
-                    onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
-                    placeholder="https://drive.google.com/file/d/..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
-                  />
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-gray-700">
+                    BERKAS CV / RESUME <span className="text-rose-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCvUploadMode(cvUploadMode === "file" ? "link" : "file")
+                    }}
+                    className="text-xs text-[#561269] hover:underline font-semibold transition-colors"
+                  >
+                    {cvUploadMode === "file" ? "Gunakan tautan Google Drive / Cloud" : "Unggah Berkas Langsung"}
+                  </button>
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">
-                  *Pastikan pengaturan akses tautan Google Drive disetel ke &ldquo;Siapa saja yang memiliki link dapat melihat&rdquo;.
-                </p>
+
+                {cvUploadMode === "file" ? (
+                  <div>
+                    {uploadingCv ? (
+                      <div className="border border-purple-200 bg-purple-50/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
+                        <Loader2 className="w-8 h-8 text-[#561269] animate-spin mb-2" />
+                        <p className="text-sm font-bold text-gray-900">
+                          Mengunggah berkas...
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {cvFileName} ({cvFileSize})
+                        </p>
+                      </div>
+                    ) : formData.cvUrl && cvFileName ? (
+                      <div className="border border-emerald-200 bg-emerald-50/40 rounded-2xl p-4 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-6 h-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {cvFileName}
+                              </p>
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
+                                <Check className="w-3 h-3" /> Terunggah
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {cvFileSize && <span>{cvFileSize} • </span>}
+                              <a
+                                href={formData.cvUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[#561269] hover:underline font-medium inline-flex items-center gap-0.5"
+                              >
+                                Lihat Berkas <ExternalLink className="w-3 h-3 inline" />
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                        <label className="text-xs font-semibold text-[#561269] bg-purple-100 hover:bg-purple-200 px-3.5 py-2 rounded-xl cursor-pointer transition-colors shrink-0">
+                          Ganti
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) handleCvFileChange(file)
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ) : (
+                      <label
+                        onDragOver={(e) => {
+                          e.preventDefault()
+                          setIsDragging(true)
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault()
+                          setIsDragging(false)
+                          const file = e.dataTransfer.files?.[0]
+                          if (file) handleCvFileChange(file)
+                        }}
+                        className={`border-2 border-dashed rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                          isDragging
+                            ? "border-[#561269] bg-purple-100/50 scale-[1.01]"
+                            : "border-gray-300 hover:border-[#561269] bg-purple-50/20 hover:bg-purple-50/50"
+                        } group`}
+                      >
+                        <div className="w-12 h-12 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-800 mb-1">
+                          Pilih berkas CV atau seret ke sini
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Format PDF, DOC, atau DOCX (Maksimal 15 MB)
+                        </p>
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) handleCvFileChange(file)
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <div className="relative">
+                      <FileText className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="url"
+                        required
+                        value={formData.cvUrl}
+                        onChange={(e) => setFormData({ ...formData, cvUrl: e.target.value })}
+                        placeholder="https://drive.google.com/file/d/..."
+                        className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      *Pastikan pengaturan akses tautan Google Drive disetel ke &ldquo;Siapa saja yang memiliki link dapat melihat&rdquo;.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Portfolio Link */}

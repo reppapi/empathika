@@ -283,6 +283,27 @@ export const internshipService = {
   },
 
   /**
+   * Mengunggah berkas CV atau portofolio pelamar (Publik)
+   */
+  uploadFile: async (
+    file: File
+  ): Promise<{ url: string; filename: string; originalName: string; size: number }> => {
+    const formData = new FormData()
+    formData.append("file", file)
+    const res = await apiClient.post<{
+      success: boolean
+      message: string
+      data: { url: string; filename: string; originalName: string; size: number }
+    }>("/admin/internship/upload-file", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    })
+    if (res.data?.success && res.data.data) {
+      return res.data.data
+    }
+    throw new Error(res.data?.message || "Gagal mengunggah berkas")
+  },
+
+  /**
    * Mengirimkan formulir pendaftaran / lamaran magang (Publik)
    */
   applyInternship: async (
