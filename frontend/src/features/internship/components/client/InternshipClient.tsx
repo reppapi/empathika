@@ -20,8 +20,9 @@ import {
   HelpCircle,
   AlertCircle,
   GraduationCap,
-  HeartHandshake,
-  Rocket,
+  Compass,
+  Users,
+  Award,
 } from "lucide-react"
 import HeroStarryOverlay from "@/components/shared/HeroStarryOverlay"
 import {
@@ -88,9 +89,9 @@ export default function InternshipClient() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight text-white mb-6">
-            Wujudkan Empati, Ciptakan Aksi &{" "}
+            Eksplorasi Potensi, Kolaborasi & Beri{" "}
             <span className="text-[#EAB308] underline decoration-wavy decoration-[#EAB308]/60 underline-offset-8">
-              Dampak Nyata
+              Kontribusi Nyata
             </span>
           </h1>
 
@@ -103,8 +104,8 @@ export default function InternshipClient() {
               Empathika membuka kesempatan bagi mahasiswa dan fresh graduate untuk bergabung
               dalam Program Internship yang dirancang untuk memberikan pengalaman langsung dalam
               industri kesehatan mental dan digital media. Melalui program ini, peserta akan
-              mendapatkan kesempatan untuk belajar, berkembang, dan berkontribusi dalam proyek
-              nyata yang berdampak bagi masyarakat.
+              mendapatkan kesempatan untuk mengeksplorasi minat, berkolaborasi dalam tim profesional,
+              dan berkontribusi dalam proyek nyata yang berdampak bagi masyarakat.
             </p>
           </div>
 
@@ -145,66 +146,66 @@ export default function InternshipClient() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Pilar 1: EMPATI */}
+            {/* Pilar 1: EKSPLORASI */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <HeartHandshake className="w-8 h-8 text-[#EAB308]" />
+                <Compass className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 01
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                EMPATI
+                EKSPLORASI
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Mendalami isu kesehatan mental secara langsung bersama para psikolog dan praktisi profesional, serta
-                mengasah kepekaan untuk memahami kebutuhan dan suara nyata audiens.
+                Menjelajahi dinamika industri kesehatan mental dan digital media, serta mengasah keahlian
+                baru secara aplikatif melalui bimbingan dan mentorship intensif dari praktisi berpengalaman.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Mentorship Intensif & Nilai Kemanusiaan
+                Mentorship 1-on-1 & Pembelajaran Aplikatif
               </div>
             </div>
 
-            {/* Pilar 2: AKSI */}
+            {/* Pilar 2: KOLABORASI */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <Rocket className="w-8 h-8 text-[#EAB308]" />
+                <Users className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 02
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                AKSI
+                KOLABORASI
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Terjun langsung mengeksekusi ide kreatif menjadi kampanye digital, konten edukasi multiplatform,
-                hingga layanan psikologi yang menjangkau puluhan ribu masyarakat.
+                Bekerja berdampingan dalam tim multidisiplin yang suportif—mulai dari psikolog, content creator,
+                hingga tim operasional—untuk merancang program dan kampanye kreatif yang inovatif.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Eksekusi Nyata & Portofolio Terpublikasi
+                Lingkungan Inklusif & Kerja Tim Multidisiplin
               </div>
             </div>
 
-            {/* Pilar 3: DAMPAK */}
+            {/* Pilar 3: KONTRIBUSI */}
             <div className="group relative bg-[#FCF8FD] border border-purple-100 rounded-3xl p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-300 transform hover:-translate-y-1">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#561269] to-[#8B3A9C] flex items-center justify-center text-white mb-6 shadow-md group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-8 h-8 text-[#EAB308]" />
+                <Award className="w-8 h-8 text-[#EAB308]" />
               </div>
               <span className="text-xs font-black tracking-widest text-[#561269] uppercase">
                 Pilar 03
               </span>
               <h3 className="text-2xl font-black text-gray-900 mt-1 mb-3 tracking-wide">
-                DAMPAK
+                KONTRIBUSI
               </h3>
               <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
-                Menciptakan perubahan positif bagi kesadaran kesehatan mental di Indonesia sekaligus membangun
-                fondasi karir, kredibilitas, dan jejaring profesional yang solid.
+                Memberikan sumbangsih nyata dalam meningkatkan kesadaran kesehatan mental masyarakat luas,
+                sekaligus membangun portofolio kredibel dan jejaring karir masa depanmu.
               </p>
               <div className="mt-6 pt-6 border-t border-purple-100/80 flex items-center text-xs font-semibold text-[#561269] gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-[#EAB308]" />
-                Sertifikat Resmi & Jejak Karir Berdampak
+                Sertifikat Resmi & Portofolio Berdampak
               </div>
             </div>
           </div>
