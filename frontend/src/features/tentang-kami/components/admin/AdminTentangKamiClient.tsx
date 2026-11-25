@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react"
 import {
   Save,
-  RotateCcw,
   Upload,
   CheckCircle2,
   AlertCircle,
@@ -29,7 +28,6 @@ export default function AdminTentangKamiClient() {
   const [isUploadingPendiriPhoto, setIsUploadingPendiriPhoto] = useState(false)
   const [isUploadingManagerPhoto, setIsUploadingManagerPhoto] = useState(false)
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null)
-  const [showResetModal, setShowResetModal] = useState(false)
 
   const fileInputRefs = useRef<(HTMLInputElement | null)[]>([])
   const teamPhotoInputRef = useRef<HTMLInputElement | null>(null)
@@ -171,15 +169,6 @@ export default function AdminTentangKamiClient() {
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const handleResetToDefault = () => {
-    setFormData(DEFAULT_TENTANG_KAMI)
-    setShowResetModal(false)
-    setToast({
-      type: "success",
-      message: "Konten dikembalikan ke teks bawaan Empathika. Klik 'Simpan' untuk menerapkan.",
-    })
   }
 
   // Handler upload foto galeri hero
@@ -379,15 +368,6 @@ export default function AdminTentangKamiClient() {
 
         {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowResetModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white hover:bg-rose-50 text-gray-600 hover:text-rose-700 text-xs sm:text-sm font-semibold border border-gray-200 hover:border-rose-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>Reset Default</span>
-          </button>
-
           <button
             type="button"
             onClick={handleSave}
@@ -1418,38 +1398,6 @@ export default function AdminTentangKamiClient() {
           <span>{isSaving ? "Simpan..." : "Simpan"}</span>
         </button>
       </div>
-
-      {/* Modal Konfirmasi Reset ke Default */}
-      {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-gray-100 space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
-              <RotateCcw className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900">Kembalikan ke Teks Default?</h3>
-            <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-              Seluruh isian pada form ini akan dikembalikan ke teks dan foto asli bawaan Empathika.
-              Tindakan ini tidak dapat dibatalkan setelah Anda menekan tombol Simpan.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowResetModal(false)}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-50 transition cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleResetToDefault}
-                className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition cursor-pointer"
-              >
-                Ya, Reset Sekarang
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
