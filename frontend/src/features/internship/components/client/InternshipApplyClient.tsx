@@ -458,13 +458,18 @@ export default function InternshipApplyClient({ positionId }: Props) {
               {/* Nomor Telepon / WA */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  NO. WHATSAPP / TELEPON <span className="text-rose-500">*</span>
+                  NO. WHATSAPP <span className="text-rose-500">*</span>
                 </label>
-                <PhoneInputField
-                  value={formData.telepon}
-                  onChange={(val) => setFormData({ ...formData, telepon: val })}
-                  placeholder="81234567890"
-                />
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none" />
+                  <PhoneInputField
+                    label=""
+                    value={formData.telepon}
+                    onChange={(val) => setFormData({ ...formData, telepon: val })}
+                    placeholder="81234567890"
+                    inputClassName="w-full pl-11 pr-4 py-3 rounded-xl border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] bg-white"
+                  />
+                </div>
               </div>
 
               {/* Universitas */}
