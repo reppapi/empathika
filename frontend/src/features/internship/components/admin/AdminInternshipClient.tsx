@@ -828,19 +828,20 @@ export default function AdminInternshipClient() {
                         <div className="flex items-center justify-center gap-1.5">
                           <button
                             onClick={() => handleOpenAppDetail(app)}
-                            className="px-3 py-1.5 rounded-lg bg-[#561269] text-white hover:bg-[#6e1885] font-semibold text-xs flex items-center gap-1 shadow-2xs transition-all cursor-pointer"
+                            className="p-1.5 rounded-lg text-[#561269] hover:bg-purple-50 transition-colors cursor-pointer"
                             title="Lihat profil lengkap dan jawaban pelamar"
+                            aria-label="Lihat Detail Pelamar"
                           >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span>Detail</span>
+                            <Eye className="w-4 h-4" />
                           </button>
 
                           <button
                             onClick={() => setAppToDelete(app)}
                             className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Hapus data pelamar"
+                            aria-label="Hapus Data Pelamar"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
