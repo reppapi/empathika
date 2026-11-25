@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -30,9 +30,39 @@ interface Props {
   positionId?: string
 }
 
+// Helper untuk konversi string tanggal ke format YYYY-MM-DD agar kompatibel dengan input type="date"
+function toDateInputValue(val: string): string {
+  if (!val) return ""
+  if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val
+  const parts = val.split(/[/-]/)
+  if (parts.length === 3) {
+    if (parts[0].length === 4) {
+      return `${parts[0]}-${parts[1].padStart(2, "0")}-${parts[2].padStart(2, "0")}`
+    } else {
+      return `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`
+    }
+  }
+  const d = new Date(val)
+  if (!isNaN(d.getTime())) {
+    return d.toISOString().split("T")[0]
+  }
+  return ""
+}
+
+// Helper untuk konversi YYYY-MM-DD dari input type="date" menjadi format DD/MM/YYYY
+function formatIsoToDisplayDate(isoDate: string): string {
+  if (!isoDate) return ""
+  if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+    const [y, m, d] = isoDate.split("-")
+    return `${d}/${m}/${y}`
+  }
+  return isoDate
+}
+
 export default function AdminInternshipFormClient({ positionId }: Props) {
   const router = useRouter()
   const isEditMode = Boolean(positionId)
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   // State Form
   const [formData, setFormData] = useState({
@@ -359,21 +389,34 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
                 <Calendar className="w-3.5 h-3.5 text-rose-500" />
                 Application Deadline <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="text"
-                required
-                placeholder="Contoh: 30/11/2026"
-                value={formData.deadline}
-                onChange={(e) => {
-                  setFormData({ ...formData, deadline: e.target.value })
-                  if (errors.deadline) setErrors({ ...errors, deadline: "" })
-                }}
-                className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors ${
-                  errors.deadline
-                    ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
-                    : "border-gray-200 focus:border-[#561269]"
-                }`}
-              />
+              <div className="relative">
+                <input
+                  ref={dateInputRef}
+                  type="date"
+                  required
+                  value={toDateInputValue(formData.deadline)}
+                  onChange={(e) => {
+                    const formatted = formatIsoToDisplayDate(e.target.value)
+                    setFormData({ ...formData, deadline: formatted })
+                    if (errors.deadline) setErrors({ ...errors, deadline: "" })
+                  }}
+                  onClick={() => {
+                    try {
+                      dateInputRef.current?.showPicker?.()
+                    } catch {}
+                  }}
+                  className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors cursor-pointer bg-white ${
+                    errors.deadline
+                      ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
+                      : "border-gray-200 focus:border-[#561269]"
+                  }`}
+                />
+              </div>
+              {formData.deadline && (
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Format tersimpan: <span className="font-semibold text-gray-600">{formData.deadline}</span>
+                </p>
+              )}
               {errors.deadline && (
                 <p className="text-xs text-rose-500 mt-1">{errors.deadline}</p>
               )}
