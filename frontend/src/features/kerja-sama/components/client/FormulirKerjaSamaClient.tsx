@@ -1222,17 +1222,17 @@ export default function FormulirKerjaSamaClient({
             <button
               type="submit"
               disabled={isSubmitting || isSubmitted}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-9 py-3.5 rounded-full bg-[#561269] hover:bg-[#6e1885] active:scale-95 text-white font-bold text-sm shadow-md hover:shadow-lg transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] active:scale-95 text-[#0f172a] font-bold text-sm shadow-sm hover:shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-[#0f172a]" />
                   <span>Mengirimkan Pengajuan...</span>
                 </>
               ) : (
                 <>
                   <span>Kirim Pengajuan Kerja Sama</span>
-                  <Send className="w-4 h-4 ml-1" />
+                  <Send className="w-4 h-4 ml-1 text-[#0f172a]" />
                 </>
               )}
             </button>
