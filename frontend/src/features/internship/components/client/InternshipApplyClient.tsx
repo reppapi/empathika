@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
+  ArrowRight,
   Briefcase,
   Calendar,
   Clock,
@@ -32,6 +33,7 @@ import {
   InternshipPosition,
   InternshipQuestion,
 } from "@/services/internship.service"
+import { adminService } from "@/services/admin.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
 
 const DEFAULT_QUESTIONS: InternshipQuestion[] = [
@@ -72,6 +74,35 @@ export default function InternshipApplyClient({ positionId }: Props) {
     cvUrl: "",
     portfolioUrl: "",
   })
+
+  // Kontak WhatsApp Admin Empathika
+  const [waNumber, setWaNumber] = useState("6287878785498")
+
+  useEffect(() => {
+    try {
+      const currentAdmin = localStorage.getItem("empathika_admin_profile")
+      if (currentAdmin) {
+        const parsed = JSON.parse(currentAdmin)
+        if (parsed.noTelepon) {
+          const clean = parsed.noTelepon.replace(/\D/g, "").replace(/^0/, "62")
+          if (clean.length >= 10) setWaNumber(clean)
+        }
+      }
+    } catch {}
+
+    adminService
+      .getPublicProfile()
+      .then((res: any) => {
+        const phone = res?.data?.no_telepon || res?.data?.noTelepon
+        if (phone) {
+          const clean = phone.replace(/\D/g, "").replace(/^0/, "62")
+          if (clean.length >= 10 && !clean.includes("81234567890")) {
+            setWaNumber(clean)
+          }
+        }
+      })
+      .catch(() => {})
+  }, [])
 
   // Dynamic answers to questions
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -342,9 +373,21 @@ export default function InternshipApplyClient({ positionId }: Props) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center items-center">
+            <a
+              href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
+                `Halo Tim People & Culture Empathika, saya ${formData.nama} (${formData.universitas}). Saya baru saja mengirimkan formulir lamaran magang untuk posisi ${position.judul} dan ingin melakukan konfirmasi.`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
+            >
+              <span>Konfirmasi via WhatsApp</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </a>
+
             <Link
               href="/internship"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#561269] hover:bg-[#6e1885] text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Kembali ke Halaman Magang</span>

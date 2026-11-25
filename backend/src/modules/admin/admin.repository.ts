@@ -511,10 +511,16 @@ export class AdminRepository {
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT "internship_positions_pkey" PRIMARY KEY ("id")
-        );
+        )
+      `)
 
-        ALTER TABLE "internship_positions" ADD COLUMN IF NOT EXISTS "questions" JSONB NOT NULL DEFAULT '[]'::jsonb;
+      try {
+        await this.prisma.$executeRawUnsafe(`
+          ALTER TABLE "internship_positions" ADD COLUMN IF NOT EXISTS "questions" JSONB NOT NULL DEFAULT '[]'::jsonb
+        `)
+      } catch {}
 
+      await this.prisma.$executeRawUnsafe(`
         CREATE TABLE IF NOT EXISTS "internship_applications" (
           "id" TEXT NOT NULL,
           "positionId" TEXT NOT NULL,
@@ -533,7 +539,7 @@ export class AdminRepository {
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT "internship_applications_pkey" PRIMARY KEY ("id")
-        );
+        )
       `)
       this.internshipTablesEnsured = true
     } catch (e: any) {
