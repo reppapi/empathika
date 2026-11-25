@@ -247,6 +247,11 @@ export default function AdminTransaksiBiroClient() {
 
   // Detail item state
   const [selectedItem, setSelectedItem] = useState<ReturnType<typeof normalizeTransaksi> | null>(null)
+  const [summary, setSummary] = useState<{ totalPendapatan: number; transaksiBerhasil: number; menungguBayar: number }>({
+    totalPendapatan: 0,
+    transaksiBerhasil: 0,
+    menungguBayar: 0,
+  })
 
   // Fetch data
   const fetchTransaksi = useCallback(async () => {
@@ -265,6 +270,15 @@ export default function AdminTransaksiBiroClient() {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const fetchSummary = useCallback(async (bulan?: number, tahun?: number, tanggal?: string) => {
+    try {
+      const res = await transaksiService.getSummary({ bulan, tahun, tanggal })
+      if (res.data) setSummary(res.data)
+    } catch {
+      // silent
+    }
   }, [])
 
   useEffect(() => {
@@ -353,29 +367,28 @@ export default function AdminTransaksiBiroClient() {
     return () => ro.disconnect()
   }, [activeDetailItem])
 
-  // Summary metrics
-  const summaryMetrics = useMemo(() => {
-    const inPeriod = allTransaksi.filter((item) => {
-      if (selectedDate) return item.tanggalTransaksi === selectedDate
-      if (selectedMonth) return item.tanggalTransaksi.startsWith(selectedMonth)
-      return true
-    })
-    const lunasList = inPeriod.filter((t) => t.status === "Lunas")
-    const menungguList = inPeriod.filter((t) => t.status === "Menunggu Pembayaran")
-    const totalPendapatan = lunasList.reduce((acc, t) => acc + t.totalBayar, 0)
-    const transaksiBerhasil = lunasList.length
-    const menungguBayar = menungguList.length
+  // Summary metrics — dihitung langsung dari DB via endpoint /admin/summary
+  useEffect(() => {
+    const now = new Date()
+    if (selectedDate) {
+      fetchSummary(undefined, undefined, selectedDate)
+    } else if (selectedMonth) {
+      const [y, m] = selectedMonth.split("-")
+      fetchSummary(parseInt(m, 10), parseInt(y, 10))
+    } else {
+      fetchSummary(undefined, now.getFullYear())
+    }
+  }, [selectedDate, selectedMonth, fetchSummary])
 
-    let pendapatanLabel = `Total Transaksi Klien Tahun ${new Date().getFullYear()}`
-    if (selectedDate) pendapatanLabel = "Total Transaksi Klien Hari Ini"
-    else if (selectedMonth) {
+  const pendapatanLabel = useMemo(() => {
+    if (selectedDate) return "Total Transaksi Klien Hari Ini"
+    if (selectedMonth) {
       const [y, m] = selectedMonth.split("-")
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-      pendapatanLabel = `Total Transaksi Klien ${monthNames[parseInt(m) - 1]} ${y}`
+      return `Total Transaksi Klien ${monthNames[parseInt(m) - 1]} ${y}`
     }
-
-    return { totalPendapatan, transaksiBerhasil, menungguBayar, pendapatanLabel }
-  }, [allTransaksi, selectedDate, selectedMonth])
+    return `Total Transaksi Klien Tahun ${new Date().getFullYear()}`
+  }, [selectedDate, selectedMonth])
 
   const getMonthLabel = (ym: string) => {
     const [y, m] = ym.split("-")
@@ -478,7 +491,7 @@ export default function AdminTransaksiBiroClient() {
           title="Tampilkan semua transaksi"
         >
           <div className="flex items-center justify-between w-full">
-            <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">{pendapatanLabel}</p>
             {selectedStatus === "semua" && (
               <span className="text-[10px] font-bold bg-purple-100 text-[#561269] px-2 py-0.5 rounded-full">
                 Semua
@@ -486,7 +499,7 @@ export default function AdminTransaksiBiroClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#561269] mt-2">
-            Rp. {summaryMetrics.totalPendapatan.toLocaleString("id-ID")}
+            Rp. {Number(summary.totalPendapatan || 0).toLocaleString("id-ID")}
           </p>
         </button>
 
@@ -511,7 +524,7 @@ export default function AdminTransaksiBiroClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">
-            {summaryMetrics.transaksiBerhasil}
+            {summary.transaksiBerhasil}
           </p>
         </button>
 
@@ -536,7 +549,7 @@ export default function AdminTransaksiBiroClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#E5A800] mt-2">
-            {summaryMetrics.menungguBayar}
+            {summary.menungguBayar}
           </p>
         </button>
       </div>
