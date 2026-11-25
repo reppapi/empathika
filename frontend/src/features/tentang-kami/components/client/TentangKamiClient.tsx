@@ -613,16 +613,16 @@ export default function TentangKamiClient() {
                       <div className="relative flex items-end justify-center h-full max-h-full">
                         {/* Lingkaran Estetik di Belakang Foto Pendiri */}
                         <div
-                          className="absolute bottom-2 w-[160px] h-[160px] sm:w-[195px] sm:h-[195px] md:w-[220px] md:h-[220px] rounded-full pointer-events-none transition-transform duration-500"
+                          className="absolute bottom-2 w-[165px] h-[165px] sm:w-[200px] sm:h-[200px] md:w-[228px] md:h-[228px] rounded-full pointer-events-none transition-transform duration-500"
                           style={{
                             background:
-                              "radial-gradient(circle, rgba(86,18,105,0.14) 0%, rgba(86,18,105,0.05) 65%, rgba(255,255,255,0.6) 100%)",
-                            border: "1.5px solid rgba(86,18,105,0.12)",
-                            boxShadow: "0 8px 24px -4px rgba(86,18,105,0.08)",
+                              "radial-gradient(circle, rgba(86,18,105,0.22) 0%, rgba(86,18,105,0.10) 60%, rgba(255,255,255,0.85) 100%)",
+                            border: "2px solid rgba(86,18,105,0.22)",
+                            boxShadow: "0 10px 28px -4px rgba(86,18,105,0.18)",
                           }}
                         />
                         {/* Cincin Luar Halus */}
-                        <div className="absolute bottom-0.5 w-[180px] h-[180px] sm:w-[218px] sm:h-[218px] md:w-[245px] md:h-[245px] rounded-full pointer-events-none border border-dashed border-[#561269]/15" />
+                        <div className="absolute bottom-0 w-[185px] h-[185px] sm:w-[224px] sm:h-[224px] md:w-[252px] md:h-[252px] rounded-full pointer-events-none border-[1.5px] border-dashed border-[#561269]/30" />
 
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
@@ -704,16 +704,16 @@ export default function TentangKamiClient() {
                       <div className="relative flex items-end justify-center h-full max-h-full">
                         {/* Lingkaran Estetik di Belakang Foto Manajer */}
                         <div
-                          className="absolute bottom-2 w-[160px] h-[160px] sm:w-[195px] sm:h-[195px] md:w-[220px] md:h-[220px] rounded-full pointer-events-none transition-transform duration-500"
+                          className="absolute bottom-2 w-[165px] h-[165px] sm:w-[200px] sm:h-[200px] md:w-[228px] md:h-[228px] rounded-full pointer-events-none transition-transform duration-500"
                           style={{
                             background:
-                              "radial-gradient(circle, rgba(217,119,6,0.14) 0%, rgba(217,119,6,0.05) 65%, rgba(255,255,255,0.6) 100%)",
-                            border: "1.5px solid rgba(217,119,6,0.14)",
-                            boxShadow: "0 8px 24px -4px rgba(217,119,6,0.08)",
+                              "radial-gradient(circle, rgba(217,119,6,0.22) 0%, rgba(217,119,6,0.10) 60%, rgba(255,255,255,0.85) 100%)",
+                            border: "2px solid rgba(217,119,6,0.22)",
+                            boxShadow: "0 10px 28px -4px rgba(217,119,6,0.16)",
                           }}
                         />
                         {/* Cincin Luar Halus */}
-                        <div className="absolute bottom-0.5 w-[180px] h-[180px] sm:w-[218px] sm:h-[218px] md:w-[245px] md:h-[245px] rounded-full pointer-events-none border border-dashed border-amber-600/15" />
+                        <div className="absolute bottom-0 w-[185px] h-[185px] sm:w-[224px] sm:h-[224px] md:w-[252px] md:h-[252px] rounded-full pointer-events-none border-[1.5px] border-dashed border-amber-600/30" />
 
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img

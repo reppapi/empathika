@@ -833,7 +833,7 @@ export class AdminService {
   // ── Manajemen Tentang Kami ──────────────────────────────────────
 
   async getTentangKami(): Promise<UpdateTentangKamiInput> {
-    // 1. Prioritaskan membaca dari Database (tabel SiteSetting dengan key 'tentang_kami')
+    // 1. Baca langsung dari Database (tabel SiteSetting dengan key 'tentang_kami')
     try {
       const setting = await this.repo.getSiteSetting('tentang_kami')
       if (setting && setting.value) {
@@ -862,44 +862,11 @@ export class AdminService {
           },
         }
       }
-    } catch {
-      // Abaikan error jika tabel belum ada atau DB tidak terjangkau, lanjut ke fallback
+    } catch (err: any) {
+      console.warn('Gagal membaca Tentang Kami dari database, gunakan default bawaan:', err?.message)
     }
 
-    // 2. Fallback ke file JSON lokal jika ada
-    const dataDir = join(process.cwd(), 'data')
-    const filePath = join(dataDir, 'tentang-kami.json')
-    try {
-      if (existsSync(filePath)) {
-        const raw = readFileSync(filePath, 'utf-8')
-        const parsed = JSON.parse(raw)
-        return {
-          ...DEFAULT_TENTANG_KAMI,
-          ...parsed,
-          hero: { ...DEFAULT_TENTANG_KAMI.hero, ...(parsed.hero || {}) },
-          berkenalan: { ...DEFAULT_TENTANG_KAMI.berkenalan, ...(parsed.berkenalan || {}) },
-          nilai: { ...DEFAULT_TENTANG_KAMI.nilai, ...(parsed.nilai || {}) },
-          kenapaHadir: { ...DEFAULT_TENTANG_KAMI.kenapaHadir, ...(parsed.kenapaHadir || {}) },
-          layananSection: { ...DEFAULT_TENTANG_KAMI.layananSection, ...(parsed.layananSection || {}) },
-          pemimpinSection: {
-            ...DEFAULT_TENTANG_KAMI.pemimpinSection,
-            ...(parsed.pemimpinSection || {}),
-            pendiri: {
-              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.pendiri,
-              ...(parsed.pemimpinSection?.pendiri || {}),
-              foto: parsed.pemimpinSection?.pendiri?.foto ?? '',
-            },
-            manager: {
-              ...DEFAULT_TENTANG_KAMI.pemimpinSection?.manager,
-              ...(parsed.pemimpinSection?.manager || {}),
-              foto: parsed.pemimpinSection?.manager?.foto ?? '',
-            },
-          },
-        }
-      }
-    } catch {
-      // Fallback ke default jika berkas tidak ditemukan atau format tidak sesuai
-    }
+    // 2. Jika database belum terisi atau baru dideploy, gunakan default bawaan sistem
     return DEFAULT_TENTANG_KAMI
   }
 
@@ -925,26 +892,8 @@ export class AdminService {
         : input.pemimpinSection,
     }
 
-    // 1. Simpan ke Database (tabel SiteSetting dengan key 'tentang_kami')
-    try {
-      await this.repo.upsertSiteSetting('tentang_kami', normalizedInput)
-    } catch (err: any) {
-      console.warn('Gagal menyimpan Tentang Kami ke database, fallback ke berkas JSON:', err.message)
-    }
-
-    // 2. Simpan juga salinan ke file JSON lokal (dual-write redundansi & kompatibilitas lokal)
-    try {
-      const dataDir = join(process.cwd(), 'data')
-      const filePath = join(dataDir, 'tentang-kami.json')
-      const tempPath = join(dataDir, `tentang-kami.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
-      if (!existsSync(dataDir)) {
-        mkdirSync(dataDir, { recursive: true })
-      }
-      writeFileSync(tempPath, JSON.stringify(normalizedInput, null, 2), 'utf-8')
-      renameSync(tempPath, filePath)
-    } catch {
-      // Abaikan error penulisan file jika environment read-only
-    }
+    // Simpan murni ke Database (tabel SiteSetting dengan key 'tentang_kami')
+    await this.repo.upsertSiteSetting('tentang_kami', normalizedInput)
 
     return normalizedInput
   }
