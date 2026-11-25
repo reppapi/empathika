@@ -509,10 +509,10 @@ export default function PsikologJadwalClient() {
       activePsikolog?.nama_gelar ||
       "Psikolog"
 
-    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-1 hari (tidak bisa di hari H)
+    // Validasi aturan bisnis: Pembatalan hanya bisa dilakukan maksimal H-3 jam sebelum sesi
     if (!canCancelSession(targetDate)) {
       triggerToast(
-        "Pembatalan sesi hanya dapat dilakukan maksimal H-1 hari. Sesi pada hari H tidak dapat dibatalkan.",
+        "Pembatalan sesi hanya dapat dilakukan maksimal H-3 jam sebelum jadwal sesi.",
         "danger"
       )
       return
@@ -2163,14 +2163,14 @@ export default function PsikologJadwalClient() {
                                         e.stopPropagation()
                                         handleCancelClientBooking(item)
                                       }}
-                                      title="Batalkan sesi klien ini (Maksimal H-1 Hari)"
+                                      title="Batalkan sesi klien ini (Maksimal H-3 Jam)"
                                       className="text-gray-400 hover:text-rose-600 p-0.5 rounded hover:bg-rose-50 transition-colors cursor-pointer shrink-0"
                                     >
                                       <X className="w-3.5 h-3.5" />
                                     </button>
                                   ) : (
                                     <span
-                                      title="Sesi tidak dapat dibatalkan pada hari H (Batas pembatalan maksimal H-1 hari)"
+                                      title="Sesi tidak dapat dibatalkan karena sudah melewati batas maksimal H-3 jam"
                                       className="text-gray-300 p-0.5 cursor-not-allowed shrink-0"
                                     >
                                       <X className="w-3.5 h-3.5 opacity-40" />

@@ -76,7 +76,7 @@ export default function ModalRefundSesi({
                 Konfirmasi Refund Sesi
               </h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Pengembalian dana penuh 100% (Maksimal H-1)
+                Pengembalian dana (Maksimal H-3 Jam)
               </p>
             </div>
           </div>
@@ -122,11 +122,11 @@ export default function ModalRefundSesi({
             </div>
           </div>
 
-          {/* Info Batas Waktu Refund H-1 */}
+          {/* Info Batas Waktu Refund H-3 Jam */}
           <div className="bg-amber-50/70 border border-amber-200/70 rounded-xl p-3 flex items-start gap-2.5 text-amber-900">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="leading-tight">
-              <p className="font-semibold text-[11px]">Batas Pengajuan Refund (H-1):</p>
+              <p className="font-semibold text-[11px]">Batas Pengajuan Refund (H-3 Jam):</p>
               <p className="font-bold text-xs mt-0.5 text-amber-950">{batasRefundDisplay}</p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function ModalRefundSesi({
                 if (errorMsg) setErrorMsg(null)
               }}
               rows={3}
-              placeholder="Contoh: Klien berhalangan karena urusan mendadak dan mengajukan sebelum batas H-1"
+              placeholder="Contoh: Klien berhalangan karena urusan mendadak dan mengajukan sebelum batas H-3 jam"
               className="w-full text-xs rounded-xl border border-gray-300 p-3 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] transition"
               required
             />

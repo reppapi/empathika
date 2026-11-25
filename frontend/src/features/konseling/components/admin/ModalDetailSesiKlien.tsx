@@ -330,19 +330,19 @@ export default function ModalDetailSesiKlien({
           {/* Batas Refund & Status Pembayaran */}
           <div className="p-3 bg-amber-50/50 rounded-xl border border-amber-200/70 space-y-1">
             <div className="flex justify-between items-center text-xs">
-              <span className="font-semibold text-amber-900">Batas Pengajuan Refund (H-1):</span>
+              <span className="font-semibold text-amber-900">Batas Pengajuan Refund (H-3 Jam):</span>
               <span className="font-bold text-amber-950">
                 {session.refundDeadline
                   ? new Date(session.refundDeadline).toLocaleString("id-ID", {
                     dateStyle: "medium",
                     timeStyle: "short",
                   }) + " WIB"
-                  : "Maksimal 24 jam sebelum sesi"}
+                  : "Maksimal 3 jam sebelum sesi"}
               </span>
             </div>
             {session.canRefund ? (
               <p className="text-[10px] text-emerald-700 font-medium">
-                ✓ Sesi ini masih dapat diajukan refund penuh 100%.
+                ✓ Sesi ini masih dapat diajukan refund (kebijakan batas pengajuan maksimal H-3 jam).
               </p>
             ) : (
               <p className="text-[10px] text-red-600 font-medium">
@@ -351,7 +351,7 @@ export default function ModalDetailSesiKlien({
                   : session.status === "Selesai"
                     ? "Sesi telah selesai."
                     : session.isPastH1
-                      ? "Sudah melewati batas pengajuan refund (maksimal H-1)."
+                      ? "Sudah melewati batas pengajuan refund (maksimal H-3 jam sebelum sesi)."
                       : "Sesi belum memenuhi syarat refund."}
               </p>
             )}
@@ -462,8 +462,8 @@ export default function ModalDetailSesiKlien({
               onClick={() => setShowInvoice(true)}
               disabled={!canShowInvoice}
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${canShowInvoice
-                  ? "border border-blue-200 text-blue-700 hover:bg-blue-50 cursor-pointer"
-                  : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                ? "border border-blue-200 text-blue-700 hover:bg-blue-50 cursor-pointer"
+                : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
                 }`}
               title={canShowInvoice ? "Lihat dan kirim invoice via WhatsApp" : "Invoice hanya tersedia untuk transaksi yang sudah lunas"}
             >
@@ -480,11 +480,10 @@ export default function ModalDetailSesiKlien({
                   type="button"
                   onClick={() => onRescheduleClick(session)}
                   disabled={!isRescheduleAllowed}
-                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${
-                    isRescheduleAllowed
-                      ? "border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 cursor-pointer shadow-2xs active:scale-95"
-                      : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
-                  }`}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold transition ${isRescheduleAllowed
+                    ? "border border-amber-300 text-amber-800 bg-amber-50 hover:bg-amber-100 cursor-pointer shadow-2xs active:scale-95"
+                    : "border border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                    }`}
                   title={
                     isRescheduleAllowed
                       ? "Pindahkan jadwal sesi ke tanggal & jam lain (Maksimal H-3 Jam)"
@@ -501,18 +500,17 @@ export default function ModalDetailSesiKlien({
                 type="button"
                 onClick={() => onCancelClick(session)}
                 disabled={!isCancellable}
-                className={`px-4 py-2 rounded-full border text-xs font-bold transition ${
-                  isCancellable
-                    ? "border-red-200 text-red-600 hover:bg-red-50 cursor-pointer shadow-2xs active:scale-95"
-                    : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
-                }`}
+                className={`px-4 py-2 rounded-full border text-xs font-bold transition ${isCancellable
+                  ? "border-red-200 text-red-600 hover:bg-red-50 cursor-pointer shadow-2xs active:scale-95"
+                  : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed opacity-60"
+                  }`}
                 title={
                   isCancellable
-                    ? "Batalkan sesi konsultasi klien ini (Maksimal H-1 Hari)"
-                    : "Sesi tidak dapat dibatalkan karena sudah masuk hari H (Batas pembatalan maksimal H-1 hari)"
+                    ? "Batalkan sesi konsultasi klien ini (Maksimal H-3 Jam)"
+                    : "Sesi tidak dapat dibatalkan karena sudah melewati batas pengajuan maksimal H-3 jam"
                 }
               >
-                {isCancellable ? "Batalkan Sesi" : "Batalkan (Hari H)"}
+                {isCancellable ? "Batalkan Sesi" : "Batal (< 3 Jam)"}
               </button>
 
               {/* Tombol Tandai Selesai */}
