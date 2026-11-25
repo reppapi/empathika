@@ -252,7 +252,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href={withBiro("/kerja-sama") as any}
+                  href={withBiro("/internship") as any}
                   prefetch={true}
                   className="text-gray-600 hover:text-[#561269] font-medium transition-colors underline underline-offset-4 decoration-[#561269]/40 hover:decoration-[#561269]"
                 >

@@ -179,7 +179,7 @@ export default function BlogListClient() {
                         <div className={styles.cardFooterRight}>
                           <span
                             className={styles.readMoreLink}
-                            style={isBiro ? { color: themeColor } : undefined}
+                            style={isBiro ? { backgroundColor: themeColor, color: '#ffffff' } : { backgroundColor: '#EAB308', color: '#0f172a' }}
                           >
                             Lihat Selengkapnya
                             <ArrowRight size={14} className={styles.readMoreArrow} />

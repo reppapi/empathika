@@ -641,16 +641,16 @@ export default function PsikologReviewAsesmenClient() {
           </div>
         )}
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto admin-table-scrollbar max-h-[520px] overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#FAF8FB] text-gray-600 font-bold uppercase tracking-wider border-b border-gray-200">
+            <thead className="sticky top-0 z-10 bg-[#FAF8FB] text-gray-600 font-bold uppercase tracking-wider border-b border-gray-200">
               <tr>
-                <th className="py-4 px-6">Identitas Peserta</th>
-                <th className="py-4 px-6">Paket Asesmen</th>
-                <th className="py-4 px-6">Waktu &amp; Batas Review (Maks 3 Hari)</th>
-                <th className="py-4 px-6">Status Laporan</th>
-                <th className="py-4 px-6">Psikolog Pemeriksa</th>
-                <th className="py-4 px-6 text-center">Tindakan</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Identitas Peserta</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Paket Asesmen</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Waktu &amp; Batas Review (Maks 3 Hari)</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Status Laporan</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Psikolog Pemeriksa</th>
+                <th className="py-4 px-6 text-center sticky top-0 bg-[#FAF8FB] z-10">Tindakan</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">

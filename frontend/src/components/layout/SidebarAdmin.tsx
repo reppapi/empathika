@@ -23,6 +23,7 @@ export const navItems: NavItem[] = [
   { name: "Pengaturan Biro", path: "/admin/biro" },
   { name: "Kerja Sama", path: "/admin/kerja-sama" },
   { name: "Tentang Kami", path: "/admin/tentang-kami" },
+  { name: "Internship", path: "/admin/internship" },
 ]
 
 interface SidebarAdminProps {

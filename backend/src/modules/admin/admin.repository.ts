@@ -485,4 +485,229 @@ export class AdminRepository {
       jsonStr
     )
   }
+
+  // ── Modul Internship (Program Magang & Karir) Database Queries ──
+
+  async getInternshipPositions(onlyOpen = false) {
+    const whereClause = onlyOpen ? 'WHERE "isOpen" = true' : ''
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT "id", "judul", "divisi", "durasi", "lokasi", "workMode", "kompensasi", "deadline", "deskripsi", "responsibilities", "qualifications", "applyUrl", "isOpen", "createdAt", "updatedAt"
+       FROM "internship_positions"
+       ${whereClause}
+       ORDER BY "createdAt" DESC;`
+    )
+    return rows.map((r) => ({
+      ...r,
+      responsibilities: Array.isArray(r.responsibilities)
+        ? r.responsibilities
+        : typeof r.responsibilities === 'string'
+        ? JSON.parse(r.responsibilities)
+        : [],
+      qualifications: Array.isArray(r.qualifications)
+        ? r.qualifications
+        : typeof r.qualifications === 'string'
+        ? JSON.parse(r.qualifications)
+        : [],
+    }))
+  }
+
+  async getInternshipPositionById(id: string) {
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `SELECT "id", "judul", "divisi", "durasi", "lokasi", "workMode", "kompensasi", "deadline", "deskripsi", "responsibilities", "qualifications", "applyUrl", "isOpen", "createdAt", "updatedAt"
+       FROM "internship_positions"
+       WHERE "id" = $1
+       LIMIT 1;`,
+      id
+    )
+    if (!rows[0]) return null
+    const r = rows[0]
+    return {
+      ...r,
+      responsibilities: Array.isArray(r.responsibilities)
+        ? r.responsibilities
+        : typeof r.responsibilities === 'string'
+        ? JSON.parse(r.responsibilities)
+        : [],
+      qualifications: Array.isArray(r.qualifications)
+        ? r.qualifications
+        : typeof r.qualifications === 'string'
+        ? JSON.parse(r.qualifications)
+        : [],
+    }
+  }
+
+  async createInternshipPosition(data: {
+    id?: string
+    judul: string
+    divisi?: string | null
+    durasi: string
+    lokasi: string
+    workMode: string
+    kompensasi: string
+    deadline: string
+    deskripsi?: string | null
+    responsibilities: string[]
+    qualifications: string[]
+    applyUrl: string
+    isOpen?: boolean
+  }) {
+    const id = data.id || `intern-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    const respJson = JSON.stringify(data.responsibilities || [])
+    const qualJson = JSON.stringify(data.qualifications || [])
+    const isOpen = data.isOpen !== undefined ? Boolean(data.isOpen) : true
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `INSERT INTO "internship_positions" (
+        "id", "judul", "divisi", "durasi", "lokasi", "workMode", "kompensasi", "deadline", "deskripsi", "responsibilities", "qualifications", "applyUrl", "isOpen", "createdAt", "updatedAt"
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11::jsonb, $12, $13, NOW(), NOW()
+      )
+      RETURNING *;`,
+      id,
+      data.judul,
+      data.divisi || null,
+      data.durasi,
+      data.lokasi,
+      data.workMode,
+      data.kompensasi,
+      data.deadline,
+      data.deskripsi || null,
+      respJson,
+      qualJson,
+      data.applyUrl,
+      isOpen
+    )
+    const r = rows[0]
+    return {
+      ...r,
+      responsibilities: Array.isArray(r?.responsibilities)
+        ? r.responsibilities
+        : typeof r?.responsibilities === 'string'
+        ? JSON.parse(r.responsibilities)
+        : [],
+      qualifications: Array.isArray(r?.qualifications)
+        ? r.qualifications
+        : typeof r?.qualifications === 'string'
+        ? JSON.parse(r.qualifications)
+        : [],
+    }
+  }
+
+  async updateInternshipPosition(id: string, data: {
+    judul?: string
+    divisi?: string | null
+    durasi?: string
+    lokasi?: string
+    workMode?: string
+    kompensasi?: string
+    deadline?: string
+    deskripsi?: string | null
+    responsibilities?: string[]
+    qualifications?: string[]
+    applyUrl?: string
+    isOpen?: boolean
+  }) {
+    const current = await this.getInternshipPositionById(id)
+    if (!current) throw new Error("Posisi internship tidak ditemukan")
+
+    const judul = data.judul !== undefined ? data.judul : current.judul
+    const divisi = data.divisi !== undefined ? data.divisi : current.divisi
+    const durasi = data.durasi !== undefined ? data.durasi : current.durasi
+    const lokasi = data.lokasi !== undefined ? data.lokasi : current.lokasi
+    const workMode = data.workMode !== undefined ? data.workMode : current.workMode
+    const kompensasi = data.kompensasi !== undefined ? data.kompensasi : current.kompensasi
+    const deadline = data.deadline !== undefined ? data.deadline : current.deadline
+    const deskripsi = data.deskripsi !== undefined ? data.deskripsi : current.deskripsi
+    const respJson = JSON.stringify(data.responsibilities !== undefined ? data.responsibilities : current.responsibilities)
+    const qualJson = JSON.stringify(data.qualifications !== undefined ? data.qualifications : current.qualifications)
+    const applyUrl = data.applyUrl !== undefined ? data.applyUrl : current.applyUrl
+    const isOpen = data.isOpen !== undefined ? Boolean(data.isOpen) : current.isOpen
+
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "internship_positions"
+       SET "judul" = $2,
+           "divisi" = $3,
+           "durasi" = $4,
+           "lokasi" = $5,
+           "workMode" = $6,
+           "kompensasi" = $7,
+           "deadline" = $8,
+           "deskripsi" = $9,
+           "responsibilities" = $10::jsonb,
+           "qualifications" = $11::jsonb,
+           "applyUrl" = $12,
+           "isOpen" = $13,
+           "updatedAt" = NOW()
+       WHERE "id" = $1
+       RETURNING *;`,
+      id,
+      judul,
+      divisi,
+      durasi,
+      lokasi,
+      workMode,
+      kompensasi,
+      deadline,
+      deskripsi,
+      respJson,
+      qualJson,
+      applyUrl,
+      isOpen
+    )
+    const r = rows[0]
+    return {
+      ...r,
+      responsibilities: Array.isArray(r?.responsibilities)
+        ? r.responsibilities
+        : typeof r?.responsibilities === 'string'
+        ? JSON.parse(r.responsibilities)
+        : [],
+      qualifications: Array.isArray(r?.qualifications)
+        ? r.qualifications
+        : typeof r?.qualifications === 'string'
+        ? JSON.parse(r.qualifications)
+        : [],
+    }
+  }
+
+  async toggleInternshipPosition(id: string) {
+    const rows = await this.prisma.$queryRawUnsafe<any[]>(
+      `UPDATE "internship_positions"
+       SET "isOpen" = NOT "isOpen",
+           "updatedAt" = NOW()
+       WHERE "id" = $1
+       RETURNING *;`,
+      id
+    )
+    if (!rows[0]) throw new Error("Posisi internship tidak ditemukan")
+    const r = rows[0]
+    return {
+      ...r,
+      responsibilities: Array.isArray(r?.responsibilities)
+        ? r.responsibilities
+        : typeof r?.responsibilities === 'string'
+        ? JSON.parse(r.responsibilities)
+        : [],
+      qualifications: Array.isArray(r?.qualifications)
+        ? r.qualifications
+        : typeof r?.qualifications === 'string'
+        ? JSON.parse(r.qualifications)
+        : [],
+    }
+  }
+
+  async deleteInternshipPosition(id: string) {
+    return this.prisma.$executeRawUnsafe(
+      `DELETE FROM "internship_positions" WHERE "id" = $1;`,
+      id
+    )
+  }
+
+  async syncAllInternshipPositions(positions: any[]) {
+    await this.prisma.$executeRawUnsafe(`DELETE FROM "internship_positions";`)
+    for (const pos of positions) {
+      await this.createInternshipPosition(pos)
+    }
+    return this.getInternshipPositions(false)
+  }
 }

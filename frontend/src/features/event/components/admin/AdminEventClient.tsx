@@ -301,17 +301,17 @@ export default function AdminEventClient() {
             </div>
 
             {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-[#561269]/15 text-xs text-gray-800 uppercase font-extrabold tracking-wider">
-                    <th className="py-4 px-6 rounded-l-2xl">Event</th>
-                    <th className="py-4 px-4 text-center">Jenis</th>
-                    <th className="py-4 px-4">Pembicara</th>
-                    <th className="py-4 px-4">Tanggal</th>
-                    <th className="py-4 px-4 text-center">Tiket Terjual</th>
-                    <th className="py-4 px-4 text-center">Status</th>
-                    <th className="py-4 px-6 text-center rounded-r-2xl">Aksi</th>
+            <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto">
+              <table className="w-full text-left text-sm min-w-[760px]">
+                <thead className="sticky top-0 z-10 bg-[#FAF4FC]">
+                  <tr className="bg-[#FAF4FC] text-xs text-gray-800 uppercase font-extrabold tracking-wider border-b border-purple-100">
+                    <th className="py-4 px-6 sticky top-0 bg-[#FAF4FC] z-10">Event</th>
+                    <th className="py-4 px-4 text-center sticky top-0 bg-[#FAF4FC] z-10">Jenis</th>
+                    <th className="py-4 px-4 sticky top-0 bg-[#FAF4FC] z-10">Pembicara</th>
+                    <th className="py-4 px-4 sticky top-0 bg-[#FAF4FC] z-10">Tanggal</th>
+                    <th className="py-4 px-4 text-center sticky top-0 bg-[#FAF4FC] z-10">Tiket Terjual</th>
+                    <th className="py-4 px-4 text-center sticky top-0 bg-[#FAF4FC] z-10">Status</th>
+                    <th className="py-4 px-6 text-center sticky top-0 bg-[#FAF4FC] z-10">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">

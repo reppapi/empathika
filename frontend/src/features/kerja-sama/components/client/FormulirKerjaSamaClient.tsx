@@ -2,7 +2,7 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
-import { ChevronDown, Check } from "lucide-react"
+import { ChevronDown, Check, AlertCircle } from "lucide-react"
 import {
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
@@ -382,14 +382,89 @@ export default function FormulirKerjaSamaClient({
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Helper cek apakah pertanyaan tertentu bersifat opsional
+  const isQuestionOptional = (q: { key: string; label: string; required?: boolean }) => {
+    if (q.required === false) return true
+    const lowerLabel = q.label.toLowerCase()
+    if (lowerLabel.includes("opsional") || lowerLabel.includes("(opsional)")) return true
+    if (q.key.toLowerCase().includes("proposal")) return true
+    return false
+  }
+
+  // State Validasi Formulir
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
+
+  const validateForm = () => {
+    const errors: Record<string, string> = {}
+
+    if (!namaLengkap.trim()) {
+      errors.namaLengkap = "Nama lengkap wajib diisi."
+    }
+
+    if (!namaInstitusi.trim()) {
+      errors.namaInstitusi = "Nama institusi / organisasi wajib diisi."
+    }
+
+    const cleanPhone = nomorWhatsapp.replace(/\D/g, "")
+    if (!cleanPhone) {
+      errors.nomorWhatsapp = "Nomor WhatsApp wajib diisi."
+    } else if (cleanPhone.length < 9) {
+      errors.nomorWhatsapp = "Nomor WhatsApp minimal 9 digit."
+    }
+
+    // Email PIC wajib diisi dan harus berformat valid
+    if (!emailPIC.trim()) {
+      errors.emailPIC = "Alamat email wajib diisi."
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPIC.trim())) {
+      errors.emailPIC = "Format alamat email tidak valid (contoh: nama@instansi.com)."
+    }
+
+    // Validasi pertanyaan khusus (hanya yang TIDAK opsional)
+    formConfig.pertanyaanKhusus.forEach((q) => {
+      if (isQuestionOptional(q)) return // Opsional -> Tidak ada peringatan
+
+      const val = jawabanKhusus[q.key]
+      if (!val || !val.trim()) {
+        errors[q.key] = `${q.label} wajib diisi.`
+      }
+    })
+
+    return errors
+  }
+
   const handleKhususChange = (key: string, value: string) => {
     setJawabanKhusus((prev) => ({ ...prev, [key]: value }))
+    if (formErrors[key] && value.trim()) {
+      setFormErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setHasAttemptedSubmit(true)
+
+    const errors = validateForm()
+    setFormErrors(errors)
+
+    if (Object.keys(errors).length > 0) {
+      // Fokus dan scroll ke field pertama yang bermasalah
+      const firstErrorKey = Object.keys(errors)[0]
+      const el = document.getElementById(`field-${firstErrorKey}`)
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+        if (typeof (el as any).focus === "function") {
+          ;(el as any).focus()
+        }
+      }
+      return
+    }
+
     if (isSubmitting || isSubmitted) return
-    if (!namaLengkap.trim() || !namaInstitusi.trim() || !nomorWhatsapp.trim()) return
 
     setIsSubmitting(true)
 
@@ -589,7 +664,7 @@ export default function FormulirKerjaSamaClient({
             </div>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             
             {/* Title & Description Header Section */}
             <div className="flex flex-col items-center justify-center text-center mb-1 mt-1">
@@ -622,71 +697,151 @@ export default function FormulirKerjaSamaClient({
               </h2>
 
               <div className="space-y-3.5">
+                {/* Nama Lengkap */}
                 <div>
+                  <label htmlFor="field-namaLengkap" className="block text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+                    Nama Lengkap / PIC <span className="text-rose-500 font-bold">*</span>
+                  </label>
                   <input
+                    id="field-namaLengkap"
                     type="text"
-                    required
                     value={namaLengkap}
                     onFocus={() => setActiveInput("nama")}
                     onBlur={() => setActiveInput("")}
-                    onChange={(e) => setNamaLengkap(e.target.value)}
+                    onChange={(e) => {
+                      setNamaLengkap(e.target.value)
+                      if (formErrors.namaLengkap && e.target.value.trim()) {
+                        setFormErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.namaLengkap
+                          return next
+                        })
+                      }
+                    }}
                     placeholder="Masukkan nama lengkap"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === "nama"
+                      hasAttemptedSubmit && formErrors.namaLengkap
+                        ? "border-2 border-rose-400 bg-rose-50/20 ring-2 ring-rose-200 outline-none"
+                        : activeInput === "nama"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}
                   />
+                  {hasAttemptedSubmit && formErrors.namaLengkap && (
+                    <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                      <span>{formErrors.namaLengkap}</span>
+                    </p>
+                  )}
                 </div>
 
+                {/* Nama Institusi */}
                 <div>
+                  <label htmlFor="field-namaInstitusi" className="block text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+                    Nama Institusi / Organisasi <span className="text-rose-500 font-bold">*</span>
+                  </label>
                   <input
+                    id="field-namaInstitusi"
                     type="text"
-                    required
                     value={namaInstitusi}
                     onFocus={() => setActiveInput("institusi")}
                     onBlur={() => setActiveInput("")}
-                    onChange={(e) => setNamaInstitusi(e.target.value)}
+                    onChange={(e) => {
+                      setNamaInstitusi(e.target.value)
+                      if (formErrors.namaInstitusi && e.target.value.trim()) {
+                        setFormErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.namaInstitusi
+                          return next
+                        })
+                      }
+                    }}
                     placeholder="Nama Institusi"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === "institusi"
+                      hasAttemptedSubmit && formErrors.namaInstitusi
+                        ? "border-2 border-rose-400 bg-rose-50/20 ring-2 ring-rose-200 outline-none"
+                        : activeInput === "institusi"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}
                   />
+                  {hasAttemptedSubmit && formErrors.namaInstitusi && (
+                    <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                      <span>{formErrors.namaInstitusi}</span>
+                    </p>
+                  )}
                 </div>
 
-                <div>
+                {/* Nomor WhatsApp */}
+                <div id="field-nomorWhatsapp">
+                  <label className="block text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+                    Nomor WhatsApp <span className="text-rose-500 font-bold">*</span>
+                  </label>
                   <PhoneInputField
                     label=""
                     required
                     value={nomorWhatsapp}
-                    onChange={(val) => setNomorWhatsapp(val)}
+                    error={hasAttemptedSubmit ? formErrors.nomorWhatsapp : undefined}
+                    onChange={(val) => {
+                      setNomorWhatsapp(val)
+                      if (formErrors.nomorWhatsapp && val.replace(/\D/g, "").length >= 9) {
+                        setFormErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.nomorWhatsapp
+                          return next
+                        })
+                      }
+                    }}
                     onFocus={() => setActiveInput("whatsapp")}
                     onBlur={() => setActiveInput("")}
                     placeholder="Nomor WhatsApp"
                     inputClassName={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === "whatsapp"
+                      hasAttemptedSubmit && formErrors.nomorWhatsapp
+                        ? "border-2 border-rose-400 bg-rose-50/20 ring-2 ring-rose-200 outline-none"
+                        : activeInput === "whatsapp"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}
                   />
                 </div>
 
-                <div>
+                {/* Alamat Email (Wajib diisi) */}
+                <div id="field-emailPIC">
+                  <label htmlFor="field-emailPICInput" className="block text-xs font-bold text-[#561269] uppercase tracking-wider mb-1.5">
+                    Alamat Email <span className="text-rose-500 font-bold">*</span>
+                  </label>
                   <input
+                    id="field-emailPICInput"
                     type="email"
                     value={emailPIC}
                     onFocus={() => setActiveInput("email")}
                     onBlur={() => setActiveInput("")}
-                    onChange={(e) => setEmailPIC(e.target.value)}
-                    placeholder="Alamat Email (Opsional)"
+                    onChange={(e) => {
+                      setEmailPIC(e.target.value)
+                      if (formErrors.emailPIC && e.target.value.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value.trim())) {
+                        setFormErrors((prev) => {
+                          const next = { ...prev }
+                          delete next.emailPIC
+                          return next
+                        })
+                      }
+                    }}
+                    placeholder="Masukkan alamat email (contoh: mitra@institusi.com)"
                     className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                      activeInput === "email"
+                      hasAttemptedSubmit && formErrors.emailPIC
+                        ? "border-2 border-rose-400 bg-rose-50/20 ring-2 ring-rose-200 outline-none"
+                        : activeInput === "email"
                         ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                         : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                     }`}
                   />
+                  {hasAttemptedSubmit && formErrors.emailPIC && (
+                    <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                      <span>{formErrors.emailPIC}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -729,6 +884,8 @@ export default function FormulirKerjaSamaClient({
             {formConfig.pertanyaanKhusus && formConfig.pertanyaanKhusus.length > 0 && (
               <div className="space-y-3 sm:space-y-3.5">
                 {formConfig.pertanyaanKhusus.map((q) => {
+                  const isOptional = isQuestionOptional(q)
+
                   const isProposalOrFile =
                     q.type === "file" ||
                     (q as any).type === "upload" ||
@@ -758,9 +915,10 @@ export default function FormulirKerjaSamaClient({
                       : [];
 
                   return (
-                    <div key={q.key}>
+                    <div key={q.key} id={`field-${q.key}`}>
                       <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
                         {q.label}
+                        {!isOptional && <span className="text-rose-500 font-bold ml-1">*</span>}
                       </label>
 
                       {isProposalOrFile ? (
@@ -812,11 +970,20 @@ export default function FormulirKerjaSamaClient({
                           onChange={(e) => handleKhususChange(q.key, e.target.value)}
                           placeholder={q.placeholder || "Tuliskan jawaban..."}
                           className={`w-full px-4 py-3 rounded-xl text-sm md:text-base text-gray-800 placeholder-gray-400 bg-white transition-all ${
-                            activeInput === q.key
+                            !isOptional && hasAttemptedSubmit && formErrors[q.key]
+                              ? "border-2 border-rose-400 bg-rose-50/20 ring-2 ring-rose-200 outline-none"
+                              : activeInput === q.key
                               ? "border-2 border-[#0099ff] ring-2 ring-[#0099ff]/20 outline-none"
                               : "border border-gray-300 hover:border-gray-400 focus:outline-none"
                           }`}
                         />
+                      )}
+
+                      {!isOptional && hasAttemptedSubmit && formErrors[q.key] && (
+                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
+                          <span>{formErrors[q.key]}</span>
+                        </p>
                       )}
                     </div>
                   );
@@ -824,7 +991,7 @@ export default function FormulirKerjaSamaClient({
               </div>
             )}
 
-            {/* Bagian 4: Catatan / Kebutuhan Tambahan (Opsional) */}
+            {/* Bagian 4: Catatan / Kebutuhan Tambahan (Opsional - Tidak ada peringatan kosong) */}
             <div>
               <label className="block text-sm sm:text-[15px] font-bold text-[#561269] mb-1.5">
                 Catatan Tambahan / Gambaran Kegiatan (Opsional)
@@ -843,6 +1010,16 @@ export default function FormulirKerjaSamaClient({
                 }`}
               ></textarea>
             </div>
+
+            {/* Banner Peringatan jika belum lengkap */}
+            {hasAttemptedSubmit && Object.keys(formErrors).length > 0 && (
+              <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-semibold flex items-center gap-2.5 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                <span>
+                  Mohon lengkapi semua kolom yang bertanda bintang (<span className="text-rose-600 font-bold">*</span>) sebelum mengirim formulir.
+                </span>
+              </div>
+            )}
 
             {/* Submit Button (Warna oren/kuning emas kode E8C32A) */}
             <div className="pt-2">

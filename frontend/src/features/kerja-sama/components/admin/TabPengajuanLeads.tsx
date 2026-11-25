@@ -50,7 +50,7 @@ export default function TabPengajuanLeads({
 
       <div
         className={`overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar ${
-          filteredLeads.length > 7 ? "max-h-[480px] overflow-y-auto" : ""
+          filteredLeads.length > 3 ? "max-h-[380px] overflow-y-auto" : ""
         }`}
       >
         <table className="w-full text-left text-xs border-collapse">

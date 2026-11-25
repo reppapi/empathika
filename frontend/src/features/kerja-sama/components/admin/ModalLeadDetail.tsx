@@ -239,7 +239,7 @@ export default function ModalLeadDetail({
                             target="_blank"
                             rel="noopener noreferrer"
                             download={parsedProposal.filename || "Proposal_Kerjasama.pdf"}
-                            className="px-3.5 py-1.5 rounded-full bg-[#561269] hover:bg-[#6e1886] text-white text-xs font-bold transition-all shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
+                            className="px-4 py-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold transition-all shadow-sm hover:shadow-md active:scale-95 inline-flex items-center gap-1.5 cursor-pointer"
                           >
                             <span>Lihat / Unduh Dokumen</span>
                             <ExternalLink className="w-3.5 h-3.5" />

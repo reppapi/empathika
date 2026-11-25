@@ -114,96 +114,59 @@ export default function HeroStarryOverlay({
             <circle cx="0" cy="0" r="2.8" fill="white" />
           </g>
 
-          {/* Soft Flare Burst Gradient */}
+          {/* Soft Flare Burst Gradient: Ultra-smooth falloff to transparent */}
           <radialGradient id="heroFlareHalo" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.85" />
-            <stop offset="25%" stopColor="#f3e8ff" stopOpacity="0.45" />
-            <stop offset="60%" stopColor="#c084fc" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+            <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
+            <stop offset="25%" stopColor="#f5ebff" stopOpacity="0.38" />
+            <stop offset="55%" stopColor="#d8b4fe" stopOpacity="0.14" />
+            <stop offset="80%" stopColor="#c084fc" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </radialGradient>
 
-          {/* Linear Gradients for Light Beams */}
-          <linearGradient id="heroBeamH" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-
-          <linearGradient id="heroBeamV" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-            <stop offset="50%" stopColor="#ffffff" stopOpacity="0.8" />
-            <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-          </linearGradient>
-
-          {/* Aurora Ribbon Gradient */}
+          {/* Aurora Ribbon Gradient: Soft luminous mist */}
           <linearGradient id="heroAuroraGrad" x1="0%" y1="0%" x2="100%" y2="50%">
             <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-            <stop offset="35%" stopColor="#f3e8ff" stopOpacity="0.25" />
-            <stop offset="70%" stopColor="#e9d5ff" stopOpacity="0.4" />
+            <stop offset="35%" stopColor="#f3e8ff" stopOpacity="0.18" />
+            <stop offset="70%" stopColor="#e9d5ff" stopOpacity="0.22" />
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
           </linearGradient>
 
-          {/* Blur Filters */}
-          <filter id="heroSoftBlur" x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="4" />
-          </filter>
-          <filter id="heroAuroraBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="22" />
+          {/* Wide blur filter with ample bounds so edges never clip */}
+          <filter id="heroAuroraBlur" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="32" />
           </filter>
         </defs>
 
-        {/* ── 1. AURORA / LUMINOUS LIGHT STREAM (Upper Right) ── */}
+        {/* ── 1. AURORA / LUMINOUS LIGHT STREAM (Upper Right - Ultra-Smooth Mist) ── */}
         {showAurora && (
-          <g className="hero-flare-anim" opacity="0.8">
-            {/* Wide soft glow ribbon */}
+          <g className="hero-flare-anim" opacity="0.75">
+            {/* Wide soft glow ribbon with no hard core line */}
             <path
               d="M 940 -40 C 1120 120 1260 110 1480 30"
               fill="none"
               stroke="url(#heroAuroraGrad)"
-              strokeWidth="55"
+              strokeWidth="70"
               filter="url(#heroAuroraBlur)"
-              opacity="0.5"
-            />
-            {/* Core light streak */}
-            <path
-              d="M 980 -30 C 1140 110 1280 100 1480 40"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="5"
-              filter="url(#heroSoftBlur)"
-              opacity="0.4"
+              opacity="0.6"
             />
           </g>
         )}
 
-        {/* ── 2. PROMINENT LENS FLARE STARBURST (Bottom Left) ── */}
+        {/* ── 2. CELESTIAL GLOWING HALO (Bottom Left - Ultra-Smooth) ── */}
         {showFlare && (
-          <g className="hero-flare-anim" transform="translate(180, 240)">
-            {/* Glowing Halo */}
-            <circle cx="0" cy="0" r="130" fill="url(#heroFlareHalo)" />
-            {/* Horizontal Light Ray */}
-            <rect x="-140" y="-1.5" width="280" height="3" fill="url(#heroBeamH)" opacity="0.75" />
-            {/* Vertical Light Ray */}
-            <rect x="-1.5" y="-140" width="3" height="280" fill="url(#heroBeamV)" opacity="0.75" />
-            {/* Diagonal Light Rays (45 deg) */}
-            <g transform="rotate(45)">
-              <rect x="-80" y="-1" width="160" height="2" fill="url(#heroBeamH)" opacity="0.4" />
-              <rect x="-1" y="-80" width="2" height="160" fill="url(#heroBeamV)" opacity="0.4" />
-            </g>
+          <g className="hero-flare-anim" transform="translate(190, 210)">
+            {/* Glowing Halo: seamless fade, no harsh cut-off rays */}
+            <circle cx="0" cy="0" r="115" fill="url(#heroFlareHalo)" />
             {/* Core 8-point bright star */}
-            <use href="#hero-sparkle-8" transform="scale(1.4)" />
+            <use href="#hero-sparkle-8" transform="scale(1.35)" />
           </g>
         )}
 
-        {/* ── 3. SECONDARY LENS FLARE STARBURST (Upper Right) ── */}
+        {/* ── 3. SECONDARY GLOWING HALO (Upper Right - Ultra-Smooth) ── */}
         {showFlare && (
           <g className="hero-flare-anim" transform="translate(1260, 110)">
             {/* Subtle Glowing Halo */}
-            <circle cx="0" cy="0" r="95" fill="url(#heroFlareHalo)" opacity="0.6" />
-            {/* Horizontal Light Ray */}
-            <rect x="-100" y="-1" width="200" height="2" fill="url(#heroBeamH)" opacity="0.6" />
-            {/* Vertical Light Ray */}
-            <rect x="-1" y="-100" width="2" height="200" fill="url(#heroBeamV)" opacity="0.6" />
+            <circle cx="0" cy="0" r="90" fill="url(#heroFlareHalo)" opacity="0.7" />
             {/* Core Star */}
             <use href="#hero-sparkle-8" transform="scale(1.2)" />
           </g>

@@ -217,7 +217,7 @@ export default function AdminBlogClient() {
           isLoading={loading}
           loadingMessage="Memuat daftar artikel blog..."
           emptyMessage="Belum ada artikel blog yang sesuai."
-          maxRows={10}
+          maxRows={3}
         />
       </AdminTableContainer>
 
