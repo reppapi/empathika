@@ -279,14 +279,15 @@ export class BookingRepository {
   }
 
   /**
-   * Menandai transaksi konsultasi yang jadwal sesinya sudah terlewat tanpa kehadiran/refund/reschedule
-   * menjadi transaksi HANGUS secara otomatis.
+   * Menandai booking konsultasi yang jadwal sesinya sudah terlewat tanpa refund/reschedule
+   * menjadi status COMPLETED (sesi selesai/terlewat).
+   * Status pembayaran transaksi tetap PAID (Lunas) dan dana sah menjadi pendapatan.
    */
   async processHangusBookings() {
     const { getSessionDateTime } = await import('../../utils/date-time.js')
     const now = Date.now()
 
-    // Cari booking konsultasi yang sudah PAID/CONFIRMED dan belum COMPLETED / CANCELLED / REFUNDED / HANGUS
+    // Cari booking konsultasi yang sudah PAID/CONFIRMED dan belum COMPLETED / CANCELLED / REFUNDED
     const pastBookings = await this.prisma.bookingKonsultasi.findMany({
       where: {
         status: 'CONFIRMED',
@@ -300,7 +301,7 @@ export class BookingRepository {
       },
     })
 
-    const hangusIds: string[] = []
+    const processedIds: string[] = []
 
     for (const b of pastBookings) {
       if (!b.jadwal || !b.transaksi) continue
@@ -309,40 +310,40 @@ export class BookingRepository {
       // Jika waktu sekarang sudah melewati jam selesai / jam mulai sesi (+ 2 jam toleransi)
       if (now > sessionDateTime.getTime() + 2 * 60 * 60 * 1000) {
         await this.prisma.$transaction(async (tx) => {
-          // Update status transaksi menjadi HANGUS
+          // Status pembayaran TETAP 'PAID' (Lunas) agar masuk pendapatan Empathika,
+          // tidak diubah menjadi HANGUS.
           await tx.transaksi.update({
             where: { id: b.transaksi!.id },
             data: {
-              status_pembayaran: 'HANGUS',
-              alasan_penahanan: 'Klien tidak hadir tanpa pemberitahuan (Sesi Hangus)',
-              nominal_ditahan: b.transaksi!.total,
+              status_pembayaran: 'PAID',
+              nominal_ditahan: 0,
               nominal_dikembalikan: 0,
             },
           })
 
-          // Update status booking menjadi COMPLETED / CANCELLED dengan catatan
+          // Update status booking menjadi COMPLETED (sesi dianggap selesai/terlewat)
           await tx.bookingKonsultasi.update({
             where: { id: b.id },
             data: {
-              status: 'COMPLETED', // sesi dianggap terlewat
+              status: 'COMPLETED',
             },
           })
 
-          // Update ledger pembagian: psikolog tetap menerima hak sesi normal (alasan: SESI_HANGUS)
+          // Update ledger pembagian jika belum dialokasikan
           await tx.pembagianTransaksi.updateMany({
             where: { id_transaksi: b.transaksi!.id, penerima_tipe: 'PSIKOLOG' },
             data: {
-              alasan: 'SESI_HANGUS',
-              catatan_pembayaran: 'Sesi hangus (klien tidak hadir tanpa kabar, honor psikolog tetap diberikan penuh)',
+              alasan: 'SESI_NORMAL',
+              catatan_pembayaran: 'Sesi selesai terlewat (honor psikolog tetap diberikan penuh)',
             },
           })
         }).catch(() => {})
 
-        hangusIds.push(b.id)
+        processedIds.push(b.id)
       }
     }
 
-    return { count: hangusIds.length, hangusIds }
+    return { count: processedIds.length, processedIds }
   }
 
   async findJadwalTersedia(params: {

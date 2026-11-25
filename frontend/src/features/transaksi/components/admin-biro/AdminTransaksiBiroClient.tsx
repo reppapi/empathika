@@ -253,7 +253,7 @@ export default function AdminTransaksiBiroClient() {
     try {
       setIsLoading(true)
       setFetchError(null)
-      const res = await transaksiService.getAllAdmin()
+      const res = await transaksiService.getAllAdmin({ all: true })
       const normalized = (res.data || []).map(normalizeTransaksi)
       setAllTransaksi(normalized)
       if (normalized.length > 0 && !selectedItem) {

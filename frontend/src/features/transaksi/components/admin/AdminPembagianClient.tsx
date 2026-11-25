@@ -50,10 +50,11 @@ const MONTH_NAMES = [
 ]
 
 const currentYear = new Date().getFullYear()
-const monthOptions = Array.from({ length: 12 }, (_, i) => {
+const currentMonthIndex = new Date().getMonth() + 1 // 1-12
+const monthOptions = Array.from({ length: currentMonthIndex }, (_, i) => {
   const m = String(i + 1).padStart(2, "0")
   return `${currentYear}-${m}`
-})
+}).reverse()
 
 function getMonthLabel(ym: string) {
   const [, m] = ym.split("-")

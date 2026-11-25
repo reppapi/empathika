@@ -630,6 +630,11 @@ export default function AdminTransaksiClient() {
   const [allTransaksi, setAllTransaksi] = useState<ReturnType<typeof normalizeTransaksi>[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [fetchError, setFetchError] = useState<string | null>(null)
+  const [summary, setSummary] = useState<{ totalPendapatan: number; transaksiBerhasil: number; menungguBayar: number }>({
+    totalPendapatan: 0,
+    transaksiBerhasil: 0,
+    menungguBayar: 0,
+  })
 
   const searchParams = useSearchParams()
 
@@ -695,7 +700,8 @@ export default function AdminTransaksiClient() {
     try {
       setIsLoading(true)
       setFetchError(null)
-      const res = await transaksiService.getAllAdmin()
+      // List tetap paginated — ambil semua untuk keperluan filter lokal
+      const res = await transaksiService.getAllAdmin({ all: true })
       const normalized = (res.data || []).map(normalizeTransaksi)
       setAllTransaksi(normalized)
       if (normalized.length > 0 && !selectedItem) {
@@ -707,6 +713,16 @@ export default function AdminTransaksiClient() {
       setIsLoading(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Fetch summary dari backend (aggregate DB) — akurat meski list di-paginate nanti
+  const fetchSummary = useCallback(async (bulan?: number, tahun?: number, tanggal?: string) => {
+    try {
+      const res = await transaksiService.getSummary({ bulan, tahun, tanggal })
+      if (res.data) setSummary(res.data)
+    } catch {
+      // silent — summary gagal tidak perlu blokir UI
+    }
   }, [])
 
   useEffect(() => {
@@ -778,29 +794,29 @@ export default function AdminTransaksiClient() {
     return () => ro.disconnect()
   }, [activeDetailItem])
 
-  // Summary metrics
-  const summaryMetrics = useMemo(() => {
-    const inPeriod = allTransaksi.filter((item) => {
-      if (selectedDate) return item.tanggalTransaksi === selectedDate
-      if (selectedMonth) return item.tanggalTransaksi.startsWith(selectedMonth)
-      return true
-    })
-    const lunasList = inPeriod.filter((t) => t.status === "Lunas")
-    const menungguList = inPeriod.filter((t) => t.status === "Menunggu Pembayaran")
-    const totalPendapatan = lunasList.reduce((acc, t) => acc + t.totalBayar, 0)
-    const transaksiBerhasil = lunasList.length
-    const menungguBayar = menungguList.length
+  // Summary metrics — dihitung langsung dari DB via endpoint /admin/summary
+  // Direfresh setiap kali filter bulan/tanggal berubah
+  useEffect(() => {
+    const now = new Date()
+    if (selectedDate) {
+      fetchSummary(undefined, undefined, selectedDate)
+    } else if (selectedMonth) {
+      const [y, m] = selectedMonth.split("-")
+      fetchSummary(parseInt(m, 10), parseInt(y, 10))
+    } else {
+      fetchSummary(undefined, now.getFullYear())
+    }
+  }, [selectedDate, selectedMonth, fetchSummary])
 
-    let pendapatanLabel = `Total Pendapatan Tahun ${new Date().getFullYear()}`
-    if (selectedDate) pendapatanLabel = "Total Pendapatan Hari Ini"
-    else if (selectedMonth) {
+  const pendapatanLabel = useMemo(() => {
+    if (selectedDate) return "Total Pendapatan Hari Ini"
+    if (selectedMonth) {
       const [y, m] = selectedMonth.split("-")
       const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"]
-      pendapatanLabel = `Total Pendapatan ${monthNames[parseInt(m) - 1]} ${y}`
+      return `Total Pendapatan ${monthNames[parseInt(m) - 1]} ${y}`
     }
-
-    return { totalPendapatan, transaksiBerhasil, menungguBayar, pendapatanLabel }
-  }, [allTransaksi, selectedDate, selectedMonth])
+    return `Total Pendapatan Tahun ${new Date().getFullYear()}`
+  }, [selectedDate, selectedMonth])
 
   // Month label for select
   const getMonthLabel = (ym: string) => {
@@ -939,7 +955,7 @@ export default function AdminTransaksiClient() {
           title="Tampilkan semua transaksi"
         >
           <div className="flex items-center justify-between w-full">
-            <p className="text-xs sm:text-sm font-semibold text-gray-500">{summaryMetrics.pendapatanLabel}</p>
+            <p className="text-xs sm:text-sm font-semibold text-gray-500">{pendapatanLabel}</p>
             {selectedStatus === "semua" && (
               <span className="text-[10px] font-bold bg-purple-100 text-[#561269] px-2 py-0.5 rounded-full">
                 Semua
@@ -947,7 +963,7 @@ export default function AdminTransaksiClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#561269] mt-2">
-            Rp. {summaryMetrics.totalPendapatan.toLocaleString("id-ID")}
+            Rp. {Number(summary.totalPendapatan || 0).toLocaleString("id-ID")}
           </p>
         </button>
 
@@ -972,7 +988,7 @@ export default function AdminTransaksiClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-gray-900 mt-2">
-            {summaryMetrics.transaksiBerhasil}
+            {summary.transaksiBerhasil}
           </p>
         </button>
 
@@ -997,7 +1013,7 @@ export default function AdminTransaksiClient() {
             )}
           </div>
           <p className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-[#E5A800] mt-2">
-            {summaryMetrics.menungguBayar}
+            {summary.menungguBayar}
           </p>
         </button>
       </div>

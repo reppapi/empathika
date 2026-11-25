@@ -44,6 +44,34 @@ export class TransaksiController {
     }
   }
 
+  getSummary = async (
+    request: FastifyRequest<{ Querystring: { bulan?: string; tahun?: string; tanggal?: string } }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const user = (request as any).user
+      let biroId: string | undefined
+      if (user?.role === 'BIRO') {
+        const account = await (this.fastify as any).prisma.account.findUnique({
+          where: { id: user.id },
+          select: { id_biro: true, owned_biro: { select: { id: true } } },
+        })
+        biroId = account?.owned_biro?.[0]?.id || account?.id_biro || undefined
+      }
+
+      const q = request.query
+      const summary = await this.service.getSummary({
+        bulan: q.bulan ? parseInt(q.bulan, 10) : undefined,
+        tahun: q.tahun ? parseInt(q.tahun, 10) : undefined,
+        tanggal: q.tanggal,
+        biroId,
+      })
+      reply.send({ success: true, data: summary })
+    } catch (err: any) {
+      reply.code(500).send({ error: 'Internal Server Error', message: err.message })
+    }
+  }
+
   getMyTransaksi = async (request: FastifyRequest, reply: FastifyReply) => {
     const user = request.user as { id: string }
     const data = await this.service.getMyTransaksi(user.id)
