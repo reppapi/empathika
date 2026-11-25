@@ -227,7 +227,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#FAF7FB] py-20 px-4 flex flex-col items-center justify-center font-poppins">
+      <div className="min-h-screen bg-[#FAF7FB] pt-36 pb-20 px-4 flex flex-col items-center justify-center font-poppins">
         <div className="w-12 h-12 border-4 border-purple-200 border-t-[#561269] rounded-full animate-spin mb-4" />
         <p className="text-gray-600 font-medium text-sm">Memuat formulir pendaftaran...</p>
       </div>
@@ -315,7 +315,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
   return (
     <div className="min-h-screen bg-[#FAF7FB] font-poppins pb-24">
       {/* ── HEADER NAVIGATION ── */}
-      <div className="bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-10 pb-16 px-4 sm:px-6 lg:px-8 shadow-md">
+      <div className="bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-16 px-4 sm:px-6 lg:px-8 shadow-md">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
