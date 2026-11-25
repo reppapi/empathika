@@ -355,17 +355,6 @@ export default function InternshipApplyClient({ positionId }: Props) {
       {/* ── HEADER NAVIGATION ── */}
       <div className="bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-16 px-4 sm:px-6 lg:px-8 shadow-md">
         <div className="max-w-4xl mx-auto">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-              Formulir Pendaftaran
-            </span>
-            {position.divisi && (
-              <span className="px-3 py-1 rounded-full bg-[#EAB308] text-[#0f172a] text-xs font-bold">
-                {position.divisi}
-              </span>
-            )}
-          </div>
-
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-4">
             {position.judul}
           </h1>
