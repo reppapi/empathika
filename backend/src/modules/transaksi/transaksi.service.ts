@@ -23,6 +23,10 @@ export class TransaksiService {
     return this.repo.findAll(params)
   }
 
+  async getSummary(params?: { bulan?: number; tahun?: number; tanggal?: string; biroId?: string }) {
+    return this.repo.getSummary(params)
+  }
+
   async getMyTransaksi(clientId: string) {
     return this.repo.findByClientId(clientId)
   }

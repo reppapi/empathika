@@ -29,6 +29,18 @@ export interface AdminTransaksiQueryParams {
   all?: boolean
 }
 
+export interface TransaksiSummary {
+  totalPendapatan: number
+  transaksiBerhasil: number
+  menungguBayar: number
+}
+
+export interface SummaryQueryParams {
+  bulan?: number
+  tahun?: number
+  tanggal?: string
+}
+
 export interface PaginationMeta {
   total: number
   page: number
@@ -52,6 +64,11 @@ export const transaksiService = {
         data: any[]
         pagination?: PaginationMeta
       }>("/transaksi/admin", { params })
+      .then((r) => r.data),
+
+  getSummary: (params?: SummaryQueryParams) =>
+    apiClient
+      .get<{ success: boolean; data: TransaksiSummary }>("/transaksi/admin/summary", { params })
       .then((r) => r.data),
 
   checkout: (data: CreateCheckoutInput) =>
