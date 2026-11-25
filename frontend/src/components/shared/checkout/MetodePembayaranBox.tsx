@@ -368,9 +368,9 @@ export default function MetodePembayaranBox({
         {/* Info Ketentuan Pembatalan & Reservasi (Hanya untuk Layanan Konseling) */}
         {showKetentuanReservasi && (
           <div className="mb-6 p-3 bg-gray-50 border border-gray-200 rounded-xl text-[11px] text-gray-600 leading-relaxed">
-            <p className="font-semibold text-gray-800 mb-0.5">Ketentuan Reservasi & Penjadwalan:</p>
+            <p className="font-semibold text-gray-800 mb-0.5">Ketentuan Reservasi & Pengembalian Dana:</p>
             <p>
-              Untuk memastikan komitmen jadwal bersama tenaga ahli, pembatalan atau ketidakhadiran tanpa konfirmasi sebelumnya akan dikenakan biaya komitmen reservasi sebesar <strong className="text-gray-900">Rp 150.000</strong>, dan sisa pembayaran akan dikembalikan kepada Anda.
+              Pengajuan pembatalan &gt; 3 hari (H-3) sebelum sesi berhak atas pengembalian dana 100%. Pembatalan antara H-3 hingga 3 jam sebelum sesi dikenakan biaya administrasi 30% (70% dikembalikan). Pembatalan kurang dari 3 jam sebelum sesi atau ketidakhadiran tanpa pemberitahuan tidak dapat dikembalikan.
             </p>
           </div>
         )}

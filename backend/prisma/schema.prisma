@@ -125,6 +125,8 @@ enum TipePenerima {
 enum AlasanPembagian {
   SESI_NORMAL
   DP_HANGUS
+  REFUND_POTONGAN_30
+  SESI_HANGUS
 }
 
 // ==========================================
@@ -756,15 +758,18 @@ model Invoice {
 // ==========================================
 
 model PembagianTransaksi {
-  id             String          @id @default(uuid())
-  id_transaksi   String
-  penerima_tipe  TipePenerima
-  penerima_id    String?         // ID psikolog atau biro (null untuk Empathika)
-  jumlah         Decimal         @db.Decimal(12, 2)
-  alasan         AlasanPembagian @default(SESI_NORMAL)
-  status         StatusPayout    @default(BELUM_DICAIRKAN)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id                  String          @id @default(uuid())
+  id_transaksi        String
+  penerima_tipe       TipePenerima
+  penerima_id         String?         // ID psikolog atau biro (null untuk Empathika)
+  jumlah              Decimal         @db.Decimal(12, 2)
+  alasan              AlasanPembagian @default(SESI_NORMAL)
+  status              StatusPayout    @default(BELUM_DICAIRKAN)
+  tanggal_dibayarkan  DateTime?       // Tanggal direktur mentransfer pembagian
+  dibayarkan_oleh     String?         // Nama atau ID direktur/admin yang menandai
+  catatan_pembayaran  String?         @db.Text
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
 
   transaksi Transaksi @relation(fields: [id_transaksi], references: [id], onDelete: Restrict)
   payout    Payout[]

@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge"
-import { formatOrderId } from "@/lib/utils"
+import { formatOrderId, formatIndoPhoneWithPrefix } from "@/lib/utils"
 import { transaksiService } from "@/services/transaksi.service"
 import { Clock, ChevronDown } from "lucide-react"
 
@@ -135,7 +135,7 @@ function normalizeTransaksi(raw: any) {
     raw.email ||
     "–"
 
-  const clientPhone =
+  const rawClientPhone =
     parsedDataPembayaran?.no_telepon_pemesan ||
     parsedDataPembayaran?.no_telepon ||
     parsedDataPembayaran?.phone ||
@@ -144,7 +144,9 @@ function normalizeTransaksi(raw: any) {
     bookingEvent.client?.no_telepon ||
     client.no_hp ||
     client.phone ||
-    "–"
+    null
+
+  const clientPhone = rawClientPhone ? formatIndoPhoneWithPrefix(rawClientPhone, rawClientPhone) : "–"
 
   const biroNama =
     raw.biro_tenant?.nama_biro ||
@@ -963,10 +965,10 @@ export default function AdminTransaksiBiroClient() {
                     <div className="pt-3 pb-1 border-t border-gray-100 flex flex-col gap-2 text-xs">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-red-600 uppercase tracking-wide">
-                          Status: Transaksi Di-Refund (DP Ditahan)
+                          Status: Transaksi Di-Refund
                         </span>
                         <span className="font-bold text-red-600">
-                          Rp. {(activeDetailItem.refundAmount ?? Math.max(0, activeDetailItem.totalBayar - 150000)).toLocaleString("id-ID")}
+                          Rp. {(activeDetailItem.refundAmount ?? 0).toLocaleString("id-ID")}
                         </span>
                       </div>
                       <div className="flex justify-between items-center text-gray-500 text-[11px]">

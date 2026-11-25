@@ -166,7 +166,10 @@ export class EventRepository {
         include: {
           booking_event: {
             where: {
-              status: { in: ['PENDING', 'CONFIRMED'] },
+              OR: [
+                { status: 'CONFIRMED' },
+                { transaksi: { status_pembayaran: 'PAID' } },
+              ],
             },
             select: {
               jumlah_peserta: true,
@@ -209,7 +212,10 @@ export class EventRepository {
       include: {
         booking_event: {
           where: {
-            status: { in: ['PENDING', 'CONFIRMED'] },
+            OR: [
+              { status: 'CONFIRMED' },
+              { transaksi: { status_pembayaran: 'PAID' } },
+            ],
           },
           select: {
             jumlah_peserta: true,
@@ -271,7 +277,10 @@ export class EventRepository {
       include: {
         booking_event: {
           where: {
-            status: { in: ['PENDING', 'CONFIRMED'] },
+            OR: [
+              { status: 'CONFIRMED' },
+              { transaksi: { status_pembayaran: 'PAID' } },
+            ],
           },
           select: {
             jumlah_peserta: true,
@@ -353,7 +362,10 @@ export class EventRepository {
       include: {
         booking_event: {
           where: {
-            status: { in: ['PENDING', 'CONFIRMED'] },
+            OR: [
+              { status: 'CONFIRMED' },
+              { transaksi: { status_pembayaran: 'PAID' } },
+            ],
           },
           select: {
             jumlah_peserta: true,

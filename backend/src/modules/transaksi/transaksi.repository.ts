@@ -319,7 +319,7 @@ export class TransaksiRepository {
         throw Object.assign(new Error('Refund hanya berlaku untuk layanan Konsultasi dan Asesmen Offline'), { statusCode: 422 })
       }
 
-      // Validasi H-1 untuk konsultasi
+      // Validasi sesi konsultasi
       if (booking?.jadwal) {
         if (booking.status === 'COMPLETED') {
           throw Object.assign(new Error('Sesi yang sudah selesai tidak dapat direfund'), { statusCode: 422 })
@@ -327,79 +327,60 @@ export class TransaksiRepository {
         if (booking.status === 'CANCELLED') {
           throw Object.assign(new Error('Sesi konsultasi sudah dibatalkan sebelumnya'), { statusCode: 409 })
         }
+      }
 
-        const sessionDate = new Date(booking.jadwal.tanggal)
-        const sessionTime = new Date(booking.jadwal.jam_mulai)
-        const sessionDateTime = new Date(
-          Date.UTC(
-            sessionDate.getUTCFullYear(),
-            sessionDate.getUTCMonth(),
-            sessionDate.getUTCDate(),
-            sessionTime.getUTCHours(),
-            sessionTime.getUTCMinutes(),
-            0,
-            0
-          )
-        )
-        const refundDeadline = new Date(sessionDateTime.getTime() - 24 * 60 * 60 * 1000)
+      // ── Validasi Batas Waktu Refund Sesuai Aturan Baru ──
+      // - > H-3 (> 72 jam): Refund 100% penuh
+      // - Antara H-3 sampai > 3 jam: Refund 70% (potongan 30%)
+      // - <= 3 jam: Refund ditolak oleh sistem
+      let persenRefund = 100
+      let persenPotongan = 0
+      let kategoriRefund: 'FULL_REFUND' | 'POTONGAN_30' = 'FULL_REFUND'
 
-        if (Date.now() > refundDeadline.getTime()) {
-          const deadlineStr = refundDeadline.toLocaleString('id-ID', {
-            timeZone: 'Asia/Jakarta',
-            dateStyle: 'medium',
-            timeStyle: 'short',
-          })
+      if (booking?.jadwal) {
+        const { evaluateRefundEligibility } = await import('../../utils/date-time.js')
+        const evaluasi = evaluateRefundEligibility(booking.jadwal.tanggal, booking.jadwal.jam_mulai)
+
+        if (evaluasi.kategori === 'DITOLAK') {
           throw Object.assign(
-            new Error(`Refund ditolak. Batas waktu pengajuan refund maksimal H-1 (24 jam sebelum sesi) telah terlewati pada ${deadlineStr} WIB`),
+            new Error(evaluasi.alasanPenolakan || 'Refund ditolak karena batas waktu pengajuan telah terlewati'),
             {
               statusCode: 422,
               details: {
-                batasRefund: refundDeadline.toISOString(),
-                batasRefundStr: `${deadlineStr} WIB`,
+                batasRefund3Jam: evaluasi.refundDeadline3Jam.toISOString(),
               },
             }
           )
         }
+
+        persenRefund = evaluasi.persenRefund
+        persenPotongan = evaluasi.persenPotongan
+        kategoriRefund = evaluasi.kategori
       }
 
       const totalTransaksi = Number(transaksi.total)
-
-      // ── Skema Refund Baru (menggantikan aturan 70/30 yang sudah dihapus) ──────
-      // Nominal yang ditahan adalah tetap Rp150.000, berlaku berapa pun harga sesi.
-      // Lihat: src/config/transaksi.config.ts → DP_NOMINAL
-      // Lihat: src/modules/transaksi/transaksi.calc.ts → hitungPembagianDPHangus
-      //
-      // Alur refund admin:
-      //   1. Admin mengajukan refund lewat panel ini
-      //   2. Rp150.000 ditahan (dibagi ke psikolog & Empathika sesuai tipe sesi)
-      //   3. Sisa (totalTransaksi - 150.000) dikembalikan ke client via Xendit refund
-      //
-      // Pembagian ditahan menggunakan fungsi hitungPembagianDPHangus dari transaksi.calc.ts
-      // yang sudah diuji unit. Import tidak dilakukan di sini untuk menghindari circular dep;
-      // nilai dihitung langsung dengan konstanta yang sama.
-      //
-      // TODO: Proses refund aktual ke client via Xendit Refund API belum diimplementasi.
-      //       Saat ini hanya update status DB. Implementasi Xendit Refund API diperlukan
-      //       sebelum sistem ini digunakan di production.
-
-      const DP_NOMINAL = 150_000
       const tipeSesi = (booking?.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'
       const persenPsikolog = tipeSesi === 'OFFLINE' ? 60 : 50
 
-      const ditahan = Math.min(DP_NOMINAL, totalTransaksi)
-      const porsiPsikologDP = Math.floor(ditahan * persenPsikolog / 100)
-      const porsiEmpathikaDP = ditahan - porsiPsikologDP
-      const dikembalikanKeClient = totalTransaksi - ditahan
+      const nominalRefund = Math.floor((totalTransaksi * persenRefund) / 100)
+      const nominalDitahan = totalTransaksi - nominalRefund // potongan (0 atau 30%)
+
+      // Pembagian potongan (bila ada potongan 30%):
+      // Jika refund 100%: nominalDitahan = 0, porsi potongan psikolog = 0
+      const porsiPsikologPotongan = Math.floor((nominalDitahan * persenPsikolog) / 100)
+      const porsiEmpathikaPotongan = nominalDitahan - porsiPsikologPotongan
 
       const catatanAlokasi = [
-        `[Refund DP Hangus]`,
+        `[Refund ${persenRefund}% - Potongan ${persenPotongan}%]`,
+        `Kategori: ${kategoriRefund}`,
         `Total dibayar: Rp ${totalTransaksi.toLocaleString('id-ID')}`,
-        `Ditahan (DP): Rp ${ditahan.toLocaleString('id-ID')}`,
-        `  → Psikolog: Rp ${porsiPsikologDP.toLocaleString('id-ID')} (${persenPsikolog}%)`,
-        `  → Empathika: Rp ${porsiEmpathikaDP.toLocaleString('id-ID')} (${100 - persenPsikolog}%)`,
-        `Dikembalikan ke client: Rp ${dikembalikanKeClient.toLocaleString('id-ID')}`,
+        `Dikembalikan ke klien: Rp ${nominalRefund.toLocaleString('id-ID')} (${persenRefund}%)`,
+        `Potongan ditahan: Rp ${nominalDitahan.toLocaleString('id-ID')} (${persenPotongan}%)`,
+        nominalDitahan > 0
+          ? `(Hak Psikolog: Rp ${porsiPsikologPotongan.toLocaleString('id-ID')}, Empathika: Rp ${porsiEmpathikaPotongan.toLocaleString('id-ID')})`
+          : '',
         `Alasan: ${params.alasan}`,
-      ].join(' | ')
+      ].filter(Boolean).join(' | ')
 
       // 1. Update status transaksi menjadi REFUNDED
       const updatedTransaksi = await tx.transaksi.update({
@@ -408,13 +389,38 @@ export class TransaksiRepository {
           status_pembayaran: 'REFUNDED',
           refund_at: new Date(),
           refund_reason: catatanAlokasi,
-          refund_amount: dikembalikanKeClient,
-          // Field baru (nullable — aman untuk data lama yang belum punya nilai)
-          nominal_ditahan: ditahan,
-          nominal_dikembalikan: dikembalikanKeClient,
+          refund_amount: nominalRefund,
+          nominal_ditahan: nominalDitahan,
+          nominal_dikembalikan: nominalRefund,
           alasan_penahanan: params.alasan,
         },
       })
+
+      // 1b. Update / hapus ledger pembagian transaksi:
+      // Jika refund penuh 100%, bagian psikolog menjadi 0
+      // Jika potongan 30%, bagian psikolog dihitung dari nominal setelah potongan
+      const idPsikolog = booking?.jadwal?.id_psikolog ?? null
+      if (kategoriRefund === 'FULL_REFUND') {
+        // Hapus atau nolkan ledger pembagian
+        await tx.pembagianTransaksi.updateMany({
+          where: { id_transaksi: transaksi.id, penerima_tipe: 'PSIKOLOG' },
+          data: {
+            jumlah: 0,
+            status: 'BERHASIL',
+            catatan_pembayaran: 'Refund penuh 100% (tidak ada honor yang dibayarkan)',
+          },
+        })
+      } else {
+        // Potongan 30%: porsi psikolog dihitung dari nominal potongan
+        await tx.pembagianTransaksi.updateMany({
+          where: { id_transaksi: transaksi.id, penerima_tipe: 'PSIKOLOG' },
+          data: {
+            jumlah: porsiPsikologPotongan,
+            alasan: 'REFUND_POTONGAN_30',
+            catatan_pembayaran: `Refund 70% (potongan 30% sebesar Rp ${nominalDitahan.toLocaleString('id-ID')})`,
+          },
+        })
+      }
 
       // 2. Jika Konsultasi: batalkan sesi & bebaskan slot
       let updatedBooking = null
@@ -445,10 +451,12 @@ export class TransaksiRepository {
         transaksi: updatedTransaksi,
         booking: updatedBooking,
         totalTransaksi,
-        nominalRefund: dikembalikanKeClient,
-        nominalDitahan: ditahan,
-        porsiPsikologDP,
-        porsiEmpathikaDP,
+        nominalRefund,
+        nominalDitahan,
+        persenRefund,
+        persenPotongan,
+        porsiPsikologPotongan,
+        porsiEmpathikaPotongan,
         tipeSesi,
       }
     })
@@ -572,5 +580,197 @@ export class TransaksiRepository {
 
       return updatedTransaksi
     })
+  }
+
+  // ── REKAP PEMBAGIAN PENDAPATAN PSIKOLOG ──
+  async getRekapPembagianPsikolog(params: {
+    id_psikolog?: string
+    status?: 'BELUM_DICAIRKAN' | 'BERHASIL' | 'ALL'
+    search?: string
+    bulan?: number
+    tahun?: number
+    tanggal?: string
+  }) {
+    const where: any = {
+      penerima_tipe: 'PSIKOLOG',
+    }
+
+    if (params.id_psikolog) {
+      where.penerima_id = params.id_psikolog
+    }
+
+    if (params.status && params.status !== 'ALL') {
+      where.status = params.status
+    }
+
+    // Filter berdasarkan tanggal spesifik atau bulan & tahun (createdAt)
+    if (params.tanggal) {
+      const targetDate = new Date(params.tanggal)
+      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0)
+      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999)
+      where.createdAt = { gte: startOfDay, lte: endOfDay }
+    } else if (params.bulan && params.tahun) {
+      const startOfMonth = new Date(params.tahun, params.bulan - 1, 1, 0, 0, 0, 0)
+      const endOfMonth = new Date(params.tahun, params.bulan, 0, 23, 59, 59, 999)
+      where.createdAt = { gte: startOfMonth, lte: endOfMonth }
+    } else if (params.tahun) {
+      const startOfYear = new Date(params.tahun, 0, 1, 0, 0, 0, 0)
+      const endOfYear = new Date(params.tahun, 11, 31, 23, 59, 59, 999)
+      where.createdAt = { gte: startOfYear, lte: endOfYear }
+    }
+
+    const pembagianList = await this.prisma.pembagianTransaksi.findMany({
+      where,
+      include: {
+        transaksi: {
+          include: {
+            client: true,
+            booking_konsultasi: {
+              include: {
+                layanan: true,
+                jadwal: {
+                  include: {
+                    psikolog: {
+                      include: {
+                        account: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Fetch fallback data psikolog jika item.transaksi?.booking_konsultasi?.jadwal?.psikolog null
+    const missingPsikologIds = Array.from(
+      new Set(
+        pembagianList
+          .filter((it: any) => !it.transaksi?.booking_konsultasi?.jadwal?.psikolog && it.penerima_id)
+          .map((it: any) => it.penerima_id as string)
+      )
+    )
+    const fallbackPsikologMap = new Map<string, any>()
+    if (missingPsikologIds.length > 0) {
+      const listFallback = await this.prisma.psikolog.findMany({
+        where: { id: { in: missingPsikologIds } },
+        include: { account: true },
+      })
+      listFallback.forEach((p: any) => fallbackPsikologMap.set(p.id, p))
+    }
+
+    // Kelompokkan per psikolog
+    const mapPsikolog = new Map<string, any>()
+
+    for (const item of pembagianList) {
+      const psikologFromBooking = item.transaksi?.booking_konsultasi?.jadwal?.psikolog
+      const psikolog = psikologFromBooking || (item.penerima_id ? fallbackPsikologMap.get(item.penerima_id) : null)
+      const account = psikolog?.account
+      const idPsikolog = item.penerima_id || psikolog?.id || 'unknown'
+      const namaPsikolog = account?.nama || psikolog?.nama_gelar || 'Psikolog'
+
+      if (params.search) {
+        const query = params.search.toLowerCase()
+        if (!namaPsikolog.toLowerCase().includes(query)) {
+          continue
+        }
+      }
+
+      if (!mapPsikolog.has(idPsikolog)) {
+        mapPsikolog.set(idPsikolog, {
+          idPsikolog,
+          namaPsikolog,
+          rekeningBank: psikolog?.bank_code ? `${psikolog.bank_code} - ${psikolog.nomor_rekening} (a.n ${psikolog.nama_pemilik_rek || namaPsikolog})` : '-',
+          jumlahSesi: 0,
+          totalPendapatan: 0,
+          totalBagianPsikolog: 0,
+          totalBelumDibayarkan: 0,
+          totalSudahDibayarkan: 0,
+          status: 'BELUM_DICAIRKAN', // jika masih ada yang belum dicairkan
+          items: [],
+        })
+      }
+
+      const entry = mapPsikolog.get(idPsikolog)!
+      const nominalPorsi = Number(item.jumlah)
+      const totalTransaksi = Number(item.transaksi?.total || 0)
+
+      entry.jumlahSesi += 1
+      entry.totalPendapatan += totalTransaksi
+      entry.totalBagianPsikolog += nominalPorsi
+
+      if (item.status === 'BERHASIL') {
+        entry.totalSudahDibayarkan += nominalPorsi
+      } else {
+        entry.totalBelumDibayarkan += nominalPorsi
+      }
+
+      entry.items.push({
+        id: item.id,
+        idTransaksi: item.id_transaksi,
+        kodeTransaksi: item.transaksi?.kode_transaksi,
+        tanggal: item.createdAt,
+        layanan: item.transaksi?.booking_konsultasi?.layanan?.nama || 'Konseling',
+        namaKlien: item.transaksi?.client?.nama || '-',
+        totalTransaksi,
+        bagianPsikolog: nominalPorsi,
+        alasan: item.alasan,
+        status: item.status,
+        tanggalDibayarkan: item.tanggal_dibayarkan,
+        dibayarkanOleh: item.dibayarkan_oleh,
+        catatanPembayaran: item.catatan_pembayaran,
+      })
+    }
+
+    const rekap = Array.from(mapPsikolog.values()).map((p) => ({
+      ...p,
+      status: p.totalBelumDibayarkan === 0 ? 'BERHASIL' : 'BELUM_DICAIRKAN',
+    }))
+
+    return rekap
+  }
+
+  // ── TANDAI SUDAH DIBAYARKAN OLEH DIREKTUR / ADMIN ──
+  async markPembagianDibayarkan(params: {
+    idPembagian?: string
+    idPsikolog?: string
+    tanggalDibayarkan?: Date
+    dibayarkanOleh?: string
+    catatan?: string
+  }) {
+    const tanggalBayar = params.tanggalDibayarkan || new Date()
+
+    if (params.idPembagian) {
+      return this.prisma.pembagianTransaksi.update({
+        where: { id: params.idPembagian },
+        data: {
+          status: 'BERHASIL',
+          tanggal_dibayarkan: tanggalBayar,
+          dibayarkan_oleh: params.dibayarkanOleh || 'Direktur',
+          catatan_pembayaran: params.catatan || 'Ditransfer manual oleh Direktur',
+        },
+      })
+    }
+
+    if (params.idPsikolog) {
+      return this.prisma.pembagianTransaksi.updateMany({
+        where: {
+          penerima_id: params.idPsikolog,
+          penerima_tipe: 'PSIKOLOG',
+          status: 'BELUM_DICAIRKAN',
+        },
+        data: {
+          status: 'BERHASIL',
+          tanggal_dibayarkan: tanggalBayar,
+          dibayarkan_oleh: params.dibayarkanOleh || 'Direktur',
+          catatan_pembayaran: params.catatan || 'Ditransfer manual oleh Direktur',
+        },
+      })
+    }
+
+    throw new Error('idPembagian atau idPsikolog wajib disertakan')
   }
 }

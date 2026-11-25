@@ -273,15 +273,6 @@ export class AdminService {
       updateData.nama = input.nama
     }
 
-    if (input.email && input.email.trim() !== '' && input.email.trim().toLowerCase() !== existing.email.toLowerCase()) {
-      const cleanEmail = input.email.trim().toLowerCase()
-      const emailUsed = await this.repo.findAccountByEmail(cleanEmail)
-      if (emailUsed && emailUsed.id !== existing.id) {
-        throw Object.assign(new Error('Email sudah digunakan oleh akun lain'), { statusCode: 400 })
-      }
-      updateData.email = cleanEmail
-    }
-
     const noTelepon = input.no_telepon !== undefined ? input.no_telepon : input.noTelepon
     if (noTelepon !== undefined) {
       updateData.no_telepon = noTelepon

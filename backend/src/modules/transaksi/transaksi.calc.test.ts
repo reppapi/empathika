@@ -29,6 +29,7 @@ import {
   hitungBiayaLayanan,
   hitungTransaksi,
   hitungPembagianDPHangus,
+  hitungRefundBaru,
 } from './transaksi.calc'
 
 // =====================================================================
@@ -185,8 +186,37 @@ describe('hitungTransaksi — pembulatan (tidak ada selisih)', () => {
 })
 
 // =====================================================================
-// TEST: hitungPembagianDPHangus
+// TEST: hitungRefundBaru
 // =====================================================================
+describe('hitungRefundBaru', () => {
+  it('refund 100% (penuh > H-3): nominal refund = total, potongan = 0', () => {
+    const res = hitungRefundBaru('OFFLINE', 300_000, 100)
+    expect(res.persenRefund).toBe(100)
+    expect(res.persenPotongan).toBe(0)
+    expect(res.nominalRefund).toBe(300_000)
+    expect(res.nominalPotongan).toBe(0)
+    expect(res.porsiPsikologPotongan).toBe(0)
+    expect(res.porsiEmpathikaPotongan).toBe(0)
+  })
+
+  it('refund 70% (potongan 30% pada sesi OFFLINE): psikolog 60% dari potongan, empathika 40%', () => {
+    const res = hitungRefundBaru('OFFLINE', 300_000, 70)
+    expect(res.persenRefund).toBe(70)
+    expect(res.persenPotongan).toBe(30)
+    expect(res.nominalRefund).toBe(210_000) // 70% dari 300.000
+    expect(res.nominalPotongan).toBe(90_000) // 30% dari 300.000
+    expect(res.porsiPsikologPotongan).toBe(54_000) // 60% dari 90.000
+    expect(res.porsiEmpathikaPotongan).toBe(36_000) // 40% dari 90.000
+  })
+
+  it('refund 70% (potongan 30% pada sesi ONLINE): psikolog 50% dari potongan, empathika 50%', () => {
+    const res = hitungRefundBaru('ONLINE', 200_000, 70)
+    expect(res.nominalRefund).toBe(140_000)
+    expect(res.nominalPotongan).toBe(60_000)
+    expect(res.porsiPsikologPotongan).toBe(30_000)
+    expect(res.porsiEmpathikaPotongan).toBe(30_000)
+  })
+})
 describe('hitungPembagianDPHangus', () => {
   it('sesi OFFLINE: ditahan 150.000, psikolog 90.000, Empathika 60.000', () => {
     const result = hitungPembagianDPHangus('OFFLINE', 300_000)

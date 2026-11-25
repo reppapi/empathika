@@ -321,9 +321,6 @@ export function useProfileAdminForm({ role = "admin" }: UseProfileAdminFormProps
           youtube: form.youtube,
           linkedin: form.linkedin,
         }
-        if (form.email && form.email.trim() && form.email !== "admin@empathika.com") {
-          payload.email = form.email.trim()
-        }
 
         const res = await adminService.updateProfile(payload)
 

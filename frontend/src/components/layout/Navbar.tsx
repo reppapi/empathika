@@ -12,6 +12,11 @@ export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isBiro) return
@@ -112,9 +117,9 @@ export function Navbar() {
                 className="h-14 w-14 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shadow-sm"
                 style={{ backgroundColor: themeColor }}
               >
-                {isBiro && biroProfile?.logoURI ? (
+                {isMounted && isBiro && biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
-                ) : !isBiro && adminFoto ? (
+                ) : isMounted && !isBiro && adminFoto ? (
                   <img src={adminFoto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
@@ -233,9 +238,9 @@ export function Navbar() {
                 suppressHydrationWarning
                 className="h-12 w-12 shrink-0 rounded-full bg-white/20 flex items-center justify-center text-white font-extrabold text-lg overflow-hidden"
               >
-                {isBiro && biroProfile?.logoURI ? (
+                {isMounted && isBiro && biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
-                ) : !isBiro && adminFoto ? (
+                ) : isMounted && !isBiro && adminFoto ? (
                   <img src={adminFoto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()

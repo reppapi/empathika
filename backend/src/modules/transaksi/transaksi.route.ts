@@ -31,11 +31,32 @@ export default async function transaksiRoutes(fastify: FastifyInstance) {
     preHandler: [adminGuard],
     schema: {
       tags: ['Transaksi - Admin'],
-      summary: 'Admin memproses refund transaksi 70% kembali ke klien, 15% psikolog, 15% empathika (validasi maksimal H-1 sesi)',
+      summary: 'Admin memproses refund transaksi sesuai aturan baru (100% jika > H-3, 70% jika H-3 s.d 3 jam, ditolak jika <= 3 jam)',
       security: [{ bearerAuth: [] }],
       body: refundTransaksiSchema,
     },
     handler: controller.processRefund,
+  })
+
+  // ── Rekap & Pembagian Pendapatan Psikolog (Manual oleh Direktur / Admin) ──
+  fastify.get('/admin/pembagian-rekap', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Transaksi - Admin'],
+      summary: 'Admin / Direktur melihat rekap pembagian pendapatan per psikolog',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.getRekapPembagian,
+  })
+
+  fastify.post('/admin/pembagian/bayar', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Transaksi - Admin'],
+      summary: 'Direktur / Admin menandai pembagian honor psikolog telah dibayarkan',
+      security: [{ bearerAuth: [] }],
+    },
+    handler: controller.markPembagianDibayarkan,
   })
 
   // ── Publik / Client Checkout Terpusat (Konseling, Event, Psikotes) ─

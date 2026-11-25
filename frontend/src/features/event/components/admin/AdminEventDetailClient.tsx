@@ -22,6 +22,7 @@ import {
   Copy,
   Check,
 } from "lucide-react"
+import { formatIndoPhoneWithPrefix } from "@/lib/utils"
 
 // ─── Badge Status Booking ──────────────────────────────────────────────────
 const BookingStatusBadge = ({ status }: { status: EventBookingClientApi["status"] }) => {
@@ -462,7 +463,7 @@ export default function AdminEventDetailClient({ eventId }: Props) {
                           {b.client.no_telepon && (
                             <span className="inline-flex items-center gap-1.5 text-xs text-gray-500">
                               <Phone className="w-3 h-3 text-gray-400 shrink-0" />
-                              <span>{b.client.no_telepon}</span>
+                              <span>{formatIndoPhoneWithPrefix(b.client.no_telepon)}</span>
                             </span>
                           )}
                         </div>

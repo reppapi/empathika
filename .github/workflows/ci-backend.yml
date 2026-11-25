@@ -56,7 +56,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
-      - run: pnpm --filter backend test
+      - run: pnpm --filter backend test -- --no-file-parallelism
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/empathika_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/empathika_test

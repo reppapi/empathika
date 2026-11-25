@@ -159,13 +159,20 @@ export class PsikotesPengerjaanRepository {
         }
         if ((input as any).choci_isian && typeof (input as any).choci_isian === 'object') {
           const rawIsian = (input as any).choci_isian as Record<string, string>
-          // Petakan indeks 0-based ke nomor butir 1-based CHOCI secara aman
+          // Petakan indeks 0-based ke nomor butir 1-based CHOCI secara aman (Versi Anak & Orang Tua)
           if (rawIsian['10'] && typeof rawIsian['10'] === 'string') jawabanMap[11] = rawIsian['10'].trim()
           if (rawIsian['11'] && typeof rawIsian['11'] === 'string') jawabanMap[12] = rawIsian['11'].trim()
           if (rawIsian['12'] && typeof rawIsian['12'] === 'string') jawabanMap[13] = rawIsian['12'].trim()
           if (rawIsian['29'] && typeof rawIsian['29'] === 'string') jawabanMap[30] = rawIsian['29'].trim()
           if (rawIsian['30'] && typeof rawIsian['30'] === 'string') jawabanMap[31] = rawIsian['30'].trim()
           if (rawIsian['31'] && typeof rawIsian['31'] === 'string') jawabanMap[32] = rawIsian['31'].trim()
+          // Versi Orang Tua (Butir 49–51 & 68–70)
+          if (rawIsian['48'] && typeof rawIsian['48'] === 'string') jawabanMap[49] = rawIsian['48'].trim()
+          if (rawIsian['49'] && typeof rawIsian['49'] === 'string') jawabanMap[50] = rawIsian['49'].trim()
+          if (rawIsian['50'] && typeof rawIsian['50'] === 'string') jawabanMap[51] = rawIsian['50'].trim()
+          if (rawIsian['67'] && typeof rawIsian['67'] === 'string') jawabanMap[68] = rawIsian['67'].trim()
+          if (rawIsian['68'] && typeof rawIsian['68'] === 'string') jawabanMap[69] = rawIsian['68'].trim()
+          if (rawIsian['69'] && typeof rawIsian['69'] === 'string') jawabanMap[70] = rawIsian['69'].trim()
           jawabanMap['choci_isian'] = rawIsian
         }
         if (input.dampak_aktivitas !== undefined && input.dampak_aktivitas !== null) {

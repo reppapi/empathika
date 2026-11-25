@@ -43,14 +43,16 @@ export class TransaksiService {
     const result = await this.repo.refundTransaksi(params)
     return {
       success: true,
-      message: `Refund transaksi berhasil diproses. Rp${result.nominalDitahan?.toLocaleString('id-ID') ?? '150.000'} ditahan (DP hangus); Rp${result.nominalRefund?.toLocaleString('id-ID') ?? '0'} dikembalikan ke klien.`,
+      message: `Refund transaksi berhasil diproses (${result.persenRefund}% kembali ke klien, potongan ${result.persenPotongan}%). Rp${result.nominalRefund?.toLocaleString('id-ID')} dikembalikan ke klien; Rp${result.nominalDitahan?.toLocaleString('id-ID')} dipotong/ditahan.`,
       transaksiId: result.transaksi.id,
       kodeTransaksi: result.transaksi.kode_transaksi,
       totalTransaksi: result.totalTransaksi,
-      nominalDitahan: result.nominalDitahan,     // Rp150.000 yang ditahan
-      nominalRefund: result.nominalRefund,        // Sisa yang dikembalikan ke client
-      porsiPsikologDP: result.porsiPsikologDP,   // Bagian psikolog dari nominal ditahan
-      porsiEmpathikaDP: result.porsiEmpathikaDP, // Bagian Empathika dari nominal ditahan
+      nominalDitahan: result.nominalDitahan,
+      nominalRefund: result.nominalRefund,
+      persenRefund: result.persenRefund,
+      persenPotongan: result.persenPotongan,
+      porsiPsikologPotongan: result.porsiPsikologPotongan,
+      porsiEmpathikaPotongan: result.porsiEmpathikaPotongan,
       tipeSesi: result.tipeSesi,
       statusPembayaran: result.transaksi.status_pembayaran,
       refundAt: result.transaksi.refund_at,
@@ -64,6 +66,27 @@ export class TransaksiService {
           }
         : null,
     }
+  }
+
+  async getRekapPembagianPsikolog(params: {
+    id_psikolog?: string
+    status?: 'BELUM_DICAIRKAN' | 'BERHASIL' | 'ALL'
+    search?: string
+    bulan?: number
+    tahun?: number
+    tanggal?: string
+  }) {
+    return this.repo.getRekapPembagianPsikolog(params)
+  }
+
+  async markPembagianDibayarkan(params: {
+    idPembagian?: string
+    idPsikolog?: string
+    tanggalDibayarkan?: Date
+    dibayarkanOleh?: string
+    catatan?: string
+  }) {
+    return this.repo.markPembagianDibayarkan(params)
   }
 
   /**
@@ -175,10 +198,15 @@ export class TransaksiService {
           data: { status: 'SUDAH_DIBOOKING' },
         })
 
-        // Tentukan apakah transaksi terafiliasi biro (dari input eksplisit atau dari data klien yang sudah terafiliasi)
-        const metodeBayar = (input.metode_pembayaran || 'QRIS').toUpperCase()
+        // Tentukan apakah transaksi terafiliasi biro (murni dari input checkout saat transaksi dilakukan)
+        let metodeBayar = (input.metode_pembayaran || 'QRIS').toUpperCase()
+        if (!['TRANSFER_BANK', 'E_WALLET', 'QRIS'].includes(metodeBayar)) {
+          if (metodeBayar === 'BANK') metodeBayar = 'TRANSFER_BANK'
+          else if (metodeBayar === 'EWALLET') metodeBayar = 'E_WALLET'
+          else metodeBayar = 'QRIS'
+        }
         const tipeSesi = (input.metode_layanan || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const dariBiro = Boolean(effectiveBiroId)
         const rincian = hitungTransaksi(hargaDasar, tipeSesi, metodeBayar, dariBiro)
 
@@ -286,7 +314,7 @@ export class TransaksiService {
         kodePesanan = generateOrderId('EVT')
         deskripsiTagihan = `Pendaftaran Event: ${event.judul} - ${kodePesanan}`
 
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
@@ -358,7 +386,7 @@ export class TransaksiService {
         kodePesanan = generateOrderId('PSI')
         deskripsiTagihan = `Tes Psikotes Premium: ${paket.judul} - ${kodePesanan}`
 
-        const effectiveBiroId = input.id_biro || client.id_biro || null
+        const effectiveBiroId = input.id_biro || null
         const transaksi = await tx.transaksi.create({
           data: {
             id_client: client.id,
@@ -604,69 +632,82 @@ export class TransaksiService {
       // karena event/psikotes tidak ada payout ke psikolog tertentu).
       // Payout ke psikolog BELUM dikirim di sini — dipicu saat sesi SELESAI.
       if (newStatus === 'PAID' && transaksi.tipe_transaksi === 'KONSULTASI') {
-        try {
-          // Pastikan belum ada ledger untuk transaksi ini (idempotency)
-          const existingPembagian = await tx.pembagianTransaksi.count({
-            where: { id_transaksi: transaksi.id },
-          })
-
-          if (existingPembagian === 0) {
-            const hargaDasar = transaksi.harga_dasar
-              ? Number(transaksi.harga_dasar)
-              : Number(transaksi.subtotal) // fallback ke subtotal untuk data lama
-
-            const metode = (transaksi.metode_pembayaran as string) || 'QRIS'
-            const tipeSesi = (transaksi.booking_konsultasi?.metode || 'ONLINE').toUpperCase() as 'OFFLINE' | 'ONLINE'
-            const dariBiro = Boolean(transaksi.id_biro_tenant)
-
-            const hasil = hitungTransaksi(hargaDasar, tipeSesi, metode, dariBiro)
-
-            // Baris 1: Porsi psikolog
-            // Mencari id psikolog dari booking -> jadwal
-            const idPsikolog = transaksi.booking_konsultasi?.jadwal?.id_psikolog ?? null
-            await tx.pembagianTransaksi.create({
-              data: {
-                id_transaksi: transaksi.id,
-                penerima_tipe: 'PSIKOLOG',
-                penerima_id: idPsikolog,
-                jumlah: hasil.porsiPsikolog,
-                alasan: 'SESI_NORMAL',
-                status: 'BELUM_DICAIRKAN',
-              },
-            })
-
-            // Baris 2: Porsi Empathika (tetap di saldo Xendit, tidak ada payout)
-            await tx.pembagianTransaksi.create({
-              data: {
-                id_transaksi: transaksi.id,
-                penerima_tipe: 'EMPATHIKA',
-                penerima_id: null,
-                jumlah: hasil.porsiEmpathika,
-                alasan: 'SESI_NORMAL',
-                status: 'BERHASIL', // Langsung BERHASIL — tidak perlu payout keluar
-              },
-            })
-
-            // Baris 3: Porsi biro (jika ada)
-            if (dariBiro && hasil.komisiBiro > 0) {
-              await tx.pembagianTransaksi.create({
-                data: {
-                  id_transaksi: transaksi.id,
-                  penerima_tipe: 'BIRO',
-                  penerima_id: transaksi.id_biro_tenant,
-                  jumlah: hasil.komisiBiro,
-                  alasan: 'SESI_NORMAL',
-                  status: 'BELUM_DICAIRKAN',
-                },
-              })
-            }
-          }
-        } catch (ledgerErr: any) {
-          // Gagal catat ledger tidak boleh menggagalkan webhook — log saja
-          console.error('[Webhook] Gagal mencatat ledger pembagian transaksi:', ledgerErr?.message)
-        }
+        await this.catatLedgerPembagian(tx, transaksi)
       }
     })
+  }
+
+  /**
+   * Helper pencatatan ledger PembagianTransaksi (idempotent)
+   */
+  async catatLedgerPembagian(tx: any, transaksi: any) {
+    try {
+      const existingPembagian = await tx.pembagianTransaksi.count({
+        where: { id_transaksi: transaksi.id },
+      })
+
+      if (existingPembagian === 0) {
+        const hargaDasar = transaksi.harga_dasar
+          ? Number(transaksi.harga_dasar)
+          : Number(transaksi.subtotal)
+
+        const metode = (transaksi.metode_pembayaran as string) || 'QRIS'
+        const tipeSesi = (transaksi.booking_konsultasi?.metode || 'ONLINE').toUpperCase() as 'OFFLINE' | 'ONLINE'
+        const dariBiro = Boolean(transaksi.id_biro_tenant)
+
+        const hasil = hitungTransaksi(hargaDasar, tipeSesi, metode, dariBiro)
+
+        // Cari id psikolog dari booking -> jadwal
+        let idPsikolog = transaksi.booking_konsultasi?.jadwal?.id_psikolog ?? null
+        if (!idPsikolog && transaksi.booking_konsultasi?.id_jadwal) {
+          const slot = await tx.jadwalSlot.findUnique({
+            where: { id: transaksi.booking_konsultasi.id_jadwal },
+            select: { id_psikolog: true },
+          })
+          idPsikolog = slot?.id_psikolog ?? null
+        }
+
+        // Baris 1: Porsi psikolog
+        await tx.pembagianTransaksi.create({
+          data: {
+            id_transaksi: transaksi.id,
+            penerima_tipe: 'PSIKOLOG',
+            penerima_id: idPsikolog,
+            jumlah: hasil.porsiPsikolog,
+            alasan: 'SESI_NORMAL',
+            status: 'BELUM_DICAIRKAN',
+          },
+        })
+
+        // Baris 2: Porsi Empathika (tetap di saldo Empathika)
+        await tx.pembagianTransaksi.create({
+          data: {
+            id_transaksi: transaksi.id,
+            penerima_tipe: 'EMPATHIKA',
+            penerima_id: null,
+            jumlah: hasil.porsiEmpathika,
+            alasan: 'SESI_NORMAL',
+            status: 'BERHASIL',
+          },
+        })
+
+        // Baris 3: Porsi biro (jika ada)
+        if (dariBiro && hasil.komisiBiro > 0) {
+          await tx.pembagianTransaksi.create({
+            data: {
+              id_transaksi: transaksi.id,
+              penerima_tipe: 'BIRO',
+              penerima_id: transaksi.id_biro_tenant,
+              jumlah: hasil.komisiBiro,
+              alasan: 'SESI_NORMAL',
+              status: 'BELUM_DICAIRKAN',
+            },
+          })
+        }
+      }
+    } catch (ledgerErr: any) {
+      console.error('[Ledger Pembagian] Gagal mencatat ledger pembagian transaksi:', ledgerErr?.message)
+    }
   }
 
   /**
@@ -720,6 +761,12 @@ export class TransaksiService {
             data: { status: 'SUDAH_DIBOOKING' },
           }).catch(() => {})
         }
+        // Catat pembagian transaksi konseling
+        await this.catatLedgerPembagian(tx, {
+          ...transaksi,
+          ...updatedTrx,
+          booking_konsultasi: transaksi.booking_konsultasi,
+        })
       }
 
       if (transaksi.booking_event) {

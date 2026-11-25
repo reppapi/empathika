@@ -26,6 +26,11 @@ export function Footer() {
     }
   };
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [contact, setContact] = useState({
     alamat: "Jl. Cikutra No.312, Neglasari\nKec. Cibeunying Kaler, Kota Bandung\nJawa Barat 41024",
     email: "empathika889@gmail.com",
@@ -125,9 +130,9 @@ export function Footer() {
                 className="h-14 w-14 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-xl overflow-hidden shadow-sm"
                 style={{ backgroundColor: themeColor }}
               >
-                {isBiro && biroProfile?.logoURI ? (
+                {isMounted && isBiro && biroProfile?.logoURI ? (
                   <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
-                ) : !isBiro && contact.foto ? (
+                ) : isMounted && !isBiro && contact.foto ? (
                   <img src={contact.foto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
                   (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()

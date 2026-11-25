@@ -14,6 +14,7 @@ export interface NavItem {
 export const navItems: NavItem[] = [
   { name: "Ringkasan Operasional", path: "/admin" },
   { name: "Transaksi", path: "/admin/transaksi" },
+  { name: "Pembagian Komisi", path: "/admin/pembagian" },
   { name: "Jadwal & Sesi", path: "/admin/jadwal" },
   { name: "Event", path: "/admin/event" },
   { name: "Psikotes", path: "/admin/psikotes" },
@@ -34,6 +35,11 @@ interface SidebarAdminProps {
 export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
   const pathname = usePathname()
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     const loadProfile = () => {
@@ -103,7 +109,7 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
             className="flex items-center gap-3 transition-transform hover:scale-105"
           >
             <div className="h-11 w-11 shrink-0 rounded-full bg-white/90 shadow-sm overflow-hidden flex items-center justify-center text-[#561269] font-extrabold text-lg">
-              {adminFoto ? (
+              {isMounted && adminFoto ? (
                 <img src={adminFoto} alt="Empathika" className="h-full w-full object-cover" />
               ) : (
                 "E"

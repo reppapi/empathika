@@ -278,6 +278,73 @@ export class BookingRepository {
     return { count: expiredIds.length, expiredIds }
   }
 
+  /**
+   * Menandai transaksi konsultasi yang jadwal sesinya sudah terlewat tanpa kehadiran/refund/reschedule
+   * menjadi transaksi HANGUS secara otomatis.
+   */
+  async processHangusBookings() {
+    const { getSessionDateTime } = await import('../../utils/date-time.js')
+    const now = Date.now()
+
+    // Cari booking konsultasi yang sudah PAID/CONFIRMED dan belum COMPLETED / CANCELLED / REFUNDED / HANGUS
+    const pastBookings = await this.prisma.bookingKonsultasi.findMany({
+      where: {
+        status: 'CONFIRMED',
+        transaksi: {
+          status_pembayaran: 'PAID',
+        },
+      },
+      include: {
+        jadwal: true,
+        transaksi: true,
+      },
+    })
+
+    const hangusIds: string[] = []
+
+    for (const b of pastBookings) {
+      if (!b.jadwal || !b.transaksi) continue
+      // Waktu sesi selesai (asumsi durasi sesi ~60-90 menit, kita beri toleransi lewat jam mulai sesi)
+      const sessionDateTime = getSessionDateTime(b.jadwal.tanggal, b.jadwal.jam_mulai)
+      // Jika waktu sekarang sudah melewati jam selesai / jam mulai sesi (+ 2 jam toleransi)
+      if (now > sessionDateTime.getTime() + 2 * 60 * 60 * 1000) {
+        await this.prisma.$transaction(async (tx) => {
+          // Update status transaksi menjadi HANGUS
+          await tx.transaksi.update({
+            where: { id: b.transaksi!.id },
+            data: {
+              status_pembayaran: 'HANGUS',
+              alasan_penahanan: 'Klien tidak hadir tanpa pemberitahuan (Sesi Hangus)',
+              nominal_ditahan: b.transaksi!.total,
+              nominal_dikembalikan: 0,
+            },
+          })
+
+          // Update status booking menjadi COMPLETED / CANCELLED dengan catatan
+          await tx.bookingKonsultasi.update({
+            where: { id: b.id },
+            data: {
+              status: 'COMPLETED', // sesi dianggap terlewat
+            },
+          })
+
+          // Update ledger pembagian: psikolog tetap menerima hak sesi normal (alasan: SESI_HANGUS)
+          await tx.pembagianTransaksi.updateMany({
+            where: { id_transaksi: b.transaksi!.id, penerima_tipe: 'PSIKOLOG' },
+            data: {
+              alasan: 'SESI_HANGUS',
+              catatan_pembayaran: 'Sesi hangus (klien tidak hadir tanpa kabar, honor psikolog tetap diberikan penuh)',
+            },
+          })
+        }).catch(() => {})
+
+        hangusIds.push(b.id)
+      }
+    }
+
+    return { count: hangusIds.length, hangusIds }
+  }
+
   async findJadwalTersedia(params: {
     tanggal?: string
     id_psikolog?: string
@@ -1192,7 +1259,12 @@ export class BookingRepository {
       const kode_pesanan = generateOrderId(prefix)
       const kode_transaksi = generateTrxId()
       const effectiveBiroId = resolvedBiroId || (data as any).id_biro || client.id_biro || null
-      const metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
+      let metodeBayar = (data.metode_pembayaran || 'QRIS').toUpperCase()
+      if (!['TRANSFER_BANK', 'E_WALLET', 'QRIS'].includes(metodeBayar)) {
+        if (metodeBayar === 'BANK') metodeBayar = 'TRANSFER_BANK'
+        else if (metodeBayar === 'EWALLET') metodeBayar = 'E_WALLET'
+        else metodeBayar = 'QRIS'
+      }
       const tipeSesi = (data.metode || 'ONLINE').toUpperCase() as 'ONLINE' | 'OFFLINE'
       const dariBiro = Boolean(effectiveBiroId)
       const rincian = hitungTransaksi(nominal, tipeSesi, metodeBayar, dariBiro)
@@ -1209,7 +1281,7 @@ export class BookingRepository {
           subtotal: rincian.subtotalKlien,
           biaya_admin: rincian.biayaLayanan,
           total: rincian.total,
-          metode_pembayaran: metodeBayar,
+          metode_pembayaran: metodeBayar as any,
           channel_pembayaran: data.channel_pembayaran || null,
           status_pembayaran: paymentStatus,
         } as any,
@@ -1318,6 +1390,62 @@ export class BookingRepository {
           where: { id: booking.jadwal.id_psikolog },
           data: { jumlah_sesi: { increment: 1 } },
         }).catch(() => {})
+      }
+
+      // 5. Catat pembagian transaksi jika belum tercatat
+      if (updatedTransaksi && booking.id_transaksi) {
+        try {
+          const existingPembagian = await tx.pembagianTransaksi.count({
+            where: { id_transaksi: updatedTransaksi.id },
+          })
+          if (existingPembagian === 0) {
+            const hargaDasar = updatedTransaksi.harga_dasar
+              ? Number(updatedTransaksi.harga_dasar)
+              : Number(updatedTransaksi.subtotal)
+            const metode = (updatedTransaksi.metode_pembayaran as string) || 'QRIS'
+            const tipeSesi = (booking.metode || 'ONLINE').toUpperCase() as 'OFFLINE' | 'ONLINE'
+            const dariBiro = Boolean(updatedTransaksi.id_biro_tenant)
+            const hasil = hitungTransaksi(hargaDasar, tipeSesi, metode, dariBiro)
+            const idPsikolog = booking.jadwal?.id_psikolog ?? null
+
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: updatedTransaksi.id,
+                penerima_tipe: 'PSIKOLOG',
+                penerima_id: idPsikolog,
+                jumlah: hasil.porsiPsikolog,
+                alasan: 'SESI_NORMAL',
+                status: 'BELUM_DICAIRKAN',
+              },
+            })
+
+            await tx.pembagianTransaksi.create({
+              data: {
+                id_transaksi: updatedTransaksi.id,
+                penerima_tipe: 'EMPATHIKA',
+                penerima_id: null,
+                jumlah: hasil.porsiEmpathika,
+                alasan: 'SESI_NORMAL',
+                status: 'BERHASIL',
+              },
+            })
+
+            if (dariBiro && hasil.komisiBiro > 0) {
+              await tx.pembagianTransaksi.create({
+                data: {
+                  id_transaksi: updatedTransaksi.id,
+                  penerima_tipe: 'BIRO',
+                  penerima_id: updatedTransaksi.id_biro_tenant,
+                  jumlah: hasil.komisiBiro,
+                  alasan: 'SESI_NORMAL',
+                  status: 'BELUM_DICAIRKAN',
+                },
+              })
+            }
+          }
+        } catch (err: any) {
+          console.error('[Booking] Gagal mencatat ledger pembagian:', err?.message)
+        }
       }
 
       return {
@@ -1526,33 +1654,42 @@ export class BookingRepository {
         throw Object.assign(new Error('Sesi yang sudah selesai tidak dapat direfund'), { statusCode: 422 })
       }
 
-      // Validasi H-1 (24 jam sebelum jadwal sesi) via helper terpusat
-      const { refundDeadline, isPastH1 } = calculateRefundDeadline(
-        booking.jadwal.tanggal,
-        booking.jadwal.jam_mulai
-      )
+      // Validasi kelayakan refund sesuai aturan baru (> H-3: 100%, H-3 s.d 3 jam: 70%, <= 3 jam: ditolak)
+      const { evaluateRefundEligibility } = await import('../../utils/date-time.js')
+      const evaluasi = evaluateRefundEligibility(booking.jadwal.tanggal, booking.jadwal.jam_mulai)
 
-      if (isPastH1) {
-        const deadlineStr = refundDeadline.toLocaleString('id-ID', {
-          timeZone: 'Asia/Jakarta',
-          dateStyle: 'medium',
-          timeStyle: 'short',
-        })
+      if (evaluasi.kategori === 'DITOLAK') {
         throw Object.assign(
-          new Error(`Refund ditolak. Batas waktu pengajuan refund maksimal H-1 (24 jam sebelum sesi) telah terlewati pada ${deadlineStr} WIB`),
+          new Error(evaluasi.alasanPenolakan || 'Refund ditolak karena batas waktu pengajuan telah terlewati'),
           {
             statusCode: 422,
             details: {
-              batasRefund: refundDeadline.toISOString(),
-              batasRefundStr: `${deadlineStr} WIB`,
+              batasRefund3Jam: evaluasi.refundDeadline3Jam.toISOString(),
             },
           }
         )
       }
 
-      // Hitung nominal refund 100%
-      let refundAmount = booking.transaksi ? Number(booking.transaksi.total) : Number(booking.layanan.harga_weekday)
-      if (refundAmount <= 0) refundAmount = 200000
+      const totalNominal = booking.transaksi ? Number(booking.transaksi.total) : Number(booking.layanan.harga_weekday)
+      const refundAmount = Math.floor((totalNominal * evaluasi.persenRefund) / 100)
+      const nominalDitahan = totalNominal - refundAmount
+
+      const tipeSesi = (booking.metode || 'ONLINE').toUpperCase() === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'
+      const persenPsikolog = tipeSesi === 'OFFLINE' ? 60 : 50
+      const porsiPsikologPotongan = Math.floor((nominalDitahan * persenPsikolog) / 100)
+      const porsiEmpathikaPotongan = nominalDitahan - porsiPsikologPotongan
+
+      const catatanAlokasi = [
+        `[Refund ${evaluasi.persenRefund}% - Potongan ${evaluasi.persenPotongan}%]`,
+        `Kategori: ${evaluasi.kategori}`,
+        `Total: Rp ${totalNominal.toLocaleString('id-ID')}`,
+        `Dikembalikan: Rp ${refundAmount.toLocaleString('id-ID')}`,
+        `Potongan: Rp ${nominalDitahan.toLocaleString('id-ID')}`,
+        nominalDitahan > 0
+          ? `(Hak Psikolog: Rp ${porsiPsikologPotongan.toLocaleString('id-ID')}, Empathika: Rp ${porsiEmpathikaPotongan.toLocaleString('id-ID')})`
+          : '',
+        `Alasan: ${params.alasan}`,
+      ].filter(Boolean).join(' | ')
 
       // 1. Update / Catat transaksi (PENTING: Jangan di-delete, hanya update status ke REFUNDED)
       let updatedTransaksi: any = booking.transaksi
@@ -1562,8 +1699,11 @@ export class BookingRepository {
           data: {
             status_pembayaran: 'REFUNDED',
             refund_at: new Date(),
-            refund_reason: params.alasan,
+            refund_reason: catatanAlokasi,
             refund_amount: refundAmount,
+            nominal_ditahan: nominalDitahan,
+            nominal_dikembalikan: refundAmount,
+            alasan_penahanan: params.alasan,
           } as any,
         })
       } else {
@@ -1572,16 +1712,42 @@ export class BookingRepository {
           data: {
             id_client: booking.id_client,
             tipe_transaksi: 'KONSULTASI',
-            subtotal: refundAmount,
+            subtotal: totalNominal,
             biaya_admin: 0,
-            total: refundAmount,
+            total: totalNominal,
             metode_pembayaran: 'TRANSFER_BANK',
             status_pembayaran: 'REFUNDED',
             refund_at: new Date(),
-            refund_reason: params.alasan,
+            refund_reason: catatanAlokasi,
             refund_amount: refundAmount,
+            nominal_ditahan: nominalDitahan,
+            nominal_dikembalikan: refundAmount,
+            alasan_penahanan: params.alasan,
           } as any,
         })
+      }
+
+      // Update ledger pembagian jika ada
+      if (booking.transaksi) {
+        if (evaluasi.kategori === 'FULL_REFUND') {
+          await tx.pembagianTransaksi.updateMany({
+            where: { id_transaksi: booking.transaksi.id, penerima_tipe: 'PSIKOLOG' },
+            data: {
+              jumlah: 0,
+              status: 'BERHASIL',
+              catatan_pembayaran: 'Refund penuh 100% (tidak ada honor yang dibayarkan)',
+            },
+          })
+        } else {
+          await tx.pembagianTransaksi.updateMany({
+            where: { id_transaksi: booking.transaksi.id, penerima_tipe: 'PSIKOLOG' },
+            data: {
+              jumlah: porsiPsikologPotongan,
+              alasan: 'REFUND_POTONGAN_30',
+              catatan_pembayaran: `Refund 70% (potongan 30% sebesar Rp ${nominalDitahan.toLocaleString('id-ID')})`,
+            },
+          })
+        }
       }
 
       // 2. Ubah status BookingKonsultasi menjadi CANCELLED
