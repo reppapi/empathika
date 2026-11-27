@@ -198,12 +198,12 @@ export default function EventCheckoutClient() {
         )}
 
         {/* ── Box 1: Detail Item / Event ── */}
-        <div className="bg-white rounded-2xl sm:rounded-[1.5rem] border border-[#DCD0E1] p-4 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
+        <div className="bg-white rounded-[1.5rem] border border-[#DCD0E1] p-5 sm:p-8 shadow-[0_2px_10px_rgba(0,0,0,0.02)]">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-6 h-6 rounded-full bg-[#EAB308] text-black text-xs font-bold flex items-center justify-center shrink-0">1</div>
             <h3 className="text-sm font-bold text-gray-800">{isPsikotes ? "Detail Layanan Psikotes" : "Detail Event"}</h3>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
+          <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start">
             <div className="relative w-full sm:w-[200px] h-[120px] rounded-2xl bg-[#E6D9E9] overflow-hidden shrink-0 border border-gray-200 flex items-center justify-center">
               {bannerUrlParam ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -564,9 +564,9 @@ export default function EventCheckoutClient() {
       </div>
 
       {/* Sticky Bottom Bar */}
-      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-3 sm:py-4 px-4 sm:px-10 lg:px-24 flex items-center justify-between z-40">
+      <div className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 shadow-[0_-4px_10px_rgba(0,0,0,0.02)] py-4 px-6 sm:px-10 lg:px-24 flex items-center justify-between z-40">
         <div>
-          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 line-clamp-1 max-w-[180px] sm:max-w-md">
+          <div className="text-xs sm:text-sm text-gray-600 font-medium mb-0.5 line-clamp-1 max-w-[200px] sm:max-w-md">
             {judulParam}
           </div>
           <div className="text-sm sm:text-[17px] font-extrabold text-[#561269]">
@@ -576,7 +576,7 @@ export default function EventCheckoutClient() {
         <button
           type="button"
           onClick={() => window.history.back()}
-          className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-5 sm:px-8 py-2 sm:py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors cursor-pointer shrink-0"
+          className="bg-white border border-gray-300 text-gray-700 font-bold text-xs sm:text-sm px-6 sm:px-8 py-2.5 rounded-full shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
         >
           Kembali
         </button>

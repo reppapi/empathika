@@ -483,7 +483,7 @@ export default function AdminEventFormClient({ eventId }: Props) {
       </div>
 
       {/* Main Container Card */}
-      <div className="rounded-2xl sm:rounded-3xl border border-gray-200/90 bg-white p-4 sm:p-8 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+      <div className="rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} noValidate className="space-y-6">
           {/* Upload Banner Section */}
           <EventBannerUpload
@@ -660,18 +660,18 @@ export default function AdminEventFormClient({ eventId }: Props) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-100">
             <button
               type="button"
               onClick={() => router.back()}
-              className="w-full sm:w-auto rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer text-center"
+              className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-100 transition-all cursor-pointer"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="w-full sm:w-auto rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50 text-center"
+              className="rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-8 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
             >
               {submitting ? "Menyimpan..." : isEditMode ? "Simpan Perubahan" : "Terbitkan Event"}
             </button>
