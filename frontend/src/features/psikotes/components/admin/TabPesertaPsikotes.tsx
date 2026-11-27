@@ -547,8 +547,8 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
               </span>
             ) : isSelesai ? (
               <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3" />
-                Tepat Waktu (Selesai)
+                <CheckCircle2 className="w-3 h-3 shrink-0" />
+                <span>Selesai • Batas: {sla.deadlineFormatted}</span>
               </span>
             ) : null}
           </div>

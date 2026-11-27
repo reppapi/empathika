@@ -21,7 +21,6 @@ import {
   Calendar,
   Loader2,
   Lock,
-  ArrowRight,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
@@ -208,12 +207,6 @@ export default function PsikologReviewAsesmenClient() {
     };
   }, [data?.items, isMyItem]);
 
-  // Hitung jumlah tugas yang sedang ditinjau dan menjadi tanggung jawab psikolog yang sedang login
-  const myIncompleteReviews = useMemo(() => {
-    if (!data?.items) return [];
-    return data.items.filter((item) => item.status_pengerjaan === "MENUNGGU_REVIEW" && isMyItem(item));
-  }, [data?.items, isMyItem]);
-
   return (
     <div className="space-y-6 sm:space-y-8 font-poppins pb-12">
       {/* Toast Notifikasi Sukses */}
@@ -251,19 +244,6 @@ export default function PsikologReviewAsesmenClient() {
           </button>
         </div>
       )}
-
-      {/* Header Halaman (Aksi Refresh) */}
-      <div className="flex items-center justify-end">
-        <button
-          type="button"
-          onClick={() => fetchData(true)}
-          disabled={isRefreshing || isLoading}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-full border border-gray-200 bg-white text-xs font-semibold text-gray-700 hover:bg-gray-50 hover:border-purple-200 shadow-sm transition-all active:scale-95 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-purple-700" : ""}`} />
-          <span>{isRefreshing ? "Menyinkronkan..." : "Perbarui Data"}</span>
-        </button>
-      </div>
 
       {/* Peringatan Jika Bukan Reviewer */}
       {isReviewerAccess === false ? (
@@ -344,33 +324,6 @@ export default function PsikologReviewAsesmenClient() {
             </div>
           </div>
 
-      {/* Banner Pengingat Tugas dari Admin */}
-      {myIncompleteReviews.length > 0 && (
-        <div className="p-4 sm:p-5 rounded-3xl border border-purple-200/80 bg-gradient-to-r from-purple-50/90 via-fuchsia-50/40 to-white shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in duration-300">
-          <div className="flex items-start sm:items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-[#561269]/10 border border-purple-200 flex items-center justify-center shrink-0 text-[#561269]">
-              <Clock className="w-5 h-5 text-[#561269]" />
-            </div>
-            <div>
-              <h3 className="font-bold text-sm sm:text-base text-gray-900 tracking-tight">
-                Tugas Anda: <span className="text-[#561269] font-extrabold">{myIncompleteReviews.length} Asesmen</span> Perlu Ditelaah &amp; Upload PDF
-              </h3>
-              <p className="text-xs text-gray-600 mt-0.5 leading-relaxed">
-                Admin telah menugaskan {myIncompleteReviews.length} asesmen kepada Anda. Silakan tinjau rekap skor/jawaban, buat laporan di Docs, lalu unggah file PDF-nya.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab("PERLU_DITELAAH")}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] active:scale-95 text-gray-950 text-xs font-bold shadow-xs hover:shadow transition-all shrink-0 cursor-pointer self-start sm:self-auto"
-          >
-            <span>Lihat Tugas</span>
-            <ArrowRight className="w-3.5 h-3.5 text-gray-950" />
-          </button>
-        </div>
-      )}
-
       {/* Kontrol Filter Tabs & Search */}
       <div className="p-4 sm:p-5 rounded-3xl bg-white border border-gray-200 shadow-sm space-y-4">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3.5">
@@ -406,28 +359,40 @@ export default function PsikologReviewAsesmenClient() {
             </button>
           </div>
 
-          {/* Search Box */}
-          <div className="relative w-full xl:w-80">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-              }}
-              placeholder="Cari di semua antrean (nama, tiket, HP)..."
-              className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer font-bold"
-                title="Hapus pencarian"
-              >
-                &times;
-              </button>
-            )}
+          {/* Search Box & Refresh Icon */}
+          <div className="flex items-center gap-2 w-full xl:w-auto">
+            <div className="relative flex-1 xl:w-80">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                }}
+                placeholder="Cari di semua antrean (nama, tiket, HP)..."
+                className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#561269] focus:ring-2 focus:ring-[#561269]/20 transition-all font-sans"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs cursor-pointer font-bold"
+                  title="Hapus pencarian"
+                >
+                  &times;
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => fetchData(true)}
+              disabled={isRefreshing || isLoading}
+              title="Perbarui Data"
+              aria-label="Perbarui Data"
+              className="p-2.5 rounded-full border border-gray-200 bg-white text-gray-600 hover:text-[#561269] hover:bg-purple-50 hover:border-purple-200 shadow-2xs transition-all active:scale-95 disabled:opacity-50 cursor-pointer shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin text-[#561269]" : ""}`} />
+            </button>
           </div>
         </div>
       </div>
@@ -552,8 +517,8 @@ export default function PsikologReviewAsesmenClient() {
                                 </span>
                               ) : (
                                 <span className="text-[10px] text-emerald-600 font-medium flex items-center gap-1">
-                                  <CheckCircle2 className="w-3 h-3" />
-                                  Tepat Waktu (Selesai)
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  <span>Selesai • Batas: {sla.deadlineFormatted}</span>
                                 </span>
                               )}
                             </div>
