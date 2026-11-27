@@ -12,6 +12,7 @@ import type {
   VerifyTicketInput,
   ReviewPsikotesQueryInput,
   SubmitReviewPsikotesInput,
+  AssignPsikologInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
@@ -459,6 +460,32 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal melepas tiket asesmen.',
+      })
+    }
+  }
+
+  assignPsikolog = async (
+    request: FastifyRequest<{
+      Params: { bookingId: string }
+      Body: AssignPsikologInput
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.assignPsikolog(
+        request.params.bookingId,
+        request.body.id_psikolog
+      )
+      return reply.code(200).send({
+        success: true,
+        message: `Tiket asesmen berhasil ditugaskan kepada ${data.psikolog.nama_gelar}.`,
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal menugaskan psikolog pemeriksa.',
       })
     }
   }

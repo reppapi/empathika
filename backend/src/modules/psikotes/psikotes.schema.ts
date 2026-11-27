@@ -187,23 +187,30 @@ export const reviewPsikotesQuerySchema = z.object({
 
 export type ReviewPsikotesQueryInput = z.infer<typeof reviewPsikotesQuerySchema>
 
+export const assignPsikologSchema = z.object({
+  id_psikolog: z.string().min(1, 'Psikolog pemeriksa wajib dipilih'),
+})
+
+export type AssignPsikologInput = z.infer<typeof assignPsikologSchema>
+
 export const submitReviewPsikotesSchema = z
   .object({
-    catatan_psikolog: z.string(),
+    catatan_psikolog: z.string().optional().nullable(),
     rekomendasi_psikolog: z.string().optional().nullable(),
+    file_laporan_url: z.string().optional().nullable(),
     id_psikolog: z.string().optional().nullable(),
     is_draft: z.boolean().optional().nullable(),
   })
   .refine(
     (data) => {
-      // Jika draf, izinkan panjang karakter berapapun (termasuk catatan draf awal)
       if (data.is_draft) return true
-      // Jika hendak menerbitkan laporan resmi, wajib minimal 5 karakter
-      return (data.catatan_psikolog || '').trim().length >= 5
+      const hasPdf = Boolean(data.file_laporan_url && data.file_laporan_url.trim().length > 0)
+      const hasCatatan = (data.catatan_psikolog || '').trim().length >= 5
+      return hasPdf || hasCatatan
     },
     {
-      message: 'Catatan dinamika kepribadian psikolog minimal 5 karakter sebelum menerbitkan laporan resmi',
-      path: ['catatan_psikolog'],
+      message: 'Harap unggah file PDF hasil laporan atau isi catatan telaah psikolog minimal 5 karakter sebelum menerbitkan hasil.',
+      path: ['file_laporan_url'],
     }
   )
 

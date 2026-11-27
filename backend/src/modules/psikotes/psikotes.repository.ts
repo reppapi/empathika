@@ -114,6 +114,10 @@ export class PsikotesRepository {
     return this.reviewRepo.releaseReviewTicket(bookingId, userId, userRole)
   }
 
+  async assignPsikolog(bookingId: string, idPsikolog: string) {
+    return this.reviewRepo.assignPsikolog(bookingId, idPsikolog)
+  }
+
   // ── 5. Domain Peserta & Manajemen Retensi Lifecycle ─────────────────────────
   async findPeserta(params?: PesertaQueryInput) {
     this.purgeExpiredPsikotesData().catch(() => {})

@@ -336,6 +336,7 @@ export class PsikotesPesertaRepository {
                 detail_skor: b.hasil_tes.detail_skor,
                 catatan_psikolog: (b.hasil_tes as any).catatan_psikolog || null,
                 rekomendasi_psikolog: (b.hasil_tes as any).rekomendasi_psikolog || null,
+                file_laporan_url: (b.hasil_tes as any).file_laporan_url || null,
                 draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
                 tanggal_review: (b.hasil_tes as any).tanggal_review || null,
               }

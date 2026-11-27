@@ -14,6 +14,7 @@ import {
   verifyTicketSchema,
   reviewPsikotesQuerySchema,
   submitReviewPsikotesSchema,
+  assignPsikologSchema,
 } from './psikotes.schema'
 
 export default async function psikotesRoutes(fastify: FastifyInstance) {
@@ -212,6 +213,18 @@ export default async function psikotesRoutes(fastify: FastifyInstance) {
       security: [{ bearerAuth: [] }],
     },
     handler: controller.releaseReviewTicket,
+  })
+
+  // 10b. Admin: Menugaskan tiket asesmen psikotes ke psikolog pemeriksa tertentu
+  fastify.post('/booking/:bookingId/assign', {
+    preHandler: [adminGuard],
+    schema: {
+      tags: ['Psikotes - Review Psikolog'],
+      summary: 'Admin menugaskan peserta psikotes ke psikolog pemeriksa sesuai spesialisasi',
+      security: [{ bearerAuth: [] }],
+      body: assignPsikologSchema,
+    },
+    handler: controller.assignPsikolog,
   })
 
   // 11. Admin & Biro: Tandai / batalkan status pengiriman laporan hasil via WhatsApp
