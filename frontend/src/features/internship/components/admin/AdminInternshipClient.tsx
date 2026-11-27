@@ -398,40 +398,51 @@ export default function AdminInternshipClient() {
         </div>
       </div>
 
-      {/* ── 3. TAB NAVIGASI UTAMA ── */}
-      <div className="flex border-b border-gray-200 gap-8">
+      {/* ── 3. TABS NAVIGATION ── */}
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
         <button
           onClick={() => setActiveTab("posisi")}
-          className={`pb-3 font-bold text-sm transition-colors border-b-2 -mb-[2px] flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "posisi"
-              ? "border-[#561269] text-[#561269]"
-              : "border-transparent text-gray-500 hover:text-gray-900"
+              ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
           <Briefcase className="w-4 h-4" />
-          <span>Daftar Lowongan Posisi</span>
-          <span className="px-2 py-0.5 text-xs rounded-full bg-purple-100 text-[#561269]">
+          <span>Daftar Posisi Magang</span>
+          <span
+            className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${
+              activeTab === "posisi"
+                ? "bg-[#561269] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
             {totalPositions}
           </span>
         </button>
 
         <button
           onClick={() => setActiveTab("pelamar")}
-          className={`pb-3 font-bold text-sm transition-colors border-b-2 -mb-[2px] flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "pelamar"
-              ? "border-[#561269] text-[#561269]"
-              : "border-transparent text-gray-500 hover:text-gray-900"
+              ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Daftar Pelamar Magang</span>
-          {pendingApplications > 0 ? (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-amber-100 text-amber-800 font-bold">
+          <span>Hasil Pelamar Masuk</span>
+          <span
+            className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${
+              activeTab === "pelamar"
+                ? "bg-[#561269] text-white"
+                : "bg-gray-200 text-gray-700"
+            }`}
+          >
+            {totalApplications}
+          </span>
+          {pendingApplications > 0 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
               {pendingApplications} Baru
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600">
-              {totalApplications}
             </span>
           )}
         </button>
