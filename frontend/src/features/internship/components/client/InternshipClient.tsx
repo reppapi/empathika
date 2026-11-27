@@ -15,8 +15,6 @@ import {
   TrendingUp,
   ArrowRight,
   ExternalLink,
-  ChevronDown,
-  ChevronUp,
   HelpCircle,
   AlertCircle,
   GraduationCap,
@@ -33,7 +31,6 @@ import {
 export default function InternshipClient() {
   const [positions, setPositions] = useState<InternshipPosition[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   // Muat posisi publik langsung dari database
   const loadPositions = async () => {
@@ -62,10 +59,6 @@ export default function InternshipClient() {
       window.removeEventListener("storage", handleUpdate)
     }
   }, [])
-
-  const toggleExpand = (id: string) => {
-    setExpandedId((prev) => (prev === id ? null : id))
-  }
 
   const scrollToPositions = () => {
     const el = document.getElementById("posisi-tersedia")
@@ -247,8 +240,6 @@ export default function InternshipClient() {
             /* Daftar Posisi */
             <div className="space-y-8">
               {positions.map((pos) => {
-                const isExpanded = expandedId === pos.id || positions.length === 1
-
                 return (
                   <div
                     key={pos.id}
@@ -312,90 +303,72 @@ export default function InternshipClient() {
                       </div>
                     </div>
 
-                    {/* Tombol Toggle Detail jika posisi lebih dari 1 */}
-                    {positions.length > 1 && (
-                      <div className="px-6 py-3 bg-gray-50/70 border-b border-gray-100 flex items-center justify-between">
-                        <span className="text-xs font-semibold text-gray-500">
-                          {isExpanded ? "Sembunyikan rincian peran" : "Lihat tanggung jawab & kualifikasi"}
-                        </span>
-                        <button
-                          onClick={() => toggleExpand(pos.id)}
-                          className="text-xs font-bold text-[#561269] hover:underline flex items-center gap-1 cursor-pointer"
-                        >
-                          {isExpanded ? "Tutup Detail" : "Lihat Rincian"}
-                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
+                    {/* Body: Responsibilities & Qualifications & CTA Langsung Tampil */}
+                    <div className="p-6 sm:p-8 space-y-8">
+                      {/* Responsibilities */}
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#561269]" />
+                          Responsibilities
+                        </h4>
+                        <ul className="space-y-2.5">
+                          {pos.responsibilities.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-3 text-sm sm:text-base text-gray-700 leading-relaxed">
+                              <CheckCircle2 className="w-5 h-5 text-[#561269] shrink-0 mt-0.5" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    )}
 
-                    {/* Body: Responsibilities & Qualifications */}
-                    {isExpanded && (
-                      <div className="p-6 sm:p-8 space-y-8 animate-fadeIn">
-                        {/* Responsibilities */}
-                        <div>
-                          <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#561269]" />
-                            Responsibilities
-                          </h4>
-                          <ul className="space-y-2.5">
-                            {pos.responsibilities.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-3 text-sm sm:text-base text-gray-700 leading-relaxed">
-                                <CheckCircle2 className="w-5 h-5 text-[#561269] shrink-0 mt-0.5" />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Qualifications */}
-                        <div className="pt-6 border-t border-gray-100">
-                          <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
-                            Qualifications
-                          </h4>
-                          <ul className="space-y-2.5">
-                            {pos.qualifications.map((item, idx) => (
-                              <li key={idx} className="flex items-start gap-3 text-sm sm:text-base text-gray-700 leading-relaxed">
-                                <CheckCircle2 className="w-5 h-5 text-[#CA8A04] shrink-0 mt-0.5" />
-                                <span>{item}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-
-                        {/* Bottom CTA Card */}
-                        <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-purple-50/50 rounded-2xl p-5 border border-purple-100">
-                          <div className="text-sm text-gray-600 text-center sm:text-left">
-                            <p className="font-semibold text-gray-900">
-                              Batas Akhir Pendaftaran: <span className="text-rose-600 font-bold">{pos.deadline}</span>
-                            </p>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                              Pastikan berkas portofolio dan CV terlampir dengan lengkap.
-                            </p>
-                          </div>
-
-                          {pos.applyUrl && (pos.applyUrl.startsWith("http://") || pos.applyUrl.startsWith("https://")) ? (
-                            <a
-                              href={pos.applyUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                              <span>APPLY NOW</span>
-                              <ExternalLink className="w-4 h-4 text-[#0f172a]" />
-                            </a>
-                          ) : (
-                            <Link
-                              href={`/internship/apply/${pos.id}`}
-                              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                            >
-                              <span>APPLY NOW</span>
-                              <ArrowRight className="w-4 h-4 text-[#0f172a]" />
-                            </Link>
-                          )}
-                        </div>
+                      {/* Qualifications */}
+                      <div className="pt-6 border-t border-gray-100">
+                        <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-[#EAB308]" />
+                          Qualifications
+                        </h4>
+                        <ul className="space-y-2.5">
+                          {pos.qualifications.map((item, idx) => (
+                            <li key={idx} className="flex items-start gap-3 text-sm sm:text-base text-gray-700 leading-relaxed">
+                              <CheckCircle2 className="w-5 h-5 text-[#CA8A04] shrink-0 mt-0.5" />
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
                       </div>
-                    )}
+
+                      {/* Bottom CTA Card */}
+                      <div className="pt-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-purple-50/50 rounded-2xl p-5 border border-purple-100">
+                        <div className="text-sm text-gray-600 text-center sm:text-left">
+                          <p className="font-semibold text-gray-900">
+                            Batas Akhir Pendaftaran: <span className="text-rose-600 font-bold">{pos.deadline}</span>
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Pastikan berkas portofolio dan CV terlampir dengan lengkap.
+                          </p>
+                        </div>
+
+                        {pos.applyUrl && (pos.applyUrl.startsWith("http://") || pos.applyUrl.startsWith("https://")) ? (
+                          <a
+                            href={pos.applyUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span>APPLY NOW</span>
+                            <ExternalLink className="w-4 h-4 text-[#0f172a]" />
+                          </a>
+                        ) : (
+                          <Link
+                            href={`/internship/apply/${pos.id}`}
+                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          >
+                            <span>APPLY NOW</span>
+                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
+                          </Link>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )
               })}
