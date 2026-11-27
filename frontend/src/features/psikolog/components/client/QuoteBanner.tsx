@@ -4,7 +4,7 @@ export function QuoteBanner() {
   return (
     <div className="relative my-14 sm:my-20 w-full max-w-5xl mx-auto px-4 sm:px-6">
       {/* Top-Left Quote Icon */}
-      <span className="absolute -top-6 sm:-top-8 left-2 sm:left-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
+      <span className="absolute bottom-full mb-1 sm:mb-2 left-2 sm:left-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none pointer-events-none">
         “
       </span>
 
@@ -29,7 +29,7 @@ export function QuoteBanner() {
       </div>
 
       {/* Bottom-Right Quote Icon */}
-      <span className="absolute -bottom-8 sm:-bottom-10 right-2 sm:right-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
+      <span className="absolute top-full mt-1 sm:mt-2 right-2 sm:right-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none pointer-events-none">
         ”
       </span>
     </div>
