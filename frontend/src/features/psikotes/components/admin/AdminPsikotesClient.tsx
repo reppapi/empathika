@@ -4,8 +4,10 @@
 import { useState, useEffect } from "react";
 import { Users, FileText, CheckCircle, AlertCircle, X } from "lucide-react";
 import { psikotesService } from "@/services/psikotes.service";
+import { psikologService } from "@/services/psikolog.service";
 import type {
   AdminPsikotesPeserta,
+  AdminPsikologOption,
   JudulPsikotesItem,
   PaketDetailItem,
 } from "../../types/adminPsikotes";
@@ -58,6 +60,7 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
   const [isLoadingPeserta, setIsLoadingPeserta] = useState(false);
   const [isLoadingPaket, setIsLoadingPaket] = useState(false);
   const [loadPaketError, setLoadPaketError] = useState<string | null>(null);
+  const [psikologOptions, setPsikologOptions] = useState<AdminPsikologOption[]>([]);
 
   const loadPesertaFromBackend = async () => {
     setIsLoadingPeserta(true);
@@ -151,7 +154,27 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
   useEffect(() => {
     loadDataFromBackend();
     loadPesertaFromBackend();
-  }, []);
+    if (!isBiroContext) {
+      psikologService
+        .getList({ status: "ALL" })
+        .then((res: any) => {
+          const raw = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+          setPsikologOptions(
+            raw.map((p: any) => ({
+              id: p.id,
+              nama_gelar: p.nama_gelar || p.account?.nama || p.nama || "Psikolog Empathika",
+              kategori: p.kategori || "",
+              spesialisasi: p.spesialisasi?.nama || p.spesialisasi || "",
+              foto: p.foto || null,
+              status: p.status || "ACTIVE",
+            }))
+          );
+        })
+        .catch((err) => {
+          console.error("Gagal memuat daftar psikolog:", err);
+        });
+    }
+  }, [isBiroContext]);
 
   // Notification auto-dismiss
   useEffect(() => {
@@ -307,19 +330,17 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
     }
   };
 
-  // Handler: Cabut Tiket Asesmen dari Psikolog dan Kembalikan ke Kolam Antrean Bersama
+  // Handler: Batalkan Penugasan Psikolog pada Tiket Asesmen
   const handleReleaseTicket = async (bookingId: string) => {
     try {
       const res = await psikotesService.releaseReviewTicket(bookingId);
       if (res && res.success) {
-        // Bersihkan cache draft lokal di browser
         if (typeof window !== "undefined") {
-          localStorage.removeItem(`empathika_draft_review_${bookingId}`);
           sessionStorage.removeItem(`empathika_active_review_${bookingId}`);
         }
         setNotification({
           type: "success",
-          message: "Tiket asesmen berhasil dicabut dan dikembalikan ke Kolam Antrean Bersama.",
+          message: "Penugasan psikolog berhasil dibatalkan.",
         });
         setPesertaList((prev) =>
           prev.map((p) => {
@@ -350,6 +371,61 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
       setNotification({
         type: "error",
         message: err.response?.data?.message || err.message || "Gagal mengembalikan tiket ke antrean.",
+      });
+      throw err;
+    }
+  };
+
+  // Handler: Admin Menugaskan Peserta Psikotes ke Psikolog Pemeriksa Tertentu
+  const handleAssignPsikolog = async (bookingId: string, idPsikolog: string) => {
+    try {
+      const res = await psikotesService.assignPsikolog(bookingId, idPsikolog);
+      if (res && res.success && res.data) {
+        setNotification({
+          type: "success",
+          message: res.message || `Tiket berhasil ditugaskan kepada ${res.data.psikolog.nama_gelar}.`,
+        });
+        setPesertaList((prev) =>
+          prev.map((p) => {
+            if (String(p.id) === String(bookingId)) {
+              return {
+                ...p,
+                id_psikolog: res.data.id_psikolog,
+                claimed_at: res.data.claimed_at,
+                psikolog: {
+                  id: res.data.psikolog.id,
+                  nama: res.data.psikolog.nama_gelar,
+                  nama_gelar: res.data.psikolog.nama_gelar,
+                  kategori: res.data.psikolog.kategori,
+                  foto: res.data.psikolog.foto,
+                },
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPeserta((prev) =>
+          prev && String(prev.id) === String(bookingId)
+            ? {
+                ...prev,
+                id_psikolog: res.data.id_psikolog,
+                claimed_at: res.data.claimed_at,
+                psikolog: {
+                  id: res.data.psikolog.id,
+                  nama: res.data.psikolog.nama_gelar,
+                  nama_gelar: res.data.psikolog.nama_gelar,
+                  kategori: res.data.psikolog.kategori,
+                  foto: res.data.psikolog.foto,
+                },
+              }
+            : prev
+        );
+      }
+    } catch (err: any) {
+      console.error("Gagal menugaskan psikolog:", err);
+      setNotification({
+        type: "error",
+        message: err.response?.data?.message || err.message || "Gagal menugaskan psikolog pemeriksa.",
       });
       throw err;
     }
@@ -474,10 +550,12 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
       <ModalDetailPeserta
         peserta={selectedPeserta}
         judulList={judulList}
+        psikologList={psikologOptions}
         onClose={() => setSelectedPeserta(null)}
         onDownloadPdf={(peserta) => printLaporanPsikotes(peserta, judulList)}
         onToggleWaStatus={isBiroContext ? undefined : handleToggleWaStatus}
-        onReleaseTicket={handleReleaseTicket}
+        onReleaseTicket={isBiroContext ? undefined : handleReleaseTicket}
+        onAssignPsikolog={isBiroContext ? undefined : handleAssignPsikolog}
         isBiroContext={isBiroContext}
       />
 

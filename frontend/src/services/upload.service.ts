@@ -59,4 +59,28 @@ export const uploadService = {
 
     return result.data.url as string
   },
+
+  /**
+   * Upload dokumen PDF laporan psikotes ke server (maksimal 10MB).
+   */
+  uploadPdf: async (file: File): Promise<{ url: string; filename: string }> => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await apiClient.post("/upload/pdf", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+
+    const result = response.data
+    if (!result?.success || !result?.data?.url) {
+      throw new Error(result?.message ?? "Gagal mengupload file PDF")
+    }
+
+    return {
+      url: result.data.url as string,
+      filename: (result.data.filename as string) || file.name,
+    }
+  },
 }

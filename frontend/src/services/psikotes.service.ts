@@ -167,6 +167,7 @@ export interface ReviewPsikotesItem {
   perlu_review_psikolog: boolean
   catatan_psikolog?: string | null
   rekomendasi_psikolog?: string | null
+  file_laporan_url?: string | null
   draft_saved_at?: string | null
   tanggal_review?: string | null
   psikolog?: {
@@ -344,6 +345,7 @@ export const psikotesService = {
             deskripsi?: string | null
             catatan_psikolog?: string | null
             rekomendasi_psikolog?: string | null
+            file_laporan_url?: string | null
             draft_saved_at?: string | null
             tanggal_review?: string | null
           }
@@ -374,8 +376,9 @@ export const psikotesService = {
   submitReview: (
     bookingId: string,
     payload: {
-      catatan_psikolog: string
+      catatan_psikolog?: string | null
       rekomendasi_psikolog?: string | null
+      file_laporan_url?: string | null
       id_psikolog?: string | null
       is_draft?: boolean
     }
@@ -388,7 +391,7 @@ export const psikotesService = {
       }>(`/psikotes/booking/${bookingId}/review`, payload)
       .then((r) => r.data),
 
-  claimReviewTicket: (bookingId: string) =>
+  assignPsikolog: (bookingId: string, id_psikolog: string) =>
     apiClient
       .post<{
         success: boolean
@@ -396,11 +399,18 @@ export const psikotesService = {
         data: {
           id: string
           status_pengerjaan: string
-          is_claimed: boolean
-          claimed_by: any
+          id_psikolog: string
           claimed_at: string
+          psikolog: {
+            id: string
+            nama: string
+            nama_gelar: string
+            kategori?: string
+            spesialisasi?: string | null
+            foto?: string | null
+          }
         }
-      }>(`/psikotes/booking/${bookingId}/claim`)
+      }>(`/psikotes/booking/${bookingId}/assign`, { id_psikolog })
       .then((r) => r.data),
 
   releaseReviewTicket: (bookingId: string) =>

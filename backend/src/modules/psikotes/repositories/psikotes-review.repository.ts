@@ -721,12 +721,6 @@ export class PsikotesReviewRepository {
         })
       }
 
-      if (targetPsikolog.status !== 'ACTIVE') {
-        throw Object.assign(new Error('Psikolog yang dipilih sedang tidak aktif.'), {
-          statusCode: 400,
-        })
-      }
-
       const isReassigned = Boolean(booking.id_psikolog && booking.id_psikolog !== targetPsikolog.id)
 
       const updatedBooking = await tx.bookingPsikotes.update({

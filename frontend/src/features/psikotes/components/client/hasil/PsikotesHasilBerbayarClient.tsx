@@ -158,6 +158,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     statusPengerjaan?: string | null;
     catatanPsikolog?: string | null;
     rekomendasiPsikolog?: string | null;
+    fileLaporanUrl?: string | null;
     psikolog?: { id?: number; nama?: string; gelar?: string; nama_gelar?: string } | null;
     tanggalReview?: string | null;
     tanggalSelesai?: string | null;
@@ -253,6 +254,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               statusPengerjaan: (bData as any).status_pengerjaan || null,
               catatanPsikolog: bData.hasil?.catatan_psikolog || (bData as any).catatan_psikolog || null,
               rekomendasiPsikolog: bData.hasil?.rekomendasi_psikolog || (bData as any).rekomendasi_psikolog || null,
+              fileLaporanUrl: (bData as any).file_laporan_url || (bData.hasil as any)?.file_laporan_url || null,
               psikolog: bData.psikolog || (bData as any).psikolog || null,
               tanggalReview: bData.hasil?.tanggal_review || (bData as any).tanggal_review || null,
               tanggalSelesai: bData.hasil?.tanggal_selesai || (bData as any).tanggal_mulai || null,
@@ -775,6 +777,33 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     if (isDownloading || isMenungguReview) return;
     setIsDownloading(true);
     try {
+      if (bookingReport?.fileLaporanUrl) {
+        const safeName = (peserta.nama || "Peserta")
+          .replace(/[^a-zA-Z0-9\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "-");
+        const fileName = `Laporan-Psikotes-${safeName}.pdf`;
+        try {
+          const response = await fetch(bookingReport.fileLaporanUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+            return;
+          }
+        } catch {
+          // Fallback jika fetch terhalang CORS
+        }
+        window.open(bookingReport.fileLaporanUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+
       const noDokumen = `EMP-PSI-${
         peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"
       }`;
