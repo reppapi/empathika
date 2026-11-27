@@ -1,25 +1,7 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
-import Link from "next/link"
-import {
-  ChevronDown,
-  Check,
-  AlertCircle,
-  Building2,
-  User,
-  Mail,
-  FileText,
-  Upload,
-  Loader2,
-  Clock,
-  Sparkles,
-  Send,
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
-  CheckCircle2,
-} from "lucide-react"
+import React, { useState, useEffect } from "react"
+import { Loader2, Send, AlertCircle } from "lucide-react"
 import {
   getPengajuanKerjaSama,
   savePengajuanKerjaSama,
@@ -36,297 +18,16 @@ import { PengajuanKerjaSama, FormulirConfigItem } from "../../types"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
 import { adminService } from "@/services/admin.service"
 import { useTenantContext } from "@/context/TenantContext"
-import PhoneInputField from "@/components/shared/PhoneInputField"
-
-interface FormSelectDropdownProps {
-  value: string
-  onChange: (val: string) => void
-  options: string[]
-  placeholder?: string
-}
-
-function FormSelectDropdown({
-  value,
-  onChange,
-  options,
-  placeholder = "Pilih opsi...",
-}: FormSelectDropdownProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false)
-      }
-    }
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside)
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside)
-    }
-  }, [isOpen])
-
-  const selectedOption = value || options[0] || ""
-
-  return (
-    <div ref={dropdownRef} className="relative w-full">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-full px-4 py-3 rounded-xl text-sm text-gray-800 bg-white transition-all flex items-center justify-between text-left cursor-pointer border ${
-          isOpen
-            ? "border-[#561269] ring-2 ring-[#561269]/20 outline-none"
-            : "border-gray-300 hover:border-[#561269] focus:outline-none"
-        }`}
-      >
-        <span className={selectedOption ? "text-gray-900 font-medium" : "text-gray-400"}>
-          {selectedOption || placeholder}
-        </span>
-        <ChevronDown
-          className={`w-4 h-4 text-gray-500 transition-transform duration-200 shrink-0 ml-2 ${
-            isOpen ? "rotate-180 text-[#561269]" : ""
-          }`}
-        />
-      </button>
-
-      {isOpen && (
-        <div className="absolute z-30 left-0 right-0 mt-1.5 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden py-1 animate-in fade-in zoom-in-95 duration-150">
-          <div className="max-h-64 overflow-y-auto">
-            {options.map((opt) => {
-              const isSelected = selectedOption === opt
-              return (
-                <div
-                  key={opt}
-                  onClick={() => {
-                    onChange(opt)
-                    setIsOpen(false)
-                  }}
-                  className={`px-4 py-2.5 text-sm flex items-center justify-between cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-purple-50 text-[#561269] font-bold"
-                      : "text-gray-800 hover:bg-gray-50"
-                  }`}
-                >
-                  <span>{opt}</span>
-                  {isSelected && (
-                    <Check className="w-4 h-4 text-[#561269] shrink-0 ml-2" />
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-interface FormProposalUploadProps {
-  value: string
-  onChange: (val: string) => void
-  label?: string
-}
-
-function FormProposalUpload({ value, onChange }: FormProposalUploadProps) {
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadError, setUploadError] = useState<string | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-
-  let parsedFile: { url: string; filename: string; size?: number } | null = null
-  if (value) {
-    try {
-      if (value.startsWith("{")) {
-        parsedFile = JSON.parse(value)
-      } else {
-        parsedFile = { url: value, filename: "Proposal_Kerjasama.pdf" }
-      }
-    } catch {
-      parsedFile = { url: value, filename: "Proposal_Kerjasama.pdf" }
-    }
-  }
-
-  const handleProcessFile = async (file: File) => {
-    if (!file) return
-    setUploadError(null)
-
-    if (file.size > 15 * 1024 * 1024) {
-      setUploadError("Ukuran file terlalu besar. Maksimal 15 MB.")
-      return
-    }
-
-    setIsUploading(true)
-    try {
-      const res = await kerjaSamaService.uploadProposal(file)
-      if (res?.data?.url) {
-        const filePayload = {
-          url: res.data.url,
-          filename: res.data.originalName || file.name,
-          size: res.data.size || file.size,
-        }
-        onChange(JSON.stringify(filePayload))
-        setIsUploading(false)
-        return
-      }
-    } catch (err: any) {
-      console.warn("Upload proposal to backend failed, falling back to local reader:", err?.message || err)
-    }
-
-    try {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const filePayload = {
-          url: reader.result as string,
-          filename: file.name,
-          size: file.size,
-        }
-        onChange(JSON.stringify(filePayload))
-        setIsUploading(false)
-      }
-      reader.onerror = () => {
-        setUploadError("Gagal membaca file proposal.")
-        setIsUploading(false)
-      }
-      reader.readAsDataURL(file)
-    } catch (fallbackErr) {
-      setUploadError("Terjadi kesalahan saat memproses file.")
-      setIsUploading(false)
-    }
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) handleProcessFile(file)
-    e.target.value = ""
-  }
-
-  const handleRemove = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onChange("")
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
-  }
-
-  return (
-    <div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        onChange={handleFileChange}
-        className="hidden"
-      />
-
-      {isUploading ? (
-        <div className="border border-purple-200 bg-purple-50/50 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
-          <Loader2 className="w-8 h-8 text-[#561269] animate-spin mb-2" />
-          <p className="text-sm font-bold text-gray-900">Mengunggah berkas proposal...</p>
-          <p className="text-xs text-gray-500 mt-0.5">Harap tunggu proses unggah selesai</p>
-        </div>
-      ) : parsedFile ? (
-        <div className="border border-emerald-200 bg-emerald-50/40 rounded-2xl p-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0">
-              <FileText className="w-6 h-6" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-gray-900 truncate">
-                  {parsedFile.filename || "Proposal_Kerjasama.pdf"}
-                </p>
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
-                  <Check className="w-3 h-3" /> Terunggah
-                </span>
-              </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {parsedFile.size && <span>{(parsedFile.size / (1024 * 1024)).toFixed(2)} MB • </span>}
-                {parsedFile.url && !parsedFile.url.startsWith("data:") && (
-                  <a
-                    href={parsedFile.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[#561269] hover:underline font-medium inline-flex items-center gap-0.5"
-                  >
-                    Lihat Berkas <ExternalLink className="w-3 h-3 inline" />
-                  </a>
-                )}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-xs font-semibold text-[#561269] bg-purple-100 hover:bg-purple-200 px-3.5 py-2 rounded-xl cursor-pointer transition-colors"
-            >
-              Ganti
-            </button>
-            <button
-              type="button"
-              onClick={handleRemove}
-              className="text-xs font-semibold text-rose-600 hover:bg-rose-50 px-3 py-2 rounded-xl cursor-pointer transition-colors"
-            >
-              Hapus
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            setIsDragging(true)
-          }}
-          onDragLeave={() => setIsDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setIsDragging(false)
-            const file = e.dataTransfer.files?.[0]
-            if (file) handleProcessFile(file)
-          }}
-          onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-7 flex flex-col items-center justify-center cursor-pointer transition-all ${
-            isDragging
-              ? "border-[#561269] bg-purple-100/50 scale-[1.01]"
-              : "border-gray-300 hover:border-[#561269] bg-purple-50/20 hover:bg-purple-50/50"
-          } group`}
-        >
-          <div className="w-12 h-12 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-            <Upload className="w-6 h-6" />
-          </div>
-          <p className="text-sm font-semibold text-gray-800 mb-1">
-            Pilih berkas proposal atau seret ke sini
-          </p>
-          <p className="text-xs text-gray-500">
-            Format PDF, Word (DOC/DOCX), atau Gambar (Maksimal 15 MB)
-          </p>
-        </div>
-      )}
-
-      {uploadError && (
-        <p className="text-xs text-rose-600 font-semibold mt-1.5 flex items-center gap-1">
-          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-          <span>{uploadError}</span>
-        </p>
-      )}
-    </div>
-  )
-}
+import FormulirHeader from "./formulir/FormulirHeader"
+import FormulirAffiliateView from "./formulir/FormulirAffiliateView"
+import FormulirSuccessView from "./formulir/FormulirSuccessView"
+import FormulirIdentitySection from "./formulir/FormulirIdentitySection"
+import FormulirQuestionsSection from "./formulir/FormulirQuestionsSection"
+import FormulirProposalSection from "./formulir/FormulirProposalSection"
 
 interface FormulirKerjaSamaClientProps {
   formType?: string
 }
-
-const TIPE_INSTITUSI_OPTIONS = [
-  "Sekolah / Universitas",
-  "Perusahaan / Korporasi",
-  "Komunitas / Organisasi",
-  "Rumah Sakit / Faskes",
-  "Instansi Pemerintah",
-  "Lainnya",
-]
 
 export default function FormulirKerjaSamaClient({
   formType = "asesmen",
@@ -598,7 +299,11 @@ export default function FormulirKerjaSamaClient({
     } catch (apiErr: any) {
       console.error("Backend API submit pengajuan error:", apiErr)
       setIsSubmitting(false)
-      setSubmitError(apiErr?.response?.data?.message || apiErr?.message || "Gagal mengirimkan pengajuan kerja sama. Silakan periksa kembali formulir Anda.")
+      setSubmitError(
+        apiErr?.response?.data?.message ||
+          apiErr?.message ||
+          "Gagal mengirimkan pengajuan kerja sama. Silakan periksa kembali formulir Anda."
+      )
       return
     }
 
@@ -640,193 +345,22 @@ export default function FormulirKerjaSamaClient({
 
   // ── SPECIAL VIEW: AFFILIATE PROGRAM ──
   if (formType === "affiliate") {
-    return (
-      <div className="min-h-screen bg-[#FAF7FB] font-poppins pb-24">
-        {/* ── HEADER NAVIGATION (AFFILIATE) ── */}
-        <div className="relative overflow-hidden bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 lg:px-8 shadow-md">
-          {/* Decorative Background Elements (Geometric & Fluid Waves - Tanpa Bintang) */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.12)_1px,_transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_top_right,black_40%,transparent_80%)] pointer-events-none" />
-          <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-[#EAB308]/15 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-fuchsia-400/20 blur-3xl pointer-events-none" />
-          <div className="absolute top-1/2 right-1/3 w-60 h-60 rounded-full bg-purple-300/10 blur-2xl pointer-events-none" />
-          <div className="absolute -top-16 right-16 w-64 h-64 rounded-full border border-white/10 pointer-events-none" />
-          <div className="absolute -top-28 right-4 w-96 h-96 rounded-full border border-white/5 pointer-events-none" />
-          <div className="absolute -bottom-24 left-12 w-60 h-60 rounded-full border border-white/10 pointer-events-none" />
-          <svg
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-25"
-            preserveAspectRatio="none"
-            viewBox="0 0 1200 450"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M-100 220 C 300 380, 700 60, 1300 250"
-              stroke="url(#affiliate-wave-1)"
-              strokeWidth="1.5"
-              strokeDasharray="6 6"
-            />
-            <path
-              d="M-100 140 C 400 50, 800 360, 1300 160"
-              stroke="url(#affiliate-wave-2)"
-              strokeWidth="1.5"
-            />
-            <defs>
-              <linearGradient id="affiliate-wave-1" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-                <stop offset="50%" stopColor="#EAB308" stopOpacity="0.5" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-              </linearGradient>
-              <linearGradient id="affiliate-wave-2" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-                <stop offset="50%" stopColor="#ffffff" stopOpacity="0.35" />
-                <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-          </svg>
-
-          <div className="relative z-10 max-w-4xl mx-auto">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="px-3 py-1 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-sm">
-                Program Kemitraan
-              </span>
-              <span className="px-3 py-1 rounded-full bg-[#EAB308] text-[#0f172a] text-xs font-bold">
-                Affiliate
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-2">
-              Program Affiliate {brandName}
-            </h1>
-            <p className="text-white/80 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Berkolaborasi bersama kami dalam memperluas jangkauan layanan kesehatan mental dan raih komisi kemitraan menarik.
-            </p>
-          </div>
-        </div>
-
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-20">
-          <div className="bg-white rounded-3xl border border-purple-100 shadow-xl p-8 sm:p-12 text-center space-y-8">
-            <div className="w-20 h-20 bg-purple-100 text-[#561269] rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
-              🤝
-            </div>
-
-            <div className="space-y-3">
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">
-                Peluang Kolaborasi Affiliate
-              </h2>
-              <p className="text-gray-600 text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
-                Program ini ditujukan bagi kreator konten, komunitas, konsultan, dan individu yang ingin berbagi manfaat edukasi serta layanan psikologis profesional.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
-              <div className="p-4 rounded-2xl bg-[#FAF7FB] border border-purple-100/70">
-                <p className="font-bold text-[#561269] text-sm mb-1">💰 Komisi Menarik</p>
-                <p className="text-xs text-gray-600">Bagi hasil kompetitif untuk setiap transaksi pengguna yang Anda ajak.</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#FAF7FB] border border-purple-100/70">
-                <p className="font-bold text-[#561269] text-sm mb-1">📊 Transparan</p>
-                <p className="text-xs text-gray-600">Pencatatan rujukan rapi dan update laporan berkala dari tim kemitraan.</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-[#FAF7FB] border border-purple-100/70">
-                <p className="font-bold text-[#561269] text-sm mb-1">🎨 Dukungan Materi</p>
-                <p className="text-xs text-gray-600">Materi promosi, konten edukatif, dan sesi briefing khusus bersama tim kami.</p>
-              </div>
-            </div>
-
-            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href={`https://wa.me/${waNumber}?text=${encodeURIComponent(
-                  `Halo Tim Partnership ${brandName}, saya tertarik untuk bermitra dan berdiskusi seputar Program Affiliate.`
-                )}`}
-                target="_blank"
-                rel="noreferrer"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
-              >
-                <span>Daftar / Konsultasi via WhatsApp</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </a>
-
-              <Link
-                href="/kerja-sama"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Kembali ke Kerja Sama</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+    return <FormulirAffiliateView brandName={brandName} waNumber={waNumber} />
   }
 
   // ── SPECIAL VIEW: BERHASIL SUBMIT ──
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-[#FAF7FB] pt-36 pb-20 sm:py-28 px-4 font-poppins flex items-center justify-center">
-        <div className="max-w-xl w-full bg-white rounded-3xl p-8 sm:p-12 border border-purple-100 shadow-xl text-center animate-in fade-in zoom-in-95 duration-200">
-          <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
-            <CheckCircle2 className="w-10 h-10" />
-          </div>
-
-          <span className="inline-block px-4 py-1 rounded-full bg-purple-50 text-[#561269] text-xs font-bold uppercase tracking-wider mb-3">
-            Pengajuan Diterima
-          </span>
-
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-3">
-            Pengajuan Kerja Sama Berhasil Terkirim!
-          </h2>
-
-          <p className="text-gray-600 text-sm sm:text-base leading-relaxed mb-6">
-            Terima kasih atas inisiatif kolaborasi bersama{" "}
-            <span className="font-bold text-[#561269]">{brandName}</span> untuk program{" "}
-            <span className="font-bold text-gray-900">{formConfig.title}</span>. Tim Kemitraan kami
-            akan segera meninjau kebutuhan institusi Anda dan menghubungi melalui WhatsApp atau Email dalam 1–2 hari kerja.
-          </p>
-
-          <div className="bg-[#FAF7FB] border border-purple-100 rounded-2xl p-5 text-left mb-8 space-y-2 text-xs sm:text-sm">
-            <div className="flex justify-between text-gray-500">
-              <span>Program Dipilih:</span>
-              <span className="font-bold text-gray-900">{formConfig.title}</span>
-            </div>
-            <div className="flex justify-between text-gray-500">
-              <span>Institusi / Organisasi:</span>
-              <span className="font-bold text-gray-900">{namaInstitusi} ({tipeInstitusi})</span>
-            </div>
-            <div className="flex justify-between text-gray-500">
-              <span>Nama PIC:</span>
-              <span className="font-bold text-gray-900">{namaLengkap}</span>
-            </div>
-            <div className="flex justify-between text-gray-500">
-              <span>WhatsApp:</span>
-              <span className="font-bold text-gray-900">{nomorWhatsapp}</span>
-            </div>
-            <div className="flex justify-between text-gray-500">
-              <span>Email:</span>
-              <span className="font-bold text-gray-900">{emailPIC}</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 justify-center items-center">
-            <a
-              href={waAdminUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
-            >
-              <span>Konfirmasi via WhatsApp</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </a>
-
-            <Link
-              href="/kerja-sama"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Kembali ke Kerja Sama</span>
-            </Link>
-          </div>
-        </div>
-      </div>
+      <FormulirSuccessView
+        brandName={brandName}
+        formTitle={formConfig.title}
+        namaInstitusi={namaInstitusi}
+        tipeInstitusi={tipeInstitusi}
+        namaLengkap={namaLengkap}
+        nomorWhatsapp={nomorWhatsapp}
+        emailPIC={emailPIC}
+        waAdminUrl={waAdminUrl}
+      />
     )
   }
 
@@ -837,80 +371,7 @@ export default function FormulirKerjaSamaClient({
   return (
     <div className="min-h-screen bg-[#FAF7FB] font-poppins pb-24">
       {/* ── HEADER NAVIGATION ── */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 lg:px-8 shadow-md">
-        {/* Decorative Background Elements (Geometric & Fluid Waves - Tanpa Bintang) */}
-        {/* 1. Subtle Radial Dot Grid Pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.12)_1px,_transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_top_right,black_40%,transparent_80%)] pointer-events-none" />
-
-        {/* 2. Soft Ambient Glowing Orbs */}
-        <div className="absolute -top-24 -right-24 w-80 h-80 rounded-full bg-[#EAB308]/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full bg-fuchsia-400/20 blur-3xl pointer-events-none" />
-        <div className="absolute top-1/2 right-1/3 w-60 h-60 rounded-full bg-purple-300/10 blur-2xl pointer-events-none" />
-
-        {/* 3. Modern Geometric Rings */}
-        <div className="absolute -top-16 right-16 w-64 h-64 rounded-full border border-white/10 pointer-events-none" />
-        <div className="absolute -top-28 right-4 w-96 h-96 rounded-full border border-white/5 pointer-events-none" />
-        <div className="absolute -bottom-24 left-12 w-60 h-60 rounded-full border border-white/10 pointer-events-none" />
-
-        {/* 4. Elegant Fluid Wave Curves */}
-        <svg
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-25"
-          preserveAspectRatio="none"
-          viewBox="0 0 1200 450"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M-100 220 C 300 380, 700 60, 1300 250"
-            stroke="url(#kerjasama-wave-1)"
-            strokeWidth="1.5"
-            strokeDasharray="6 6"
-          />
-          <path
-            d="M-100 140 C 400 50, 800 360, 1300 160"
-            stroke="url(#kerjasama-wave-2)"
-            strokeWidth="1.5"
-          />
-          <defs>
-            <linearGradient id="kerjasama-wave-1" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="50%" stopColor="#EAB308" stopOpacity="0.5" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="kerjasama-wave-2" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
-            {formConfig.title}
-          </h1>
-
-          <p className="text-white/85 text-xs sm:text-sm max-w-2xl leading-relaxed mb-4">
-            {formConfig.description}
-          </p>
-
-          {/* Quick Info Badges */}
-          <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-white/90">
-            <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl backdrop-blur-xs">
-              <Building2 className="w-4 h-4 text-[#EAB308]" />
-              <span>Institusi & Perusahaan</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl backdrop-blur-xs">
-              <Clock className="w-4 h-4 text-[#EAB308]" />
-              <span>Respon 1–2 Hari Kerja</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-xl backdrop-blur-xs">
-              <Sparkles className="w-4 h-4 text-[#EAB308]" />
-              <span>Kemitraan Resmi & MoU</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FormulirHeader title={formConfig.title} description={formConfig.description} />
 
       {/* ── FORM CONTAINER ── */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-20">
@@ -933,361 +394,43 @@ export default function FormulirKerjaSamaClient({
           )}
 
           {/* ── SECTION 1: DATA PIC & INSTITUSI ── */}
-          <div>
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                1
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Informasi Pemohon & Institusi</h2>
-                <p className="text-xs text-gray-500">
-                  Lengkapi identitas penanggung jawab (PIC) dan profil instansi / organisasi Anda.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* Nama Lengkap PIC */}
-              <div id="field-namaLengkap">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  NAMA LENGKAP / PIC <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={namaLengkap}
-                    onChange={(e) => {
-                      setNamaLengkap(e.target.value)
-                      if (formErrors.namaLengkap && e.target.value.trim()) {
-                        setFormErrors((prev) => {
-                          const next = { ...prev }
-                          delete next.namaLengkap
-                          return next
-                        })
-                      }
-                    }}
-                    placeholder="Contoh: Muhammad Kevin Pradana"
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border text-sm text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                      hasAttemptedSubmit && formErrors.namaLengkap
-                        ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                        : "border-gray-300"
-                    }`}
-                  />
-                </div>
-                {hasAttemptedSubmit && formErrors.namaLengkap && (
-                  <p className="text-xs text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                    <span>{formErrors.namaLengkap}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Nama Institusi */}
-              <div id="field-namaInstitusi">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  NAMA INSTITUSI / ORGANISASI <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Building2 className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    required
-                    value={namaInstitusi}
-                    onChange={(e) => {
-                      setNamaInstitusi(e.target.value)
-                      if (formErrors.namaInstitusi && e.target.value.trim()) {
-                        setFormErrors((prev) => {
-                          const next = { ...prev }
-                          delete next.namaInstitusi
-                          return next
-                        })
-                      }
-                    }}
-                    placeholder="Contoh: PT Bangun Bangsa Sejahtera / Universitas X"
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border text-sm text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                      hasAttemptedSubmit && formErrors.namaInstitusi
-                        ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                        : "border-gray-300"
-                    }`}
-                  />
-                </div>
-                {hasAttemptedSubmit && formErrors.namaInstitusi && (
-                  <p className="text-xs text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                    <span>{formErrors.namaInstitusi}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Alamat Email */}
-              <div id="field-emailPIC">
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  EMAIL AKTIF PIC <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="email"
-                    required
-                    value={emailPIC}
-                    onChange={(e) => {
-                      setEmailPIC(e.target.value)
-                      if (formErrors.emailPIC && e.target.value.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e.target.value.trim())) {
-                        setFormErrors((prev) => {
-                          const next = { ...prev }
-                          delete next.emailPIC
-                          return next
-                        })
-                      }
-                    }}
-                    placeholder="nama@institusi.com"
-                    className={`w-full pl-11 pr-4 py-3 rounded-xl border text-sm text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                      hasAttemptedSubmit && formErrors.emailPIC
-                        ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                        : "border-gray-300"
-                    }`}
-                  />
-                </div>
-                {hasAttemptedSubmit && formErrors.emailPIC && (
-                  <p className="text-xs text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                    <span>{formErrors.emailPIC}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* No. WhatsApp PIC */}
-              <div id="field-nomorWhatsapp">
-                <PhoneInputField
-                  value={nomorWhatsapp}
-                  label="No WhatsApp"
-                  labelClassName="font-bold"
-                  required
-                  inputClassName={`px-4 py-3 text-sm rounded-xl focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                    hasAttemptedSubmit && formErrors.nomorWhatsapp
-                      ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                      : "border-gray-300"
-                  }`}
-                  onChange={(val) => {
-                    setNomorWhatsapp(val)
-                    if (formErrors.nomorWhatsapp && val.replace(/\D/g, "").length >= 9) {
-                      setFormErrors((prev) => {
-                        const next = { ...prev }
-                        delete next.nomorWhatsapp
-                        return next
-                      })
-                    }
-                  }}
-                  placeholder="81234567890"
-                />
-                {hasAttemptedSubmit && formErrors.nomorWhatsapp && (
-                  <p className="text-xs text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                    <span>{formErrors.nomorWhatsapp}</span>
-                  </p>
-                )}
-              </div>
-
-              {/* Tipe Institusi Selector */}
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-bold text-gray-700 mb-2">
-                  TIPE INSTITUSI / ORGANISASI <span className="text-rose-500">*</span>
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {TIPE_INSTITUSI_OPTIONS.map((opt) => {
-                    const isSelected = tipeInstitusi === opt
-                    return (
-                      <button
-                        key={opt}
-                        type="button"
-                        onClick={() => setTipeInstitusi(opt)}
-                        className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs sm:text-sm font-semibold transition-all text-left ${
-                          isSelected
-                            ? "border-[#561269] bg-purple-50 text-[#561269] shadow-xs ring-1 ring-[#561269]"
-                            : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
-                        }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
-                            isSelected ? "border-[#561269] bg-[#561269]" : "border-gray-300"
-                          }`}
-                        >
-                          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                        </div>
-                        <span className="truncate">{opt}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
+          <FormulirIdentitySection
+            namaLengkap={namaLengkap}
+            setNamaLengkap={setNamaLengkap}
+            namaInstitusi={namaInstitusi}
+            setNamaInstitusi={setNamaInstitusi}
+            emailPIC={emailPIC}
+            setEmailPIC={setEmailPIC}
+            nomorWhatsapp={nomorWhatsapp}
+            setNomorWhatsapp={setNomorWhatsapp}
+            tipeInstitusi={tipeInstitusi}
+            setTipeInstitusi={setTipeInstitusi}
+            hasAttemptedSubmit={hasAttemptedSubmit}
+            formErrors={formErrors}
+            setFormErrors={setFormErrors}
+          />
 
           {/* ── SECTION 2: KEBUTUHAN PROGRAM & PELAKSANAAN ── */}
-          <div>
-            <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                2
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">Kebutuhan & Gambaran Kegiatan</h2>
-                <p className="text-xs text-gray-500">
-                  Spesifikasi program, target peserta, dan estimasi waktu pelaksanaan kegiatan.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {/* Dynamic Questions for this specific form */}
-              {formQuestions.map((q, idx) => {
-                const isOptional = isQuestionOptional(q)
-
-                const isBudgetOrSelect =
-                  q.type === "select" ||
-                  (q as any).type === "dropdown" ||
-                  (q.options && q.label.toLowerCase().includes("budget")) ||
-                  q.key.toLowerCase().includes("budget")
-
-                const effectiveOptions =
-                  q.options && q.options.length > 0
-                    ? q.options
-                    : []
-
-                return (
-                  <div key={q.key} id={`field-${q.key}`} className="bg-[#FAF7FB] rounded-2xl p-5 border border-purple-100/70">
-                    <label className="block text-xs sm:text-sm font-bold text-gray-900 mb-2.5">
-                      {idx + 1}. {q.label}
-                      {!isOptional && <span className="text-rose-500 font-bold ml-1">*</span>}
-                    </label>
-
-                    {isBudgetOrSelect ? (
-                      <FormSelectDropdown
-                        value={jawabanKhusus[q.key] || effectiveOptions[0] || ""}
-                        onChange={(val) => handleKhususChange(q.key, val)}
-                        options={effectiveOptions}
-                        placeholder="Pilih rentang estimasi budget..."
-                      />
-                    ) : q.type === "radio" && q.options ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {q.options.map((opt) => {
-                          const isSelected = (jawabanKhusus[q.key] || q.options![0]) === opt
-                          return (
-                            <button
-                              key={opt}
-                              type="button"
-                              onClick={() => handleKhususChange(q.key, opt)}
-                              className={`flex items-start gap-2.5 p-3 rounded-xl border text-xs sm:text-sm transition-all text-left ${
-                                isSelected
-                                  ? "border-[#561269] bg-white text-[#561269] font-bold shadow-xs ring-1 ring-[#561269]"
-                                  : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 font-medium"
-                              }`}
-                            >
-                              <div
-                                className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
-                                  isSelected ? "border-[#561269] bg-[#561269]" : "border-gray-300"
-                                }`}
-                              >
-                                {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
-                              </div>
-                              <span className="leading-snug">{opt}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    ) : q.type === "textarea" ? (
-                      <textarea
-                        rows={3}
-                        value={jawabanKhusus[q.key] || ""}
-                        onChange={(e) => handleKhususChange(q.key, e.target.value)}
-                        placeholder={q.placeholder || "Tuliskan jawaban Anda..."}
-                        className={`w-full px-4 py-3 rounded-xl border text-sm text-gray-900 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                          !isOptional && hasAttemptedSubmit && formErrors[q.key]
-                            ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                            : "border-gray-300"
-                        }`}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={jawabanKhusus[q.key] || ""}
-                        onChange={(e) => handleKhususChange(q.key, e.target.value)}
-                        placeholder={q.placeholder || "Tuliskan jawaban Anda..."}
-                        className={`w-full px-4 py-3 rounded-xl border text-sm text-gray-900 bg-white transition-all focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269] ${
-                          !isOptional && hasAttemptedSubmit && formErrors[q.key]
-                            ? "border-rose-400 bg-rose-50/20 ring-1 ring-rose-200"
-                            : "border-gray-300"
-                        }`}
-                      />
-                    )}
-
-                    {!isOptional && hasAttemptedSubmit && formErrors[q.key] && (
-                      <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                        <span>{formErrors[q.key]}</span>
-                      </p>
-                    )}
-                  </div>
-                )
-              })}
-
-              {/* Catatan / Gambaran Kegiatan Tambahan */}
-              <div>
-                <label className="block text-xs font-bold text-gray-700 mb-1.5">
-                  CATATAN TAMBAHAN / GAMBARAN KEGIATAN (OPSIONAL)
-                </label>
-                <textarea
-                  rows={3}
-                  value={catatanKebutuhan}
-                  onChange={(e) => setCatatanKebutuhan(e.target.value)}
-                  placeholder="Tuliskan jika ada kebutuhan khusus, topik bahasan spesifik, atau informasi penting lainnya..."
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#561269]/20 focus:border-[#561269]"
-                />
-              </div>
-            </div>
-          </div>
+          <FormulirQuestionsSection
+            questions={formQuestions}
+            jawabanKhusus={jawabanKhusus}
+            handleKhususChange={handleKhususChange}
+            catatanKebutuhan={catatanKebutuhan}
+            setCatatanKebutuhan={setCatatanKebutuhan}
+            hasAttemptedSubmit={hasAttemptedSubmit}
+            formErrors={formErrors}
+            isQuestionOptional={isQuestionOptional}
+          />
 
           {/* ── SECTION 3: BERKAS PROPOSAL & PENDUKUNG ── */}
-          {fileQuestions.length > 0 && (
-            <div>
-              <div className="flex items-center gap-3 border-b border-gray-100 pb-3 mb-6">
-                <div className="w-9 h-9 rounded-xl bg-purple-100 text-[#561269] flex items-center justify-center font-bold">
-                  3
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900">Lampiran Dokumen & Proposal</h2>
-                  <p className="text-xs text-gray-500">
-                    Unggah berkas dokumen atau proposal kerja sama sesuai kebutuhan formulir di bawah ini.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                {fileQuestions.map((q) => {
-                  const isOptional = isQuestionOptional(q)
-                  return (
-                    <div key={q.key} id={`field-${q.key}`}>
-                      <label className="block text-xs font-bold text-gray-700 mb-2 uppercase">
-                        {q.label}
-                        {!isOptional && <span className="text-rose-500 font-bold ml-1">*</span>}
-                      </label>
-                      <FormProposalUpload
-                        value={jawabanKhusus[q.key] || ""}
-                        onChange={(val) => handleKhususChange(q.key, val)}
-                      />
-                      {!isOptional && hasAttemptedSubmit && formErrors[q.key] && (
-                        <p className="text-xs text-rose-600 font-medium mt-1.5 flex items-center gap-1">
-                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-rose-500" />
-                          <span>{formErrors[q.key]}</span>
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          <FormulirProposalSection
+            questions={fileQuestions}
+            jawabanKhusus={jawabanKhusus}
+            handleKhususChange={handleKhususChange}
+            hasAttemptedSubmit={hasAttemptedSubmit}
+            formErrors={formErrors}
+            isQuestionOptional={isQuestionOptional}
+          />
 
           {submitError && (
             <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm flex items-start gap-2.5">
