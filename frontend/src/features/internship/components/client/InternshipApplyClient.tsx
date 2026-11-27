@@ -357,7 +357,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
             <button
               type="submit"
               disabled={submitting || uploadingCv || uploadingPortfolio}
-              className="w-full sm:w-auto px-10 py-3.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap shrink-0"
             >
               {submitting ? (
                 <>
@@ -367,7 +367,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
               ) : (
                 <>
                   <span>Kirim Formulir Lamaran</span>
-                  <Send className="w-4 h-4" />
+                  <Send className="w-3.5 h-3.5" />
                 </>
               )}
             </button>
