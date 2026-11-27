@@ -218,68 +218,20 @@ describe('hitungRefundBaru', () => {
   })
 })
 describe('hitungPembagianDPHangus', () => {
-  it('sesi OFFLINE: ditahan 150.000, psikolog 90.000, Empathika 60.000', () => {
-    const result = hitungPembagianDPHangus('OFFLINE', 300_000)
-    expect(result.ditahan).toBe(150_000)
-    expect(result.porsiPsikologDP).toBe(90_000)   // 60% dari 150.000
-    expect(result.porsiEmpathikaDP).toBe(60_000)  // sisa (40%)
-    expect(result.dikembalikanKeClient).toBe(150_000) // 300_000 - 150_000
-  })
-
-  it('sesi ONLINE: ditahan 150.000, psikolog 75.000, Empathika 75.000', () => {
-    const result = hitungPembagianDPHangus('ONLINE', 300_000)
-    expect(result.ditahan).toBe(150_000)
-    expect(result.porsiPsikologDP).toBe(75_000)
-    expect(result.porsiEmpathikaDP).toBe(75_000)
-    expect(result.dikembalikanKeClient).toBe(150_000)
-  })
-
-  it('jumlah dibayar == 150.000: semua ditahan, tidak ada kembalian', () => {
-    const result = hitungPembagianDPHangus('OFFLINE', 150_000)
-    expect(result.ditahan).toBe(150_000)
-    expect(result.dikembalikanKeClient).toBe(0)
-  })
-
-  it('jumlah dibayar < 150.000: ditahan = jumlah yang dibayar (tidak bisa lebih)', () => {
-    const result = hitungPembagianDPHangus('OFFLINE', 100_000)
-    expect(result.ditahan).toBe(100_000) // min(150_000, 100_000)
-    expect(result.dikembalikanKeClient).toBe(0)
-    // 60% dari 100.000 = 60.000
-    expect(result.porsiPsikologDP).toBe(60_000)
-    expect(result.porsiEmpathikaDP).toBe(40_000)
-  })
-
-  it('DP hangus: porsiPsikologDP + porsiEmpathikaDP selalu = ditahan (tidak ada selisih)', () => {
+  it('aturan DP Rp150.000 ditiadakan: ditahan selalu 0 dan seluruh jumlah dibayar dikembalikan ke client', () => {
     const kasus: Array<['OFFLINE' | 'ONLINE', number]> = [
-      ['OFFLINE', 150_000],
-      ['ONLINE', 150_000],
-      ['OFFLINE', 100_001],
+      ['OFFLINE', 300_000],
       ['ONLINE', 300_000],
-      ['OFFLINE', 50_000],
+      ['OFFLINE', 150_000],
+      ['OFFLINE', 100_000],
+      ['ONLINE', 500_000],
     ]
     for (const [tipe, dibayar] of kasus) {
       const r = hitungPembagianDPHangus(tipe, dibayar)
-      expect(r.porsiPsikologDP + r.porsiEmpathikaDP).toBe(r.ditahan)
-    }
-  })
-
-  it('sesi OFFLINE harga berapapun: ditahan selalu 150.000 jika dibayar >= 150.000', () => {
-    const kasus = [150_000, 200_000, 500_000, 1_000_000]
-    for (const dibayar of kasus) {
-      const r = hitungPembagianDPHangus('OFFLINE', dibayar)
-      expect(r.ditahan).toBe(150_000)
-      expect(r.porsiPsikologDP).toBe(90_000)
-      expect(r.porsiEmpathikaDP).toBe(60_000)
-    }
-  })
-
-  it('sesi ONLINE harga berapapun: ditahan selalu 150.000 jika dibayar >= 150.000', () => {
-    const kasus = [150_000, 200_000, 500_000, 1_000_000]
-    for (const dibayar of kasus) {
-      const r = hitungPembagianDPHangus('ONLINE', dibayar)
-      expect(r.ditahan).toBe(150_000)
-      expect(r.porsiPsikologDP).toBe(75_000)
-      expect(r.porsiEmpathikaDP).toBe(75_000)
+      expect(r.ditahan).toBe(0)
+      expect(r.porsiPsikologDP).toBe(0)
+      expect(r.porsiEmpathikaDP).toBe(0)
+      expect(r.dikembalikanKeClient).toBe(dibayar)
     }
   })
 })

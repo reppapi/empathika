@@ -211,7 +211,7 @@ export default function TestimoniClientPage({ params }: PageProps) {
                 className="w-full rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/15 resize-none transition"
               />
               <p className="text-[11px] text-gray-400">
-                Identitas Anda bersifat rahasia sehingga privacy Anda akan tetap terjaga.
+                Identitas Anda bersifat rahasia, privacy Anda akan tetap terjaga.
               </p>
             </div>
 
