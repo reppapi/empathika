@@ -1,6 +1,6 @@
 /** Kartu ringkasan statistik jumlah peserta, tes gratis, berbayar, dan yang sudah selesai. */
 import React from "react";
-import { Users, CheckCircle2, Clock, Activity, FileSearch } from "lucide-react";
+import { CheckCircle2, Clock, Activity, FileSearch } from "lucide-react";
 
 export interface PsikotesSummaryProps {
   summary: {

@@ -13,15 +13,6 @@ import {
   AlertCircle,
   WifiOff,
   RefreshCw,
-  CheckCircle2,
-  Lock,
-  ArrowRight,
-  ArrowLeft,
-  User,
-  Users,
-  ShieldCheck,
-  Clock,
-  FileText,
 } from "lucide-react";
 import PsikotesFormIdentitas, { type IdentityData } from "./PsikotesFormIdentitas";
 import { navigateToPsikotesHasil } from "@/features/psikotes/utils/navigationHistory";
@@ -193,10 +184,14 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
           params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
           checkDASS(null, params.testId) ||
           checkMCMI(null, params.testId) ||
+          checkCHOCI(null, params.testId) ||
           params.testId.toLowerCase().includes("dass") ||
           params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
           params.testId.toLowerCase().includes("mcmi") ||
-          params.testId.toLowerCase().includes("pola-klinis")
+          params.testId.toLowerCase().includes("pola-klinis") ||
+          params.testId.toLowerCase().includes("choci") ||
+          params.testId.toLowerCase().includes("ocd") ||
+          Boolean(rawBooking)
         );
         const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
         const tokenParam = savedToken ? `&token=${encodeURIComponent(savedToken)}` : "";
@@ -222,10 +217,14 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
               params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
               checkDASS(null, params.testId) ||
               checkMCMI(null, params.testId) ||
+              checkCHOCI(null, params.testId) ||
               params.testId.toLowerCase().includes("dass") ||
               params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
               params.testId.toLowerCase().includes("mcmi") ||
-              params.testId.toLowerCase().includes("pola-klinis")
+              params.testId.toLowerCase().includes("pola-klinis") ||
+              params.testId.toLowerCase().includes("choci") ||
+              params.testId.toLowerCase().includes("ocd") ||
+              Boolean(rawBooking)
             );
             const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
             const canonicalId = res.data.id_booking || rawBooking;
@@ -301,6 +300,7 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
   const isPaidInstrument = Boolean(
     isDASS ||
     isMCMI ||
+    isCHOCI ||
     (dbData ? isPackagePaid(dbData) : false) ||
     params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
     params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa"
@@ -1393,14 +1393,19 @@ export default function PsikotesMulaiClient({ params }: { params: { testId: stri
         }
         const tokenParam = existingToken ? `&token=${encodeURIComponent(existingToken)}` : "";
         const isPaidTest = Boolean(
+          isPaidFlow ||
           params.testId === "2fe42061-fbb8-47b3-8c4f-b991e4d04fe2" ||
           params.testId === "e0e97a5d-4bea-466e-aa8c-2cff1345b2fa" ||
-          checkDASS(null, params.testId) ||
-          checkMCMI(null, params.testId) ||
+          checkDASS(dbData, params.testId) ||
+          checkMCMI(dbData, params.testId) ||
+          checkCHOCI(dbData, params.testId) ||
           params.testId.toLowerCase().includes("dass") ||
           params.testId.toLowerCase().includes("depresi-kecemasan-dan-stres") ||
           params.testId.toLowerCase().includes("mcmi") ||
-          params.testId.toLowerCase().includes("pola-klinis")
+          params.testId.toLowerCase().includes("pola-klinis") ||
+          params.testId.toLowerCase().includes("choci") ||
+          params.testId.toLowerCase().includes("ocd") ||
+          Boolean(existingBooking)
         );
         const paketParam = isPaidTest ? "paket=berbayar" : "paket=gratis";
         navigateToPsikotesHasil(

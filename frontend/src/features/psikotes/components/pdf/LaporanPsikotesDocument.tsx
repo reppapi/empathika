@@ -1,6 +1,6 @@
 /** Template layout dokumen Vector PDF laporan resmi psikotes Empathika menggunakan @react-pdf/renderer. */
 import React from "react";
-import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { LaporanPsikotesPdfData } from "../../utils/downloadLaporanPsikotesPdf";
 
 const BRAND_PURPLE = "#561269";

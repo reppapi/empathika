@@ -20,7 +20,7 @@ import {
   Lock,
   Upload,
   FileText,
-  Trash2,
+  User,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem } from "@/services/psikotes.service";
@@ -48,7 +48,7 @@ export default function ModalReviewPsikotes({
   const [fullDetail, setFullDetail] = useState<any>(initialDetail || null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(!initialDetail);
   const [showScoreSidebar, setShowScoreSidebar] = useState(true);
-  const [sidebarTab, setSidebarTab] = useState<"skor" | "jawaban">("skor");
+  const [sidebarTab, setSidebarTab] = useState<"skor" | "jawaban" | "identitas">("skor");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isFullscreenJawaban, setIsFullscreenJawaban] = useState(false);
 
@@ -56,10 +56,9 @@ export default function ModalReviewPsikotes({
   const [showPolaKepribadian, setShowPolaKepribadian] = useState(true);
   const [showSindromaKlinis, setShowSindromaKlinis] = useState(false);
 
-  // State Upload PDF & Catatan Opsional
+  // State Upload PDF
   const [fileLaporanUrl, setFileLaporanUrl] = useState<string>(item?.file_laporan_url || "");
   const [uploadedFileName, setUploadedFileName] = useState<string>("");
-  const [catatanOpsional, setCatatanOpsional] = useState<string>(item?.catatan_psikolog || "");
   const [isUploadingPdf, setIsUploadingPdf] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -74,7 +73,6 @@ export default function ModalReviewPsikotes({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const initialPdfRef = useRef<string>(item?.file_laporan_url || "");
-  const initialNoteRef = useRef<string>(item?.catatan_psikolog || "");
 
   useEffect(() => {
     if (!item?.id) return;
@@ -84,14 +82,20 @@ export default function ModalReviewPsikotes({
     if (initialDetail) {
       setFullDetail(initialDetail);
       setIsLoadingDetail(false);
-      const pdfUrl = initialDetail.file_laporan_url || initialDetail.hasil?.file_laporan_url || "";
-      const note = initialDetail.hasil?.catatan_psikolog || "";
+      let pdfUrl = initialDetail.file_laporan_url || initialDetail.hasil?.file_laporan_url || "";
+      let savedName = "";
+      try {
+        const localRaw = localStorage.getItem(`empathika_draft_pdf_${item.id}`);
+        if (localRaw) {
+          const parsed = JSON.parse(localRaw);
+          if (!pdfUrl && parsed?.url) pdfUrl = parsed.url;
+          if (parsed?.name) savedName = parsed.name;
+        }
+      } catch {}
       setFileLaporanUrl(pdfUrl);
-      setCatatanOpsional(note);
       initialPdfRef.current = pdfUrl;
-      initialNoteRef.current = note;
       if (pdfUrl) {
-        setUploadedFileName(pdfUrl.split("/").pop() || "Laporan-Asesmen.pdf");
+        setUploadedFileName(savedName || pdfUrl.split("/").pop() || "Laporan-Asesmen.pdf");
       }
       return;
     }
@@ -103,14 +107,20 @@ export default function ModalReviewPsikotes({
         if (res?.data) {
           setFullDetail(res.data);
           const d: any = res.data;
-          const pdfUrl = d.file_laporan_url || d.hasil?.file_laporan_url || "";
-          const note = d.hasil?.catatan_psikolog || "";
+          let pdfUrl = d.file_laporan_url || d.hasil?.file_laporan_url || "";
+          let savedName = "";
+          try {
+            const localRaw = localStorage.getItem(`empathika_draft_pdf_${item.id}`);
+            if (localRaw) {
+              const parsed = JSON.parse(localRaw);
+              if (!pdfUrl && parsed?.url) pdfUrl = parsed.url;
+              if (parsed?.name) savedName = parsed.name;
+            }
+          } catch {}
           setFileLaporanUrl(pdfUrl);
-          setCatatanOpsional(note);
           initialPdfRef.current = pdfUrl;
-          initialNoteRef.current = note;
           if (pdfUrl) {
-            setUploadedFileName(pdfUrl.split("/").pop() || "Laporan-Asesmen.pdf");
+            setUploadedFileName(savedName || pdfUrl.split("/").pop() || "Laporan-Asesmen.pdf");
           }
         }
       })
@@ -154,9 +164,7 @@ export default function ModalReviewPsikotes({
   const isLockedByOther = Boolean(item?.id_psikolog && !isClaimedByMe && !isAdmin && !isSudahReview);
   const isReadOnly = isSudahReview || isLockedByOther;
 
-  const hasUnsavedChanges =
-    !isReadOnly &&
-    (fileLaporanUrl !== initialPdfRef.current || catatanOpsional !== initialNoteRef.current);
+  const hasUnsavedChanges = !isReadOnly && fileLaporanUrl !== initialPdfRef.current;
 
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -195,6 +203,43 @@ export default function ModalReviewPsikotes({
     setShowExitConfirmModal(true);
   };
 
+  const syncDraftPdf = async (url: string | null, fileName?: string, silentMessage?: string) => {
+    try {
+      if (url) {
+        localStorage.setItem(
+          `empathika_draft_pdf_${item.id}`,
+          JSON.stringify({ url, name: fileName || "" })
+        );
+      } else {
+        localStorage.removeItem(`empathika_draft_pdf_${item.id}`);
+      }
+    } catch {}
+
+    try {
+      const res = await psikotesService.submitReview(item.id, {
+        catatan_psikolog: null,
+        file_laporan_url: url,
+        id_psikolog: resolvedPsikologId,
+        is_draft: true,
+      });
+      if (res?.success) {
+        initialPdfRef.current = url || "";
+        if (silentMessage) {
+          setDraftMessage(silentMessage);
+          setTimeout(() => setDraftMessage(null), 3500);
+        }
+        onSuccess({
+          ...item,
+          catatan_psikolog: null,
+          file_laporan_url: url,
+          draft_saved_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn("Auto-save draf PDF ke server tertunda:", err);
+    }
+  };
+
   const handleFileSelected = async (file: File | null | undefined) => {
     if (!file || isReadOnly) return;
     setSubmitError(null);
@@ -212,10 +257,10 @@ export default function ModalReviewPsikotes({
     setIsUploadingPdf(true);
     try {
       const uploaded = await uploadService.uploadPdf(file);
+      const displayName = file.name || uploaded.filename;
       setFileLaporanUrl(uploaded.url);
-      setUploadedFileName(file.name || uploaded.filename);
-      setDraftMessage("PDF terunggah (belum diterbitkan)");
-      setTimeout(() => setDraftMessage(null), 4000);
+      setUploadedFileName(displayName);
+      await syncDraftPdf(uploaded.url, displayName, "Tersimpan otomatis ke Draf");
     } catch (err: any) {
       setSubmitError(err?.response?.data?.message || err.message || "Gagal mengupload file PDF.");
     } finally {
@@ -224,8 +269,8 @@ export default function ModalReviewPsikotes({
   };
 
   const handleSaveDraft = async () => {
-    if (!fileLaporanUrl && !catatanOpsional.trim()) {
-      setSubmitError("Unggah file PDF atau isi catatan singkat terlebih dahulu sebelum menyimpan draf.");
+    if (!fileLaporanUrl) {
+      setSubmitError("Unggah file PDF terlebih dahulu sebelum menyimpan draf.");
       return;
     }
 
@@ -235,21 +280,23 @@ export default function ModalReviewPsikotes({
 
     try {
       const res = await psikotesService.submitReview(item.id, {
-        catatan_psikolog: catatanOpsional.trim() || null,
-        file_laporan_url: fileLaporanUrl || null,
+        catatan_psikolog: null,
+        file_laporan_url: fileLaporanUrl,
         id_psikolog: resolvedPsikologId,
         is_draft: true,
       });
 
       if (res?.success) {
+        try {
+          localStorage.removeItem(`empathika_draft_pdf_${item.id}`);
+        } catch {}
         initialPdfRef.current = fileLaporanUrl;
-        initialNoteRef.current = catatanOpsional;
         setDraftMessage("Draf tersimpan di server");
         setTimeout(() => setDraftMessage(null), 3500);
         onSuccess({
           ...item,
-          catatan_psikolog: catatanOpsional.trim() || null,
-          file_laporan_url: fileLaporanUrl || null,
+          catatan_psikolog: null,
+          file_laporan_url: fileLaporanUrl,
           draft_saved_at: new Date().toISOString(),
         });
       }
@@ -272,20 +319,22 @@ export default function ModalReviewPsikotes({
 
     try {
       const res = await psikotesService.submitReview(item.id, {
-        catatan_psikolog: catatanOpsional.trim() || null,
+        catatan_psikolog: null,
         file_laporan_url: fileLaporanUrl,
         id_psikolog: resolvedPsikologId,
         is_draft: false,
       });
 
       if (res?.success) {
+        try {
+          localStorage.removeItem(`empathika_draft_pdf_${item.id}`);
+        } catch {}
         initialPdfRef.current = fileLaporanUrl;
-        initialNoteRef.current = catatanOpsional;
         setShowPublishConfirmModal(false);
         onSuccess({
           ...item,
           status_pengerjaan: "SELESAI",
-          catatan_psikolog: catatanOpsional.trim() || null,
+          catatan_psikolog: null,
           file_laporan_url: fileLaporanUrl,
           tanggal_review: new Date().toISOString(),
           psikolog: res.data?.booking?.psikolog
@@ -307,9 +356,27 @@ export default function ModalReviewPsikotes({
   };
 
   // Helper ekstrak list skala non-MCMI (jika ada di detail_skor)
-  const genericSubscales: Array<{ label: string; score: string | number; category?: string }> = [];
+  const genericSubscales: Array<{
+    label: string;
+    score: string | number;
+    maxScore?: number;
+    rentangButir?: string;
+    deskripsi?: string;
+    category?: string;
+  }> = [];
   if (!isMcmi && detailSkor && typeof detailSkor === "object") {
-    if (Array.isArray(detailSkor.skalaList)) {
+    if (Array.isArray(detailSkor.subscalesList)) {
+      detailSkor.subscalesList.forEach((s: any) =>
+        genericSubscales.push({
+          label: s.nama || s.key || "Skala",
+          score: s.skor ?? 0,
+          maxScore: typeof s.max_skor === "number" ? s.max_skor : undefined,
+          rentangButir: s.rentangButir || undefined,
+          deskripsi: s.deskripsi || undefined,
+          category: s.kategori || s.level || undefined,
+        })
+      );
+    } else if (Array.isArray(detailSkor.skalaList)) {
       detailSkor.skalaList.forEach((s: any) =>
         genericSubscales.push({
           label: s.nama || s.skala || s.kode || "Skala",
@@ -423,7 +490,7 @@ export default function ModalReviewPsikotes({
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                disabled={isSavingDraft || isSubmitting || isUploadingPdf || (!fileLaporanUrl && !catatanOpsional.trim())}
+                disabled={isSavingDraft || isSubmitting || isUploadingPdf || !fileLaporanUrl}
                 className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 hover:text-gray-900 text-xs font-semibold shadow-2xs transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:scale-95"
               >
                 {isSavingDraft ? (
@@ -486,11 +553,21 @@ export default function ModalReviewPsikotes({
         {showScoreSidebar && (
           <aside className="w-80 lg:w-[420px] shrink-0 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
             <div className="px-3 pt-3 pb-2 border-b border-gray-100 bg-gray-50/80 flex items-center justify-between gap-1">
-              <div className="inline-flex p-0.5 rounded-xl bg-gray-200/80 text-gray-600 gap-0.5">
+              <div className="inline-flex p-0.5 rounded-xl bg-gray-200/80 text-gray-600 gap-0.5 overflow-x-auto [scrollbar-width:none]">
+                <button
+                  type="button"
+                  onClick={() => setSidebarTab("identitas")}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                    sidebarTab === "identitas" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <User className="w-3.5 h-3.5" />
+                  Identitas
+                </button>
                 <button
                   type="button"
                   onClick={() => setSidebarTab("skor")}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
                     sidebarTab === "skor" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
@@ -500,12 +577,12 @@ export default function ModalReviewPsikotes({
                 <button
                   type="button"
                   onClick={() => setSidebarTab("jawaban")}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
                     sidebarTab === "jawaban" ? "bg-white text-[#561269] shadow-xs" : "text-gray-500 hover:text-gray-900"
                   }`}
                 >
                   <ClipboardList className="w-3.5 h-3.5" />
-                  Rekap Jawaban
+                  Jawaban
                   {Array.isArray(fullDetail?.rekap_jawaban) && (
                     <span className="px-1.5 py-0.2 rounded-full bg-purple-100 text-[#561269] text-[10px] font-mono">
                       {fullDetail.rekap_jawaban.length}
@@ -537,7 +614,116 @@ export default function ModalReviewPsikotes({
               </div>
             </div>
 
-            {sidebarTab === "jawaban" ? (
+            {sidebarTab === "identitas" ? (
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 text-xs [scrollbar-width:thin]">
+                {(() => {
+                  const p = fullDetail?.peserta || {};
+                  const tglLahir = p.tanggal_lahir
+                    ? new Date(p.tanggal_lahir).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : null;
+                  const ttl = [p.tempat_lahir, tglLahir].filter(Boolean).join(", ");
+                  const tglTes =
+                    fullDetail?.hasil?.tanggal_selesai || item.tanggal_pengerjaan
+                      ? new Date(fullDetail?.hasil?.tanggal_selesai || item.tanggal_pengerjaan).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "—";
+
+                  const rows = [
+                    { label: "Nama Lengkap", value: p.nama_lengkap || item.nama_peserta },
+                    { label: "Usia", value: (p.usia ?? item.usia) ? `${p.usia ?? item.usia} Tahun` : "—" },
+                    { label: "Jenis Kelamin", value: p.jenis_kelamin || item.jenis_kelamin || "—" },
+                    { label: "Tempat, Tgl Lahir", value: ttl || "—" },
+                    { label: "Pendidikan", value: p.pendidikan || "—" },
+                    { label: "Pekerjaan", value: p.pekerjaan || "—" },
+                    { label: "Status Pernikahan", value: p.status_pernikahan || "—" },
+                    { label: "No. Telepon / WA", value: p.no_telepon || item.no_hp || "—" },
+                  ];
+
+                  return (
+                    <>
+                      <div className="rounded-xl border border-gray-200 bg-white p-3.5 space-y-2.5">
+                        <h4 className="font-bold text-gray-900 text-xs border-b border-gray-100 pb-2">
+                          Identitas Peserta
+                        </h4>
+                        <div className="space-y-2">
+                          {rows.map((r) => (
+                            <div key={r.label} className="flex items-start justify-between gap-3 text-[11px]">
+                              <span className="text-gray-400 shrink-0">{r.label}</span>
+                              <span className="font-semibold text-gray-800 text-right break-words">
+                                {r.value}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {(p.nama_orang_tua || p.no_telepon_orang_tua) && (
+                        <div className="rounded-xl border border-amber-200/80 bg-amber-50/40 p-3.5 space-y-2">
+                          <h4 className="font-bold text-amber-900 text-xs border-b border-amber-200/60 pb-1.5">
+                            Data Orang Tua / Wali
+                          </h4>
+                          {p.nama_orang_tua && (
+                            <div className="flex items-start justify-between gap-3 text-[11px]">
+                              <span className="text-gray-500 shrink-0">Nama Orang Tua</span>
+                              <span className="font-semibold text-gray-900 text-right">{p.nama_orang_tua}</span>
+                            </div>
+                          )}
+                          {p.no_telepon_orang_tua && (
+                            <div className="flex items-start justify-between gap-3 text-[11px]">
+                              <span className="text-gray-500 shrink-0">No. Telepon Ortu</span>
+                              <span className="font-semibold text-gray-900 text-right">{p.no_telepon_orang_tua}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="rounded-xl border border-gray-200 bg-gray-50/70 p-3.5 space-y-2">
+                        <h4 className="font-bold text-gray-900 text-xs border-b border-gray-200/80 pb-1.5">
+                          Informasi Asesmen
+                        </h4>
+                        <div className="flex items-start justify-between gap-3 text-[11px]">
+                          <span className="text-gray-400 shrink-0">Paket Tes</span>
+                          <span className="font-semibold text-[#561269] text-right">{item.nama_paket}</span>
+                        </div>
+                        <div className="flex items-start justify-between gap-3 text-[11px]">
+                          <span className="text-gray-400 shrink-0">Alat Ukur</span>
+                          <span className="font-semibold text-gray-800 text-right">
+                            {(() => {
+                              const nama = fullDetail?.paket?.alat_ukur?.nama || "";
+                              const kode = fullDetail?.paket?.alat_ukur?.kode || "";
+                              if (!nama) return kode || "—";
+                              if (kode && !nama.toLowerCase().includes(kode.toLowerCase())) {
+                                return `${nama} (${kode})`;
+                              }
+                              return nama;
+                            })()}
+                          </span>
+                        </div>
+                        {item.kode_akses && (
+                          <div className="flex items-start justify-between gap-3 text-[11px]">
+                            <span className="text-gray-400 shrink-0">Kode Tiket</span>
+                            <span className="font-mono font-bold text-gray-800 text-right">{item.kode_akses}</span>
+                          </div>
+                        )}
+                        <div className="flex items-start justify-between gap-3 text-[11px]">
+                          <span className="text-gray-400 shrink-0">Waktu Selesai Tes</span>
+                          <span className="font-medium text-gray-800 text-right">{tglTes}</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : sidebarTab === "jawaban" ? (
               <div className="flex-1 overflow-hidden flex flex-col">
                 {isLoadingDetail ? (
                   <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-2">
@@ -669,19 +855,36 @@ export default function ModalReviewPsikotes({
                     {genericSubscales.length > 0 && (
                       <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
                         <span className="font-bold text-gray-900 block">Rincian Skor Kategori / Skala</span>
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {genericSubscales.map((sub, idx) => (
                             <div
                               key={idx}
-                              className="p-2 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-between gap-2 text-[11px]"
+                              className="p-2.5 rounded-lg bg-gray-50 border border-gray-100 space-y-1 text-[11px]"
                             >
-                              <span className="font-semibold text-gray-800">{sub.label}</span>
-                              <div className="text-right shrink-0">
-                                <span className="font-bold text-[#561269]">{sub.score}</span>
-                                {sub.category && (
-                                  <span className="ml-1.5 text-[10px] text-gray-500">({sub.category})</span>
-                                )}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="font-bold text-gray-800 block">{sub.label}</span>
+                                  {sub.rentangButir && (
+                                    <span className="text-[10px] text-gray-400 block">
+                                      Butir {sub.rentangButir}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="font-extrabold text-[#561269]">
+                                    {sub.score}
+                                    {sub.maxScore !== undefined ? ` / ${sub.maxScore}` : ""}
+                                  </span>
+                                  {sub.category && (
+                                    <span className="ml-1.5 text-[10px] text-gray-500">({sub.category})</span>
+                                  )}
+                                </div>
                               </div>
+                              {sub.deskripsi && (
+                                <p className="text-[10px] text-gray-500 leading-relaxed">
+                                  {sub.deskripsi}
+                                </p>
+                              )}
                             </div>
                           ))}
                         </div>
@@ -757,7 +960,7 @@ export default function ModalReviewPsikotes({
                 )}
               </div>
 
-              {!isReadOnly && (
+              {!isReadOnly && !fileLaporanUrl && (
                 <>
                   <input
                     ref={fileInputRef}
@@ -783,48 +986,54 @@ export default function ModalReviewPsikotes({
                       const f = e.dataTransfer.files?.[0];
                       handleFileSelected(f);
                     }}
-                    onClick={() => !isUploadingPdf && fileInputRef.current?.click()}
-                    className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all cursor-pointer ${
+                    className={`rounded-xl border px-4 py-3.5 flex flex-wrap items-center justify-between gap-3 transition-all ${
                       isDragging
-                        ? "border-[#561269] bg-purple-50/70"
-                        : "border-gray-300 hover:border-[#561269]/60 hover:bg-gray-50/80"
+                        ? "border-[#561269] bg-purple-50/50"
+                        : "border-gray-200 bg-gray-50/40"
                     }`}
                   >
                     {isUploadingPdf ? (
-                      <div className="flex flex-col items-center gap-2 py-2">
-                        <Loader2 className="w-8 h-8 animate-spin text-[#561269]" />
-                        <p className="text-xs font-bold text-gray-800">Mengunggah dokumen PDF...</p>
+                      <div className="flex items-center gap-2.5 text-xs font-medium text-gray-700">
+                        <Loader2 className="w-4 h-4 animate-spin text-[#561269]" />
+                        <span>Mengunggah dokumen PDF...</span>
                       </div>
                     ) : (
-                      <div className="flex flex-col items-center gap-2 py-2">
-                        <div className="w-11 h-11 rounded-2xl bg-purple-50 text-[#561269] flex items-center justify-center">
-                          <Upload className="w-5 h-5" />
-                        </div>
-                        <p className="text-xs font-bold text-gray-900">
-                          {fileLaporanUrl ? "Klik atau seret file PDF baru untuk mengganti" : "Klik untuk pilih file PDF, atau seret ke sini"}
-                        </p>
-                        <p className="text-[11px] text-gray-400">
-                          Hanya mendukung file .pdf maksimal 10 MB
-                        </p>
-                      </div>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 bg-white hover:bg-purple-50/60 hover:border-[#561269]/50 text-[#561269] text-xs font-semibold shadow-2xs transition cursor-pointer active:scale-98"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Tambahkan file</span>
+                        </button>
+                        <span className="text-[11px] text-gray-400">
+                          Format .pdf (maks. 10 MB) atau seret file ke sini
+                        </span>
+                      </>
                     )}
                   </div>
                 </>
               )}
 
-              {/* Info File Terunggah + Pratinjau PDF */}
+              {/* Info File Terunggah ala Google Form + Pratinjau PDF */}
               {fileLaporanUrl ? (
                 <div className="space-y-3">
-                  <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <div className="px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 flex items-center justify-between gap-3 shadow-2xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center shrink-0">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-gray-900 truncate">
+                        <a
+                          href={fileLaporanUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-xs font-semibold text-gray-900 hover:text-[#561269] hover:underline truncate block"
+                        >
                           {uploadedFileName || "Laporan-Hasil-Asesmen.pdf"}
-                        </p>
-                        <p className="text-[11px] text-emerald-700">Dokumen PDF siap diterbitkan</p>
+                        </a>
+                        <p className="text-[10px] text-gray-400">PDF siap diterbitkan</p>
                       </div>
                     </div>
 
@@ -834,11 +1043,12 @@ export default function ModalReviewPsikotes({
                         onClick={() => {
                           setFileLaporanUrl("");
                           setUploadedFileName("");
+                          void syncDraftPdf(null);
                         }}
-                        className="p-2 rounded-xl text-rose-600 hover:bg-rose-50 transition cursor-pointer shrink-0"
-                        title="Hapus file PDF"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition cursor-pointer shrink-0"
+                        title="Hapus file"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <X className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -858,21 +1068,6 @@ export default function ModalReviewPsikotes({
                   </p>
                 )
               )}
-            </div>
-
-            {/* Catatan Tambahan (Opsional) */}
-            <div className="bg-white rounded-3xl border border-gray-200 shadow-xs p-5 sm:p-6 space-y-2.5">
-              <label className="block font-bold text-xs text-gray-900">
-                Catatan Singkat Psikolog <span className="text-gray-400 font-normal">(Opsional)</span>
-              </label>
-              <textarea
-                rows={3}
-                value={catatanOpsional}
-                onChange={(e) => setCatatanOpsional(e.target.value)}
-                disabled={isReadOnly}
-                placeholder="Tambahkan ringkasan singkat atau catatan pengantar jika diperlukan..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-[#561269] disabled:bg-gray-50"
-              />
             </div>
           </div>
         </main>

@@ -17,6 +17,7 @@ import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
   isCATS as checkCATS,
   isCDI as checkCDI,
+  isCHOCI as checkCHOCI,
   isDASS as checkDASS,
   isRCMAS as checkRCMAS,
   isMCMI as checkMCMI,
@@ -343,20 +344,22 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
   const isMCMI = checkMCMI(dbPackage, params.testId);
+  const isCHOCI = checkCHOCI(dbPackage, params.testId);
+
+  // Status ketersediaan dokumen telaah klinis resmi (PDF atau catatan) yang sudah diterbitkan oleh psikolog
+  const hasCatatanPsikolog = Boolean(
+    bookingReport?.fileLaporanUrl ||
+      (bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0)
+  );
 
   // Status Menunggu Review Psikolog (SLA Maks. 3 Hari)
   // Menahan tampilan hasil analitik mentah/grafik klinis sebelum verifikasi psikolog diterbitkan
-  const isKlinisPerluReview = Boolean((dbPackage as any)?.perlu_review_psikolog) || isMCMI;
+  const isKlinisPerluReview = Boolean((dbPackage as any)?.perlu_review_psikolog) || isMCMI || isCHOCI;
   const isMenungguReview =
     bookingReport?.statusPengerjaan === "MENUNGGU_REVIEW" ||
     (isKlinisPerluReview &&
       bookingReport?.statusPengerjaan !== "SELESAI" &&
-      !bookingReport?.catatanPsikolog);
-
-  // Status ketersediaan dokumen telaah klinis resmi yang sudah dibuat dan diterbitkan oleh psikolog
-  const hasCatatanPsikolog = Boolean(
-    bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0
-  );
+      !hasCatatanPsikolog);
 
   // Informasi SLA batas waktu telaah psikolog (maksimal 3 hari kerja)
   const slaInfo = calculateReviewSla(bookingReport?.tanggalSelesai || peserta.tanggal);
@@ -995,7 +998,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult && !bookingReport?.catatanPsikolog) {
+  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult && !hasCatatanPsikolog) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">

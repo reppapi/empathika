@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Search,
   X,
@@ -85,6 +85,21 @@ export function isAnswerFalse(it: {
   return !isAnswerTrue(it);
 }
 
+export function isChociInstrument(alatUkurKode?: string | null, namaPaket?: string): boolean {
+  return (
+    Boolean(alatUkurKode?.toUpperCase().includes("CHOCI")) ||
+    Boolean(namaPaket?.toLowerCase().includes("choci")) ||
+    Boolean(namaPaket?.toLowerCase().includes("ocd anak"))
+  );
+}
+
+export function splitChociSections(items: RekapJawabanItem[]) {
+  return {
+    anakItems: items.filter((it) => it.nomor <= 38),
+    ortuItems: items.filter((it) => it.nomor >= 39),
+  };
+}
+
 export default function RekapJawabanPasienView({
   rekapJawaban,
   alatUkurKode,
@@ -94,28 +109,46 @@ export default function RekapJawabanPasienView({
   isMaximized = false,
 }: RekapJawabanPasienViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE">("ALL");
+  const [activeFilter, setActiveFilter] = useState<"ALL" | "TRUE" | "FALSE" | "ANAK" | "ORTU">("ALL");
 
   const isMcmi =
     Boolean(alatUkurKode?.toUpperCase().includes("MCMI")) ||
     Boolean(namaPaket?.toLowerCase().includes("mcmi")) ||
     Boolean(namaPaket?.toLowerCase().includes("multiaxial"));
 
+  const isChoci = isChociInstrument(alatUkurKode, namaPaket);
+  const hasChociOrtu = useMemo(
+    () => isChoci && rekapJawaban.some((it) => it.nomor >= 39),
+    [isChoci, rekapJawaban]
+  );
+
+  useEffect(() => {
+    if (isChoci && hasChociOrtu && activeFilter === "ALL") {
+      setActiveFilter("ANAK");
+    }
+  }, [isChoci, hasChociOrtu, activeFilter]);
+
   // Hitung metrik dan distribusi butir jawaban
   const stats = useMemo(() => {
     let trueCount = 0;
     let falseCount = 0;
+    let anakCount = 0;
+    let ortuCount = 0;
 
     for (const it of rekapJawaban) {
       const isTrue = isAnswerTrue(it);
       if (isTrue) trueCount++;
       else falseCount++;
+      if (it.nomor <= 38) anakCount++;
+      else ortuCount++;
     }
 
     return {
       total: rekapJawaban.length,
       trueCount,
       falseCount,
+      anakCount,
+      ortuCount,
     };
   }, [rekapJawaban]);
 
@@ -128,6 +161,10 @@ export default function RekapJawabanPasienView({
       list = list.filter((it) => isAnswerTrue(it));
     } else if (activeFilter === "FALSE") {
       list = list.filter((it) => isAnswerFalse(it));
+    } else if (activeFilter === "ANAK") {
+      list = list.filter((it) => it.nomor <= 38);
+    } else if (activeFilter === "ORTU") {
+      list = list.filter((it) => it.nomor >= 39);
     }
 
     // Filter Pencarian kata kunci atau nomor
@@ -219,17 +256,19 @@ export default function RekapJawabanPasienView({
 
         {/* 3. Filter Quick Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
-          <button
-            type="button"
-            onClick={() => setActiveFilter("ALL")}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
-              activeFilter === "ALL"
-                ? "bg-[#561269] text-white shadow-2xs"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
-            }`}
-          >
-            Semua ({stats.total})
-          </button>
+          {!(isChoci && hasChociOrtu) && (
+            <button
+              type="button"
+              onClick={() => setActiveFilter("ALL")}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                activeFilter === "ALL"
+                  ? "bg-[#561269] text-white shadow-2xs"
+                  : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              Semua ({stats.total})
+            </button>
+          )}
 
           {isMcmi && (
             <>
@@ -255,6 +294,34 @@ export default function RekapJawabanPasienView({
                 }`}
               >
                 Tidak Sesuai (-) ({stats.falseCount})
+              </button>
+            </>
+          )}
+
+          {isChoci && hasChociOrtu && (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveFilter("ANAK")}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                  activeFilter === "ANAK"
+                    ? "bg-[#561269] text-white shadow-2xs"
+                    : "bg-white text-[#561269] border border-purple-200 hover:bg-purple-50"
+                }`}
+              >
+                Kuesioner Anak ({stats.anakCount})
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveFilter("ORTU")}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                  activeFilter === "ORTU"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "bg-white text-amber-800 border border-amber-200 hover:bg-amber-50"
+                }`}
+              >
+                Kuesioner Orang Tua ({stats.ortuCount})
               </button>
             </>
           )}
@@ -292,6 +359,77 @@ export default function RekapJawabanPasienView({
               Tidak ada jawaban yang sesuai dengan kata kunci &ldquo;{searchQuery}&rdquo;.
             </p>
           </div>
+        ) : isChoci && hasChociOrtu ? (
+          (() => {
+            const { anakItems, ortuItems } = splitChociSections(filteredItems);
+            const renderCard = (item: RekapJawabanItem, isOrtu: boolean) => {
+              const displayNo = isOrtu
+                ? `No. ${item.nomor - 38}`
+                : `No. ${item.nomor}`;
+              return (
+                <div
+                  key={item.nomor}
+                  className="p-3 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-2xs text-xs transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                        isOrtu
+                          ? "bg-amber-100 text-amber-900"
+                          : "bg-purple-100 text-[#561269]"
+                      }`}
+                    >
+                      {displayNo}
+                    </span>
+                  </div>
+                  <p className="text-gray-800 text-[11px] leading-relaxed mt-1.5 font-normal">
+                    {item.pertanyaan}
+                  </p>
+                  <div className="mt-2 pt-2 border-t border-gray-100/80 flex items-center justify-between gap-2">
+                    <span className="text-[10px] text-gray-400">
+                      {isOrtu ? "Jawaban Orang Tua:" : "Jawaban Anak:"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-900 font-semibold text-[10px]">
+                      {item.label && <strong className="font-mono">[{item.label}]</strong>}
+                      {item.jawaban}
+                    </span>
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="space-y-4">
+                {anakItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="px-3 py-2 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-[#561269]">
+                        Kuesioner Anak / Remaja (Butir 1–38)
+                      </span>
+                      <span className="text-[10px] font-semibold text-purple-700">
+                        {anakItems.length} butir
+                      </span>
+                    </div>
+                    <div className="space-y-2">{anakItems.map((it) => renderCard(it, false))}</div>
+                  </div>
+                )}
+
+                {ortuItems.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-amber-900">
+                        Kuesioner Orang Tua / Caregiver (Butir 1–38)
+                      </span>
+                      <span className="text-[10px] font-semibold text-amber-800">
+                        {ortuItems.length} butir
+                      </span>
+                    </div>
+                    <div className="space-y-2">{ortuItems.map((it) => renderCard(it, true))}</div>
+                  </div>
+                )}
+              </div>
+            );
+          })()
         ) : (
           filteredItems.map((item) => {
             const isTrue = isAnswerTrue(item);

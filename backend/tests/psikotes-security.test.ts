@@ -194,7 +194,7 @@ describe('Psikotes Security Controls', () => {
     ).rejects.toThrow(/Nomor WhatsApp tidak cocok/i)
   })
 
-  it('Kolam Bersama: claimReviewTicket mengunci tiket dan menolak klaim tumpang-tindih rekan (409), releaseReviewTicket mengembalikan ke antrean', async () => {
+  it('Penugasan Admin: assignPsikolog menugaskan reviewer valid dan releaseReviewTicket mengembalikan ke antrean', async () => {
     let currentLockedPsikologId: string | null = null
     const mockTx = {
       bookingPsikotes: {
@@ -223,28 +223,48 @@ describe('Psikotes Security Controls', () => {
       },
       psikolog: {
         findFirst: vi.fn().mockImplementation(({ where }: any) => {
-          const accId = where?.OR?.[0]?.id_account
-          if (accId === 'acc-psi-1')
+          const val = where?.OR?.[0]?.id_account ?? where?.OR?.[0]?.id
+          if (val === 'acc-psi-1' || val === 'psi-1')
             return Promise.resolve({
               id: 'psi-1',
               nama_gelar: 'Dr. Jane Doe, M.Psi.',
               kategori: 'Psikolog',
               is_reviewer_psikotes: true,
             })
-          if (accId === 'acc-psi-2')
+          if (val === 'acc-psi-2' || val === 'psi-2')
             return Promise.resolve({
               id: 'psi-2',
               nama_gelar: 'Galuh Kikiany, M.Psi.',
               kategori: 'Psikolog',
               is_reviewer_psikotes: true,
             })
+          if (val === 'psi-non-reviewer')
+            return Promise.resolve({
+              id: 'psi-non-reviewer',
+              nama_gelar: 'Bukan Reviewer',
+              kategori: 'Psikolog',
+              is_reviewer_psikotes: false,
+            })
           return Promise.resolve(null)
         }),
-        findUnique: vi.fn().mockResolvedValue({
-          id: 'psi-1',
-          nama_gelar: 'Dr. Jane Doe, M.Psi.',
-          kategori: 'Psikolog',
-          is_reviewer_psikotes: true,
+        findUnique: vi.fn().mockImplementation(({ where }: any) => {
+          if (where?.id === 'psi-1') {
+            return Promise.resolve({
+              id: 'psi-1',
+              nama_gelar: 'Dr. Jane Doe, M.Psi.',
+              kategori: 'Psikolog',
+              is_reviewer_psikotes: true,
+            })
+          }
+          if (where?.id === 'psi-non-reviewer') {
+            return Promise.resolve({
+              id: 'psi-non-reviewer',
+              nama_gelar: 'Bukan Reviewer',
+              kategori: 'Psikolog',
+              is_reviewer_psikotes: false,
+            })
+          }
+          return Promise.resolve(null)
         }),
       },
     }
@@ -255,30 +275,25 @@ describe('Psikotes Security Controls', () => {
 
     const repo = new PsikotesRepository(mockPrisma)
 
-    // 1. Psikolog 1 mengklaim dari Kolam Bersama -> BERHASIL
-    const claimed = await repo.claimReviewTicket('booking-lock-1', 'acc-psi-1', 'PSIKOLOG')
-    expect(claimed.is_claimed).toBe(true)
-    expect(currentLockedPsikologId).toBe('psi-1')
+    // 1. Admin mencoba menugaskan psikolog yang bukan reviewer -> DITOLAK (400)
+    await expect(repo.assignPsikolog('booking-lock-1', 'psi-non-reviewer')).rejects.toThrow(
+      /belum memiliki hak akses sebagai Reviewer Psikotes/i
+    )
 
-    // 2. Psikolog 2 mencoba klaim tiket yang sama saat masih aktif dikerjakan Psikolog 1 -> DITOLAK (409 Conflict)
-    await expect(
-      repo.claimReviewTicket('booking-lock-1', 'acc-psi-2', 'PSIKOLOG')
-    ).rejects.toThrow(/sedang aktif ditelaah oleh Dr. Jane Doe/i)
+    // 2. Admin menugaskan Psikolog 1 -> BERHASIL
+    const assigned = await repo.assignPsikolog('booking-lock-1', 'psi-1')
+    expect(assigned.id_psikolog).toBe('psi-1')
+    expect(currentLockedPsikologId).toBe('psi-1')
 
     // 3. Orang lain yang bukan pemilik lock mencoba melepas tiket -> DITOLAK (403 Forbidden)
     await expect(
       repo.releaseReviewTicket('booking-lock-1', 'acc-psi-2', 'PSIKOLOG')
     ).rejects.toThrow(/Hanya psikolog yang sedang menelaah tiket ini atau Admin/i)
 
-    // 4. Psikolog 1 mengembalikan tiket ke Kolam Bersama (Shared Pool) -> BERHASIL
+    // 4. Psikolog 1 / Admin melepas penugasan tiket -> BERHASIL
     const released = await repo.releaseReviewTicket('booking-lock-1', 'acc-psi-1', 'PSIKOLOG')
     expect(released.is_claimed).toBe(false)
     expect(currentLockedPsikologId).toBeNull()
-
-    // 5. Sekarang Psikolog 2 bisa mengklaim tiket yang sudah dilepas -> BERHASIL
-    const claimedBy2 = await repo.claimReviewTicket('booking-lock-1', 'acc-psi-2', 'PSIKOLOG')
-    expect(claimedBy2.is_claimed).toBe(true)
-    expect(currentLockedPsikologId).toBe('psi-2')
   })
 })
 

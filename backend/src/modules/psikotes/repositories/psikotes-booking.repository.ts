@@ -640,14 +640,6 @@ export class PsikotesBookingRepository {
                 kategori: true,
               },
             },
-            soal_psikotes: {
-              include: {
-                pilihan_jawaban: true,
-              },
-              orderBy: {
-                urutan: 'asc',
-              },
-            },
             interpretasi_psikotes: true,
           },
         },
@@ -767,7 +759,6 @@ export class PsikotesBookingRepository {
     }> = []
 
     const dbJawaban = (booking as any).jawaban_psikotes || []
-    const soalList = (booking.paket as any)?.soal_psikotes || []
 
     if (Array.isArray(dbJawaban) && dbJawaban.length > 0) {
       rekapJawaban = dbJawaban.map((jp: any, idx: number) => ({
@@ -781,6 +772,11 @@ export class PsikotesBookingRepository {
       }))
     } else if (booking.hasil_tes?.snapshot_jawaban) {
       // Fallback jika jawaban tersimpan dalam format snapshot_jawaban JSON
+      const soalList = await this.prisma.soalPsikotes.findMany({
+        where: { id_paket: booking.id_paket },
+        include: { pilihan_jawaban: true },
+        orderBy: { urutan: 'asc' },
+      })
       const rawSnapshot = booking.hasil_tes.snapshot_jawaban
       const snapshotList: any[] = Array.isArray(rawSnapshot)
         ? rawSnapshot

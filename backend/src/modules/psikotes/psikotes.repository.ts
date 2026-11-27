@@ -106,10 +106,6 @@ export class PsikotesRepository {
     return this.reviewRepo.submitReview(bookingId, input, userId, userRole)
   }
 
-  async claimReviewTicket(bookingId: string, userId?: string, userRole?: string) {
-    return this.reviewRepo.claimReviewTicket(bookingId, userId, userRole)
-  }
-
   async releaseReviewTicket(bookingId: string, userId?: string, userRole?: string) {
     return this.reviewRepo.releaseReviewTicket(bookingId, userId, userRole)
   }

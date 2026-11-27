@@ -159,8 +159,11 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
         .getList({ status: "ALL" })
         .then((res: any) => {
           const raw = Array.isArray(res) ? res : Array.isArray(res?.data) ? res.data : [];
+          const reviewers = raw.filter((p: any) =>
+            Boolean(p.is_reviewer_psikotes ?? p.isReviewerPsikotes)
+          );
           setPsikologOptions(
-            raw.map((p: any) => ({
+            reviewers.map((p: any) => ({
               id: p.id,
               nama_gelar: p.nama_gelar || p.account?.nama || p.nama || "Psikolog Empathika",
               kategori: p.kategori || "",

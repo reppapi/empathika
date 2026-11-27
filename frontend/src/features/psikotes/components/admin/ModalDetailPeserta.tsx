@@ -458,14 +458,18 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                 </div>
 
                 {!isBiroContext && onAssignPsikolog && (
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 min-w-0">
                     <select
                       value={selectedPsikologId}
                       onChange={(e) => setSelectedPsikologId(e.target.value)}
                       disabled={isAssigning}
-                      className="flex-1 px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#EAB308]/40 focus:border-[#EAB308]"
+                      className="w-full sm:flex-1 min-w-0 truncate px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#EAB308]/40 focus:border-[#EAB308]"
                     >
-                      <option value="">-- Pilih Psikolog Pemeriksa --</option>
+                      <option value="">
+                        {psikologList.length === 0
+                          ? "-- Belum ada psikolog dengan hak Reviewer Psikotes aktif --"
+                          : "-- Pilih Psikolog Reviewer --"}
+                      </option>
                       {psikologList.map((psi) => {
                         const spec = [psi.spesialisasi, psi.kategori].filter(Boolean).join(" · ");
                         const statusTag = psi.status && psi.status !== "ACTIVE" ? " [Nonaktif]" : "";

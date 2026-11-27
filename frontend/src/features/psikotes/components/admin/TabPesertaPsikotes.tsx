@@ -14,7 +14,6 @@ import {
   Calendar,
   Clock,
   CheckCircle2,
-  AlertCircle,
   ArrowRight,
 } from "lucide-react";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";

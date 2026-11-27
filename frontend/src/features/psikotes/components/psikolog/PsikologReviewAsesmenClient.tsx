@@ -12,7 +12,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ClipboardList,
   Clock,
   CheckCircle2,
   AlertCircle,
@@ -27,7 +26,7 @@ import {
 import { useAuthStore } from "@/store/authStore";
 import { psikotesService, type ReviewPsikotesItem, type ReviewPsikotesListResponse } from "@/services/psikotes.service";
 import { psikologService } from "@/services/psikolog.service";
-import { calculateReviewSla, REVIEW_MAX_DAYS } from "../../utils/reviewSla";
+import { calculateReviewSla } from "../../utils/reviewSla";
 import { AdminStatusBadge } from "@/components/shared/AdminStatusBadge";
 
 export default function PsikologReviewAsesmenClient() {
@@ -76,6 +75,9 @@ export default function PsikologReviewAsesmenClient() {
       });
       if (res?.success && res.data) {
         setData(res.data);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("empathika:review-updated"));
+        }
       } else {
         setData({
           summary: { total: 0, menunggu_review: 0, kolam_bersama: 0, sedang_ditelaah: 0, selesai_review: 0 },
