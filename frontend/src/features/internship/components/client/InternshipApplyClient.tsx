@@ -438,14 +438,6 @@ export default function InternshipApplyClient({ positionId }: Props) {
         </svg>
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          <Link
-            href={withBiro("/internship")}
-            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/80 hover:text-white mb-4 transition-colors group"
-          >
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Kembali ke Daftar Lowongan Magang</span>
-          </Link>
-
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
             {position.judul}
           </h1>
