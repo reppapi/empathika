@@ -143,11 +143,11 @@ export default function AdminEventClient() {
       {/* ─────────────────────────────────────────────────────────────
           1. PILIHAN HALAMAN DI BAGIAN ATAS (Event Baru vs Event Selesai)
           ───────────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 p-1.5 bg-gray-100/90 rounded-2xl w-fit border border-gray-200/80 shadow-inner">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 p-1.5 bg-gray-100/90 rounded-2xl w-full sm:w-fit border border-gray-200/80 shadow-inner">
         <button
           type="button"
           onClick={() => handleSectionChange("baru")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-center justify-center flex items-center ${
             activeSection === "baru"
               ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
@@ -159,7 +159,7 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => handleSectionChange("selesai")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+          className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer text-center justify-center flex items-center ${
             activeSection === "selesai"
               ? "bg-[#EAB308] text-gray-950 shadow-sm"
               : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
@@ -191,7 +191,7 @@ export default function AdminEventClient() {
             <button
               type="button"
               onClick={() => router.push("/admin/event/tambah")}
-              className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+              className="w-full sm:w-auto self-start sm:self-center flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -208,11 +208,11 @@ export default function AdminEventClient() {
           </div>
 
           {/* Main Card Table Container */}
-          <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+          <div className="w-full rounded-2xl sm:rounded-[1.5rem] border border-gray-200/90 bg-white p-4 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
             {/* Header Bar: Filter Tabs & Search */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
               {/* Tabs */}
-              <div className="flex items-center gap-6 sm:gap-8 border-b border-transparent overflow-x-auto pb-1 text-sm">
+              <div className="flex items-center gap-4 sm:gap-8 border-b border-gray-100 sm:border-transparent overflow-x-auto no-scrollbar pb-2 sm:pb-1 text-xs sm:text-sm">
                 <button
                   type="button"
                   onClick={() => setActiveTab("semua")}

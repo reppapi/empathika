@@ -109,10 +109,10 @@ export function EventListClient() {
           </p>
 
           {/* Tab Selector */}
-          <div className="flex items-center justify-center gap-3 mt-8">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 mt-6 sm:mt-8 w-full max-w-lg mx-auto">
             <button
               onClick={() => setActiveTab("UPCOMING")}
-              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
+              className={`w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === "UPCOMING"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -122,7 +122,7 @@ export function EventListClient() {
             </button>
             <button
               onClick={() => setActiveTab("PAST")}
-              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
+              className={`w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
                 activeTab === "PAST"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -218,7 +218,7 @@ export function EventListClient() {
                     key={ev.id}
                     className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group min-w-0 w-full"
                   >
-                    <div className="relative h-56 sm:h-auto sm:w-[38%] md:w-[36%] lg:w-[38%] shrink-0 overflow-hidden bg-gray-100">
+                    <div className="relative h-48 sm:h-auto sm:w-[38%] md:w-[36%] lg:w-[38%] shrink-0 overflow-hidden bg-gray-100">
                       {ev.banner_url ? (
                         <Image
                           unoptimized
@@ -228,7 +228,7 @@ export function EventListClient() {
                           className="object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-full h-full min-h-[14rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <div className="w-full h-full min-h-[12rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
                           <span className="text-white/70 text-xs font-bold uppercase tracking-wider">{ev.jenis_event}</span>
                         </div>
                       )}
@@ -247,7 +247,7 @@ export function EventListClient() {
                       </div>
                     </div>
 
-                    <div className="p-5 md:p-6 flex flex-col flex-1 min-w-0 justify-between">
+                    <div className="p-4 sm:p-5 md:p-6 flex flex-col flex-1 min-w-0 justify-between">
                       <div className="min-w-0">
                         <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight break-words">
                           {ev.judul}
@@ -410,7 +410,7 @@ export function EventListClient() {
                   <div className="hidden sm:block sm:w-56 shrink-0" />
 
                   {/* Kategori Utama di Tengah: Modern Underline Tabs */}
-                  <div className="flex items-center justify-center gap-6 sm:gap-10 border-b border-gray-200/80 px-2">
+                  <div className="flex items-center justify-center gap-4 sm:gap-10 border-b border-gray-200/80 px-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
                     {ARSIP_KATEGORI_TABS.map((tab) => {
                       const isSelected = selectedCategoryTab === tab.id
                       return (
@@ -425,7 +425,7 @@ export function EventListClient() {
                             }
                             setShowAllArsip(false)
                           }}
-                          className={`relative pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 ${
+                          className={`relative pb-3 text-xs sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 whitespace-nowrap shrink-0 ${
                             isSelected
                               ? "text-[#561269] font-extrabold"
                               : "text-gray-400 hover:text-gray-700 font-semibold"
@@ -441,13 +441,13 @@ export function EventListClient() {
                   </div>
 
                   {/* Tombol Filter Topik Workshop di Kanan (Tampil saat tab Workshop aktif) */}
-                  <div className="sm:w-56 flex justify-center sm:justify-end shrink-0">
+                  <div className="w-full sm:w-56 flex justify-center sm:justify-end shrink-0">
                     {selectedCategoryTab === "WORKSHOP" && (
-                      <div className="relative">
+                      <div className="relative w-full sm:w-auto">
                         <button
                           type="button"
                           onClick={() => setIsWorkshopDropdownOpen((prev) => !prev)}
-                          className="flex items-center justify-between gap-1.5 w-48 sm:w-52 h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
+                          className="flex items-center justify-between gap-1.5 w-full sm:w-52 h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
                         >
                           <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
                             <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
@@ -468,7 +468,7 @@ export function EventListClient() {
 
                         {/* Dropdown Floating di Atas Foto Sesuai Desain Filter Transaksi */}
                         {isWorkshopDropdownOpen && (
-                          <div className="absolute right-0 top-full mt-2 z-20 w-60 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                          <div className="absolute right-0 top-full mt-2 z-20 w-full sm:w-60 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
                             <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                               Pilih Topik Workshop
                             </p>

@@ -82,7 +82,7 @@ export default function AdminDokumentasiEventClient() {
         <button
           type="button"
           onClick={() => router.push("/admin/event/dokumentasi/tambah")}
-          className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+          className="w-full sm:w-auto self-start sm:self-center flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
         >
           <Plus className="h-4 w-4 stroke-[3]" />
           Tambah Dokumentasi
@@ -90,7 +90,7 @@ export default function AdminDokumentasiEventClient() {
       </div>
 
       {/* Main Card Table Container */}
-      <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+      <div className="w-full rounded-2xl sm:rounded-[1.5rem] border border-gray-200/90 bg-white p-4 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         {/* Search Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-base font-bold text-gray-900">
@@ -139,7 +139,7 @@ export default function AdminDokumentasiEventClient() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto p-1">
-            <table className="w-full text-left text-sm border-separate border-spacing-y-2">
+            <table className="w-full text-left text-sm border-separate border-spacing-y-2 min-w-[620px]">
               <thead className="sticky top-0 z-10 bg-white">
                 <tr className="bg-purple-100/70 text-gray-700 text-xs uppercase font-extrabold tracking-wider">
                   <th className="py-3 px-4 rounded-l-xl sticky top-0 bg-purple-100/90 z-10">Event Selesai</th>

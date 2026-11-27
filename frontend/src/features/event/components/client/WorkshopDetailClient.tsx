@@ -35,8 +35,8 @@ export default function WorkshopDetailClient({ id: _id, event }: Props) {
         <div className="relative w-full flex flex-col md:block">
           
           {/* Mobile Text (Top) */}
-          <div className="md:hidden w-full px-6 py-8 bg-gradient-to-b from-white to-[#F8EFFF]">
-            <h1 className="text-4xl font-extrabold text-[#561269] mb-4 leading-tight">
+          <div className="md:hidden w-full px-5 sm:px-6 pt-28 pb-8 bg-gradient-to-b from-white to-[#F8EFFF]">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#561269] mb-3 leading-tight">
               {judul}
             </h1>
             {subjudul && <p className="text-sm font-semibold text-[#7B2D8B] mb-2">{subjudul}</p>}

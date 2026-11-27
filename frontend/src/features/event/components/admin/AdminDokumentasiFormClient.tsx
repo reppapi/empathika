@@ -240,7 +240,7 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
       )}
 
       {/* Main Form */}
-      <form onSubmit={handleSubmit} className="bg-white rounded-3xl border border-gray-200 p-6 sm:p-8 shadow-sm space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white rounded-2xl sm:rounded-3xl border border-gray-200 p-4 sm:p-8 shadow-sm space-y-6">
         {/* Field 1: Judul Event */}
         <div>
           <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
@@ -425,19 +425,19 @@ export default function AdminDokumentasiFormClient({ id }: AdminDokumentasiFormC
         </div>
 
         {/* Actions Footer */}
-        <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="pt-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3">
           <button
             type="button"
             disabled={submitting || uploadingFiles}
             onClick={() => router.push("/admin/event?section=selesai")}
-            className="px-6 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-2.5 rounded-full border border-gray-200 text-gray-700 text-sm font-bold hover:bg-gray-50 transition-colors cursor-pointer text-center"
           >
             Batal
           </button>
           <button
             type="submit"
             disabled={submitting || uploadingFiles}
-            className="px-8 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            className="w-full sm:w-auto px-8 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-sm font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>

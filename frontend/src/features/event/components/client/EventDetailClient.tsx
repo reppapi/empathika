@@ -49,17 +49,17 @@ export default function EventDetailClient({ id: _id, event }: Props) {
         </div>
         
         <div className="relative z-10 text-center px-4 mt-8">
-          <h1 className="text-4xl md:text-5xl lg:text-[64px] font-extrabold text-white drop-shadow-md">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[64px] font-extrabold text-white drop-shadow-md leading-tight">
             {judul}
           </h1>
           {subjudul && (
-            <p className="mt-3 text-lg md:text-xl text-white/90 font-medium drop-shadow">{subjudul}</p>
+            <p className="mt-2 sm:mt-3 text-base md:text-xl text-white/90 font-medium drop-shadow">{subjudul}</p>
           )}
         </div>
       </div>
 
       {/* Middle Text Section */}
-      <div className="w-full max-w-[900px] mx-auto px-6 py-12 md:py-20 text-center relative z-10">
+      <div className="w-full max-w-[900px] mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-20 text-center relative z-10">
         {deskripsi ? (
           <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium whitespace-pre-wrap">{deskripsi}</p>
         ) : (
