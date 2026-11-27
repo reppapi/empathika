@@ -215,6 +215,25 @@ export default function AdminInternshipClient() {
     setModalCatatan(app.catatanAdmin || "")
   }
 
+  // Quick Update Status Pelamar langsung dari Tabel (Sesuai Gaya Kerja Sama)
+  const handleQuickUpdateAppStatus = async (
+    id: string,
+    newStatus: InternshipApplication["status"]
+  ) => {
+    try {
+      const updated = await internshipService.updateApplicationStatus(id, newStatus)
+      setApplications((prev) =>
+        prev.map((a) => (a.id === updated.id ? updated : a))
+      )
+      if (selectedApp?.id === id) {
+        setSelectedApp(updated)
+      }
+      showToast("Status pelamar berhasil diperbarui!")
+    } catch (err: any) {
+      alert("Gagal memperbarui status pelamar: " + (err?.message || "Kesalahan server"))
+    }
+  }
+
   // Simpan Perubahan Status Pelamar
   const handleSaveAppStatus = async () => {
     if (!selectedApp) return
@@ -809,19 +828,29 @@ export default function AdminInternshipClient() {
 
                       {/* Status */}
                       <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                        <select
+                          value={app.status}
+                          onChange={(e) =>
+                            handleQuickUpdateAppStatus(
+                              app.id,
+                              e.target.value as InternshipApplication["status"]
+                            )
+                          }
+                          className={`rounded-lg px-2.5 py-1 text-xs font-semibold border cursor-pointer transition-colors ${
                             app.status === "MENUNGGU"
-                              ? "bg-amber-100 text-amber-800 border border-amber-200"
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
                               : app.status === "REVIEW"
-                              ? "bg-blue-100 text-blue-800 border border-blue-200"
+                              ? "bg-blue-50 text-blue-700 border-blue-200"
                               : app.status === "DITERIMA"
-                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                              : "bg-rose-100 text-rose-800 border border-rose-200"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-red-50 text-red-700 border-red-200"
                           }`}
                         >
-                          {app.status}
-                        </span>
+                          <option value="MENUNGGU">Menunggu</option>
+                          <option value="REVIEW">Review</option>
+                          <option value="DITERIMA">Diterima</option>
+                          <option value="DITOLAK">Ditolak</option>
+                        </select>
                       </td>
 
                       {/* Aksi */}
