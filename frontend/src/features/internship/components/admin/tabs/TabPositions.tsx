@@ -91,7 +91,7 @@ export function TabPositions({
             return (
               <div
                 key={pos.id}
-                className="bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-2xs hover:shadow-xs transition-all duration-200 space-y-4"
+                className="bg-white rounded-2xl border border-gray-200/80 p-4 sm:p-6 shadow-2xs hover:shadow-xs transition-all duration-200 space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div className="space-y-1.5">

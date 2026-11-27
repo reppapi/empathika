@@ -139,8 +139,8 @@ export function TabApplications({
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-600">
+          <div className="overflow-x-auto admin-table-scrollbar">
+            <table className="w-full min-w-[720px] text-left text-xs text-gray-600">
               <thead className="bg-[#FAF7FB] border-b border-gray-100 text-gray-700 font-bold uppercase text-[11px] tracking-wider">
                 <tr>
                   <th className="py-3 px-4">Tanggal</th>

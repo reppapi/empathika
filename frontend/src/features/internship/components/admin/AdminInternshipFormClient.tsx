@@ -224,7 +224,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
       </div>
 
       {/* ── Container Form Utama ── */}
-      <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+      <div className="w-full rounded-2xl sm:rounded-3xl border border-gray-200/90 bg-white p-4 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           {/* Section 1: Informasi Dasar Posisi */}
           <FormPositionBasicSection
@@ -261,11 +261,11 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           />
 
           {/* Submit Button */}
-          <div className="pt-6 border-t border-gray-100 flex items-center justify-end gap-3">
+          <div className="pt-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={() => router.push("/admin/internship")}
-              className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 text-xs sm:text-sm font-semibold transition-colors cursor-pointer text-center"
             >
               Batal
             </button>
@@ -273,7 +273,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             <button
               type="submit"
               disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-md hover:shadow transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-md hover:shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <Save className="w-4 h-4" />
               <span>

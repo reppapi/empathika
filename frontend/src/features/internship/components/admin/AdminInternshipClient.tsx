@@ -288,25 +288,25 @@ export default function AdminInternshipClient() {
       )}
 
       {/* ── 1. HEADER SECTION ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-purple-100/80 shadow-xs">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl border border-purple-100/80 shadow-xs">
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-[#561269] uppercase tracking-wider mb-1">
             <Briefcase className="w-4 h-4" />
             Manajemen Karir & Magang
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
             Program Internship Empathika
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Kelola lowongan magang, atur butir pertanyaan kustom, dan tinjau berkas lamaran yang masuk dari klien.
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 w-full sm:w-auto shrink-0">
           <Link
             href="/internship"
             target="_blank"
-            className="px-4 py-2.5 rounded-xl border border-purple-200 text-[#561269] hover:bg-purple-50 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
+            className="flex-1 sm:flex-none justify-center px-4 py-2.5 rounded-xl border border-purple-200 text-[#561269] hover:bg-purple-50 font-semibold text-xs sm:text-sm flex items-center gap-1.5 transition-colors"
           >
             <span>Pratinjau Klien</span>
             <ExternalLink className="w-4 h-4" />
@@ -314,7 +314,7 @@ export default function AdminInternshipClient() {
 
           <Link
             href="/admin/internship/tambah"
-            className="px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-5 py-2.5 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 text-[#0f172a]" />
             <span>Tambah Posisi</span>
@@ -323,7 +323,7 @@ export default function AdminInternshipClient() {
       </div>
 
       {/* ── 2. STATS OVERVIEW CARDS ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Total Posisi */}
         <div
           onClick={() => setActiveTab("posisi")}
@@ -399,16 +399,16 @@ export default function AdminInternshipClient() {
       </div>
 
       {/* ── 3. TABS NAVIGATION ── */}
-      <div className="flex items-center gap-2 border-b border-gray-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-gray-200 pb-2 overflow-x-auto no-scrollbar scroll-smooth">
         <button
           onClick={() => setActiveTab("posisi")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "posisi"
               ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          <Briefcase className="w-4 h-4" />
+          <Briefcase className="w-4 h-4 shrink-0" />
           <span>Daftar Posisi Magang</span>
           <span
             className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${
@@ -423,13 +423,13 @@ export default function AdminInternshipClient() {
 
         <button
           onClick={() => setActiveTab("pelamar")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+          className={`shrink-0 whitespace-nowrap px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === "pelamar"
               ? "bg-[#EAB308] text-[#0f172a] shadow-xs"
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          <Users className="w-4 h-4" />
+          <Users className="w-4 h-4 shrink-0" />
           <span>Hasil Pelamar Masuk</span>
           <span
             className={`px-2 py-0.5 text-[11px] rounded-full font-bold ${

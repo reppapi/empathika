@@ -90,7 +90,7 @@ export function PsikologBukaJadwalSection({
   bookingSuccessMsg,
 }: PsikologBukaJadwalSectionProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Sesi Asesmen</h2>
@@ -99,7 +99,7 @@ export function PsikologBukaJadwalSection({
           </p>
         </div>
         {activePsikolog && (
-          <div className="flex items-center gap-3 bg-gradient-to-r from-[#FAF5FD] to-[#F5EDF9] border border-purple-200/90 rounded-2xl px-4 py-2.5 shrink-0 shadow-2xs">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-[#FAF5FD] to-[#F5EDF9] border border-purple-200/90 rounded-2xl px-4 py-2.5 shrink-0 shadow-2xs w-full sm:w-auto">
             <div className="w-9 h-9 rounded-full bg-[#561269] text-white flex items-center justify-center font-bold text-sm shadow-xs shrink-0">
               {(activePsikolog?.nama_gelar || "P")[0]}
             </div>

@@ -4,12 +4,12 @@ export function QuoteBanner() {
   return (
     <div className="relative my-14 sm:my-20 w-full max-w-5xl mx-auto px-4 sm:px-6">
       {/* Top-Left Quote Icon */}
-      <span className="absolute -top-6 sm:-top-8 left-2 sm:left-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
+      <span className="absolute -top-6 sm:-top-8 left-1 sm:left-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
         “
       </span>
 
       {/* Banner Container */}
-      <div className="bg-gradient-to-r from-[#8E44AD] via-[#7D3C98] to-[#6C3483] text-white rounded-3xl p-6 sm:p-8 md:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#8E44AD] via-[#7D3C98] to-[#6C3483] text-white rounded-2xl sm:rounded-3xl p-5 sm:p-8 md:p-10 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
         {/* Starry Overlay */}
         <HeroStarryOverlay density="subtle" showAurora={false} />
 
