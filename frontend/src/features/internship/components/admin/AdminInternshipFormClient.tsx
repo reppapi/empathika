@@ -151,9 +151,6 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
     if (!formData.deadline.trim()) {
       newErrors.deadline = "Deadline pendaftaran wajib diisi"
     }
-    if (!formData.applyUrl.trim()) {
-      newErrors.applyUrl = "Link pendaftaran wajib diisi"
-    }
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
@@ -421,14 +418,16 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <ExternalLink className="w-3.5 h-3.5 text-[#561269]" />
-                Link Pendaftaran (Apply URL) <span className="text-rose-500">*</span>
+                Link Pendaftaran Eksternal (Opsional)
               </label>
+              <p className="text-[11px] text-gray-400 mb-2">
+                Kosongkan untuk otomatis menggunakan <strong>Formulir Website Empathika</strong>. Isi hanya jika ingin mengarahkan pendaftar ke link luar (misal Google Form / LinkedIn).
+              </p>
               <input
-                type="url"
-                required
-                placeholder="https://empathika.id/daftar-internship"
+                type="text"
+                placeholder="Kosongkan untuk otomatis ke formulir internal Empathika"
                 value={formData.applyUrl}
                 onChange={(e) => {
                   setFormData({ ...formData, applyUrl: e.target.value })

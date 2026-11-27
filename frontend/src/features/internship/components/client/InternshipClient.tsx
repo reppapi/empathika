@@ -374,13 +374,25 @@ export default function InternshipClient() {
                             </p>
                           </div>
 
-                          <Link
-                            href={`/internship/apply/${pos.id}`}
-                            className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                          >
-                            <span>APPLY NOW</span>
-                            <ArrowRight className="w-4 h-4 text-[#0f172a]" />
-                          </Link>
+                          {pos.applyUrl && (pos.applyUrl.startsWith("http://") || pos.applyUrl.startsWith("https://")) ? (
+                            <a
+                              href={pos.applyUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <span>APPLY NOW</span>
+                              <ExternalLink className="w-4 h-4 text-[#0f172a]" />
+                            </a>
+                          ) : (
+                            <Link
+                              href={`/internship/apply/${pos.id}`}
+                              className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              <span>APPLY NOW</span>
+                              <ArrowRight className="w-4 h-4 text-[#0f172a]" />
+                            </Link>
+                          )}
                         </div>
                       </div>
                     )}
