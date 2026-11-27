@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useMemo } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
 import {
   getWhatsAppUrl,
@@ -66,12 +66,26 @@ export default function JadwalHariIniSection({
   isLoading = false,
 }: JadwalHariIniSectionProps) {
   const parallelScrollRef = useRef<HTMLDivElement>(null)
-  const activeNearestList: ClientSessionToday[] =
-    nearestSessions && nearestSessions.length > 0
-      ? nearestSessions
-      : nearestSession
-        ? [nearestSession]
-        : []
+  const activeNearestList: ClientSessionToday[] = useMemo(() => {
+    const rawList =
+      nearestSessions && nearestSessions.length > 0
+        ? nearestSessions
+        : nearestSession
+          ? [nearestSession]
+          : []
+    return rawList.filter((s) => {
+      if (!s) return false
+      const st = (s.status || "").toLowerCase()
+      return (
+        st !== "reschedule" &&
+        st !== "dibatalkan" &&
+        !st.includes("refund") &&
+        st !== "cancelled" &&
+        st !== "selesai" &&
+        st !== "completed"
+      )
+    })
+  }, [nearestSessions, nearestSession])
   return (
     <div className="mt-4 flex flex-col gap-4 font-poppins">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">

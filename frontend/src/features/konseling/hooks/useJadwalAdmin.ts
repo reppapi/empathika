@@ -541,14 +541,19 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
       let foundNearestStartMinutes: number | null = null
 
       return sessions.map((item) => {
-        if (item.status === "Dibatalkan" || (item.status as string) === "Dibatalkan (Refund)") {
-          return { ...item, isUpcomingNearest: false }
+        const itemStatus = (item.status || "").toLowerCase()
+        if (
+          itemStatus === "dibatalkan" ||
+          itemStatus.includes("refund") ||
+          itemStatus === "cancelled"
+        ) {
+          return { ...item, status: "Dibatalkan" as const, isUpcomingNearest: false }
         }
-        if (item.status === "Reschedule") {
-          return { ...item, isUpcomingNearest: false }
+        if (itemStatus === "reschedule") {
+          return { ...item, status: "Reschedule" as const, isUpcomingNearest: false }
         }
-        if (item.status === "Selesai") {
-          return { ...item, isUpcomingNearest: false }
+        if (itemStatus === "selesai" || itemStatus === "completed") {
+          return { ...item, status: "Selesai" as const, isUpcomingNearest: false }
         }
 
         const sessionDateKey = item.date || item.tanggal || activeDateKey
@@ -612,10 +617,34 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     }
 
     const currentMinutes = now.getHours() * 60 + now.getMinutes()
+    const rescheduledList = getRescheduledSessions()
+
+    const isExcluded = (s: ClientSessionToday) => {
+      const st = (s.status || "").toLowerCase()
+      if (
+        st === "reschedule" ||
+        st === "dibatalkan" ||
+        st.includes("refund") ||
+        st === "cancelled" ||
+        st === "selesai" ||
+        st === "completed"
+      ) {
+        return true
+      }
+      if (
+        isSessionRescheduled(
+          { id: s.id, date: s.date || s.tanggal, waktu: s.waktu, namaKlien: s.namaKlien },
+          rescheduledList
+        )
+      ) {
+        return true
+      }
+      return false
+    }
 
     // 1. Cek sesi yang sedang berlangsung saat ini (bisa multiple paralel dari psikolog berbeda)
     const ongoing = filteredTodaySessions.filter((s) => {
-      if (s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Selesai" || s.status === "Reschedule") return false
+      if (isExcluded(s)) return false
       if (s.status === "Sedang Berlangsung") return true
       const { startMinutes, endMinutes } = parseTimeRangeMinutes(s.waktu)
       return Boolean(startMinutes && endMinutes && currentMinutes >= startMinutes && currentMinutes < endMinutes)
@@ -624,7 +653,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
 
     // 2. Cek semua sesi yang segera dimulai di jam terdekat yang sama
     const upcoming = filteredTodaySessions.filter((s) => {
-      if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Reschedule") return false
+      if (isExcluded(s)) return false
       if (s.status !== "Segera Dimulai" && !s.isUpcomingNearest) return false
       const { endMinutes } = parseTimeRangeMinutes(s.waktu)
       return endMinutes > currentMinutes
@@ -634,9 +663,9 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
     // 3. Fallback: ambil semua sesi terdekat yang belum mulai (jam paling awal berikutnya)
     const validFuture = filteredTodaySessions
       .filter((s) => {
-        if (s.status === "Selesai" || s.status === "Dibatalkan" || (s.status as string) === "Dibatalkan (Refund)" || s.status === "Reschedule") return false
+        if (isExcluded(s)) return false
         const { startMinutes } = parseTimeRangeMinutes(s.waktu)
-        return startMinutes && startMinutes > currentMinutes
+        return Boolean(startMinutes && startMinutes > currentMinutes)
       })
       .sort((a, b) => {
         const aMin = parseTimeRangeMinutes(a.waktu).startMinutes || 0
