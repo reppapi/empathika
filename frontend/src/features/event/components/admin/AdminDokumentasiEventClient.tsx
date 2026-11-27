@@ -151,10 +151,10 @@ export default function AdminDokumentasiEventClient() {
                 {filteredItems.map((item) => {
                   const tglTeks = item.tanggal
                     ? new Date(item.tanggal).toLocaleDateString("id-ID", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
                     : "-"
 
                   return (

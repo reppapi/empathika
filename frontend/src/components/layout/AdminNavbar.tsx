@@ -150,14 +150,14 @@ export function AdminNavbar({
       .toUpperCase() || "AE"
 
   return (
-    <header className="sticky top-0 z-30 flex h-[101px] w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 sm:px-6 lg:px-8 font-poppins shadow-sm">
+    <header className="sticky top-0 z-30 flex min-h-[64px] sm:min-h-[72px] lg:h-[101px] py-2.5 sm:py-3 lg:py-0 w-full items-center justify-between border-b border-gray-200/80 bg-white px-4 sm:px-6 lg:px-8 font-poppins shadow-sm">
       {/* Sisi Kiri: Tombol Burger (Mobile/Tablet) + Title & Deskripsi Halaman */}
       <div className="flex items-center gap-3 sm:gap-4 min-w-0 pr-4">
         {/* Tombol Hamburger di Mobile/Tablet (< lg) sama seperti di navbar user */}
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#561269] text-white shadow-md transition-transform active:scale-95 lg:hidden"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#561269] text-white shadow-md transition-transform active:scale-95 lg:hidden cursor-pointer"
           aria-label="Buka menu navigasi"
         >
           <svg
@@ -174,11 +174,11 @@ export function AdminNavbar({
 
         {/* Title & Deskripsi Halaman */}
         <div className="flex flex-col justify-center min-w-0">
-          <h1 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#561269] tracking-tight leading-tight truncate">
+          <h1 className="text-base sm:text-xl lg:text-2xl font-extrabold text-[#561269] tracking-tight leading-tight truncate">
             {currentTitle}
           </h1>
           {currentDescription && (
-            <p className="text-xs sm:text-sm text-gray-500 font-normal mt-0.5 sm:mt-1 truncate max-w-[260px] xs:max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-4xl">
+            <p className="hidden sm:block text-xs sm:text-sm text-gray-500 font-normal mt-0.5 sm:mt-1 truncate max-w-[260px] xs:max-w-xs sm:max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-4xl">
               {currentDescription}
             </p>
           )}
@@ -190,16 +190,16 @@ export function AdminNavbar({
         <button
           type="button"
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="flex items-center gap-2.5 sm:gap-3.5 rounded-full p-1.5 transition-colors hover:bg-gray-50 focus:outline-none"
+          className="flex items-center gap-2 sm:gap-3.5 rounded-full p-1.5 transition-colors hover:bg-gray-50 focus:outline-none cursor-pointer"
         >
-          {/* Info Teks Admin / Psikolog */}
-          <div className="flex flex-col text-right leading-tight max-w-[140px] sm:max-w-[220px]">
+          {/* Info Teks Admin / Psikolog (Tampil di sm ke atas) */}
+          <div className="hidden sm:flex flex-col text-right leading-tight max-w-[140px] sm:max-w-[220px]">
             <p className="text-xs sm:text-sm font-bold text-gray-900 truncate">{currentAdminName}</p>
             <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium truncate">{subtitle}</p>
           </div>
 
           {/* Avatar Bulat Inisial / Foto */}
-          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] text-sm font-bold text-[#561269] overflow-hidden shadow-xs ring-1 ring-purple-200/50">
+          <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-full bg-[#E8D4F0] text-xs sm:text-sm font-bold text-[#561269] overflow-hidden shadow-xs ring-1 ring-purple-200/50">
             {isMounted && adminFoto ? (
               <img src={adminFoto} alt={currentAdminName} className="h-full w-full object-cover" />
             ) : (

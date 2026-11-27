@@ -192,11 +192,10 @@ export default function AdminEventDetailModal({
                     {currentEvent.jenis}
                   </span>
                   <span
-                    className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${
-                      currentEvent.tipe === "Offline"
-                        ? "bg-emerald-100 text-emerald-800"
-                        : "bg-blue-100 text-blue-800"
-                    }`}
+                    className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${currentEvent.tipe === "Offline"
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-blue-100 text-blue-800"
+                      }`}
                   >
                     {currentEvent.tipe}
                   </span>
@@ -207,8 +206,8 @@ export default function AdminEventDetailModal({
                     currentEvent.status === "Dipublikasi"
                       ? "success"
                       : currentEvent.status === "Draft"
-                      ? "warning"
-                      : "danger"
+                        ? "warning"
+                        : "danger"
                   }
                 >
                   {currentEvent.status}

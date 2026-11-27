@@ -147,11 +147,10 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => handleSectionChange("baru")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            activeSection === "baru"
-              ? "bg-[#EAB308] text-gray-950 shadow-sm"
-              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeSection === "baru"
+            ? "bg-[#EAB308] text-gray-950 shadow-sm"
+            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+            }`}
         >
           Event Baru
         </button>
@@ -159,11 +158,10 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => handleSectionChange("selesai")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-            activeSection === "selesai"
-              ? "bg-[#EAB308] text-gray-950 shadow-sm"
-              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-          }`}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeSection === "selesai"
+            ? "bg-[#EAB308] text-gray-950 shadow-sm"
+            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+            }`}
         >
           Event / Kolaborasi Sebelumnya
         </button>
@@ -216,11 +214,10 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("semua")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                    activeTab === "semua"
-                      ? "text-[#561269]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "semua"
+                    ? "text-[#561269]"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Semua Event
                   {activeTab === "semua" && (
@@ -231,11 +228,10 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("seminar")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                    activeTab === "seminar"
-                      ? "text-[#561269]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "seminar"
+                    ? "text-[#561269]"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Seminar
                   {activeTab === "seminar" && (
@@ -246,11 +242,10 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("workshop")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                    activeTab === "workshop"
-                      ? "text-[#561269]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "workshop"
+                    ? "text-[#561269]"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Workshop
                   {activeTab === "workshop" && (
@@ -261,11 +256,10 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("selesai")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
-                    activeTab === "selesai"
-                      ? "text-[#561269]"
-                      : "text-gray-600 hover:text-gray-900"
-                  }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "selesai"
+                    ? "text-[#561269]"
+                    : "text-gray-600 hover:text-gray-900"
+                    }`}
                 >
                   Selesai
                   {activeTab === "selesai" && (
@@ -359,11 +353,10 @@ export default function AdminEventClient() {
                           <div className="flex flex-col items-center gap-1">
                             <span className="font-bold text-gray-800 text-xs">{item.jenis}</span>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                                item.tipe === "Offline"
-                                  ? "bg-emerald-100 text-emerald-800"
-                                  : "bg-blue-100 text-blue-800"
-                              }`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${item.tipe === "Offline"
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-blue-100 text-blue-800"
+                                }`}
                             >
                               {item.tipe || "Online"}
                             </span>
