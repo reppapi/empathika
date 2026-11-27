@@ -366,7 +366,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
                 </>
               ) : (
                 <>
-                  <span>Kirim Formulir Lamaran</span>
+                  <span>Kirim Formulir</span>
                   <Send className="w-3.5 h-3.5" />
                 </>
               )}
