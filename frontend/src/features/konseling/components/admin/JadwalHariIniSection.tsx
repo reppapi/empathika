@@ -425,7 +425,7 @@ export default function JadwalHariIniSection({
                         return (
                           <div className="flex flex-col gap-1 items-start">
                             <span>{item.psikolog}</span>
-                            {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                            {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && item.status !== "Reschedule" && (
                               <a
                                 href={getWhatsAppPsikologUrl(item)}
                                 target="_blank"
@@ -563,7 +563,7 @@ export default function JadwalHariIniSection({
                                 </>
                               )}
 
-                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && (
+                              {!isReadOnly && item.status !== "Selesai" && item.status !== "Dibatalkan" && item.status !== "Dibatalkan (Refund)" && item.status !== "Reschedule" && (
                                 <>
                                   <a
                                     href={getWhatsAppPsikologUrl(item)}
