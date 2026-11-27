@@ -9,7 +9,6 @@ import {
   Calendar,
   Clock,
   Coins,
-  ExternalLink,
   Eye,
   EyeOff,
   Laptop,
@@ -67,16 +66,14 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
   // State Form
   const [formData, setFormData] = useState({
     judul: "",
-    divisi: "",
-    durasi: "",
-    lokasi: "",
+    durasi: "6 Month",
+    lokasi: "WFA",
     workMode: "Remote",
     kompensasi: "Unpaid",
     deadline: "",
     deskripsi: "",
     responsibilitiesText: "",
     qualificationsText: "",
-    applyUrl: "",
     isOpen: true,
   })
 
@@ -110,7 +107,6 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
         if (item && isMounted) {
           setFormData({
             judul: item.judul || "",
-            divisi: item.divisi || "",
             durasi: item.durasi || "6 Month",
             lokasi: item.lokasi || "WFA",
             workMode: item.workMode || "Remote",
@@ -119,7 +115,6 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             deskripsi: item.deskripsi || "",
             responsibilitiesText: (item.responsibilities || []).join("\n"),
             qualificationsText: (item.qualifications || []).join("\n"),
-            applyUrl: item.applyUrl || "",
             isOpen: Boolean(item.isOpen),
           })
           if (item.questions && Array.isArray(item.questions) && item.questions.length > 0) {
@@ -185,7 +180,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
       if (isEditMode && positionId) {
         await internshipService.updatePosition(positionId, {
           judul: formData.judul.trim(),
-          divisi: formData.divisi.trim() || undefined,
+          divisi: undefined,
           durasi: formData.durasi.trim(),
           lokasi: formData.lokasi.trim(),
           workMode: formData.workMode.trim(),
@@ -195,14 +190,14 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           responsibilities: respList,
           qualifications: qualList,
           questions: finalQuestions,
-          applyUrl: formData.applyUrl.trim(),
+          applyUrl: "",
           isOpen: formData.isOpen,
         })
         showToast("Posisi internship berhasil diperbarui!")
       } else {
         await internshipService.createPosition({
           judul: formData.judul.trim(),
-          divisi: formData.divisi.trim() || undefined,
+          divisi: undefined,
           durasi: formData.durasi.trim(),
           lokasi: formData.lokasi.trim(),
           workMode: formData.workMode.trim(),
@@ -212,7 +207,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
           responsibilities: respList,
           qualifications: qualList,
           questions: finalQuestions,
-          applyUrl: formData.applyUrl.trim(),
+          applyUrl: "",
           isOpen: formData.isOpen,
         })
         showToast("Posisi internship baru berhasil ditambahkan!")
@@ -274,44 +269,29 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
       {/* ── Container Form Utama ── */}
       <div className="w-full rounded-3xl border border-gray-200/90 bg-white p-6 sm:p-8 md:p-10 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          {/* Section 1: Judul Posisi & Divisi */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Judul Posisi <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="Contoh: Social Media & Content Intern"
-                value={formData.judul}
-                onChange={(e) => {
-                  setFormData({ ...formData, judul: e.target.value })
-                  if (errors.judul) setErrors({ ...errors, judul: "" })
-                }}
-                className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors ${
-                  errors.judul
-                    ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
-                    : "border-gray-200 focus:border-[#561269]"
-                }`}
-              />
-              {errors.judul && (
-                <p className="text-xs text-rose-500 mt-1">{errors.judul}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-                Divisi / Bidang
-              </label>
-              <input
-                type="text"
-                placeholder="Contoh: Digital Media & Creative"
-                value={formData.divisi}
-                onChange={(e) => setFormData({ ...formData, divisi: e.target.value })}
-                className="w-full px-4 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269] transition-colors"
-              />
-            </div>
+          {/* Section 1: Judul Posisi */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+              Judul Posisi <span className="text-rose-500">*</span>
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Contoh: Social Media & Content Intern"
+              value={formData.judul}
+              onChange={(e) => {
+                setFormData({ ...formData, judul: e.target.value })
+                if (errors.judul) setErrors({ ...errors, judul: "" })
+              }}
+              className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors ${
+                errors.judul
+                  ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
+                  : "border-gray-200 focus:border-[#561269]"
+              }`}
+            />
+            {errors.judul && (
+              <p className="text-xs text-rose-500 mt-1">{errors.judul}</p>
+            )}
           </div>
 
           {/* Section 2: 4 Spesifikasi (Durasi, Lokasi, Work Mode, Kompensasi) */}
@@ -377,72 +357,43 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             </div>
           </div>
 
-          {/* Section 3: Deadline & Link Pendaftaran */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-rose-500" />
-                Application Deadline <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  ref={dateInputRef}
-                  type="date"
-                  required
-                  value={toDateInputValue(formData.deadline)}
-                  onChange={(e) => {
-                    const formatted = formatIsoToDisplayDate(e.target.value)
-                    setFormData({ ...formData, deadline: formatted })
-                    if (errors.deadline) setErrors({ ...errors, deadline: "" })
-                  }}
-                  onClick={() => {
-                    try {
-                      dateInputRef.current?.showPicker?.()
-                    } catch {}
-                  }}
-                  className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors cursor-pointer bg-white ${
-                    errors.deadline
-                      ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
-                      : "border-gray-200 focus:border-[#561269]"
-                  }`}
-                />
-              </div>
-              {formData.deadline && (
-                <p className="text-[11px] text-gray-400 mt-1">
-                  Format tersimpan: <span className="font-semibold text-gray-600">{formData.deadline}</span>
-                </p>
-              )}
-              {errors.deadline && (
-                <p className="text-xs text-rose-500 mt-1">{errors.deadline}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                <ExternalLink className="w-3.5 h-3.5 text-[#561269]" />
-                Link Pendaftaran Eksternal (Opsional)
-              </label>
-              <p className="text-[11px] text-gray-400 mb-2">
-                Kosongkan untuk otomatis menggunakan <strong>Formulir Website Empathika</strong>. Isi hanya jika ingin mengarahkan pendaftar ke link luar (misal Google Form / LinkedIn).
-              </p>
+          {/* Section 3: Application Deadline */}
+          <div className="max-w-md">
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-rose-500" />
+              Application Deadline <span className="text-rose-500">*</span>
+            </label>
+            <div className="relative">
               <input
-                type="text"
-                placeholder="Kosongkan untuk otomatis ke formulir internal Empathika"
-                value={formData.applyUrl}
+                ref={dateInputRef}
+                type="date"
+                required
+                value={toDateInputValue(formData.deadline)}
                 onChange={(e) => {
-                  setFormData({ ...formData, applyUrl: e.target.value })
-                  if (errors.applyUrl) setErrors({ ...errors, applyUrl: "" })
+                  const formatted = formatIsoToDisplayDate(e.target.value)
+                  setFormData({ ...formData, deadline: formatted })
+                  if (errors.deadline) setErrors({ ...errors, deadline: "" })
                 }}
-                className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors ${
-                  errors.applyUrl
+                onClick={() => {
+                  try {
+                    dateInputRef.current?.showPicker?.()
+                  } catch {}
+                }}
+                className={`w-full px-4 py-2.5 text-xs sm:text-sm border rounded-xl focus:outline-none transition-colors cursor-pointer bg-white ${
+                  errors.deadline
                     ? "border-rose-400 bg-rose-50/20 focus:border-rose-500"
                     : "border-gray-200 focus:border-[#561269]"
                 }`}
               />
-              {errors.applyUrl && (
-                <p className="text-xs text-rose-500 mt-1">{errors.applyUrl}</p>
-              )}
             </div>
+            {formData.deadline && (
+              <p className="text-[11px] text-gray-400 mt-1">
+                Format tersimpan: <span className="font-semibold text-gray-600">{formData.deadline}</span>
+              </p>
+            )}
+            {errors.deadline && (
+              <p className="text-xs text-rose-500 mt-1">{errors.deadline}</p>
+            )}
           </div>
 
           {/* Section 4: Deskripsi Singkat */}
