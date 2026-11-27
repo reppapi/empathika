@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useMemo } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
 import {
   getWhatsAppUrl,
@@ -66,12 +66,26 @@ export default function JadwalHariIniSection({
   isLoading = false,
 }: JadwalHariIniSectionProps) {
   const parallelScrollRef = useRef<HTMLDivElement>(null)
-  const activeNearestList: ClientSessionToday[] =
-    nearestSessions && nearestSessions.length > 0
-      ? nearestSessions
-      : nearestSession
-        ? [nearestSession]
-        : []
+  const activeNearestList: ClientSessionToday[] = useMemo(() => {
+    const rawList =
+      nearestSessions && nearestSessions.length > 0
+        ? nearestSessions
+        : nearestSession
+          ? [nearestSession]
+          : []
+    return rawList.filter((s) => {
+      if (!s) return false
+      const st = (s.status || "").toLowerCase()
+      return (
+        st !== "reschedule" &&
+        st !== "dibatalkan" &&
+        !st.includes("refund") &&
+        st !== "cancelled" &&
+        st !== "selesai" &&
+        st !== "completed"
+      )
+    })
+  }, [nearestSessions, nearestSession])
   return (
     <div className="mt-4 flex flex-col gap-4 font-poppins">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -172,8 +186,7 @@ export default function JadwalHariIniSection({
                     </span>
                   </div>
                   <h4 className="text-sm font-bold text-gray-900 leading-snug">
-                    {session.namaKlien}{" "}
-                    <span className="text-[11px] font-normal text-gray-500">(ID: {session.klienId})</span>
+                    {session.namaKlien}
                   </h4>
                   <p className="text-xs text-gray-600 mt-0.5">
                     {session.layanan}
@@ -253,8 +266,7 @@ export default function JadwalHariIniSection({
                     </span>
                   </div>
                   <h3 className="text-base font-bold text-gray-900 mt-1">
-                    {single.namaKlien}{" "}
-                    <span className="text-xs font-normal text-gray-500">(ID: {single.klienId})</span>
+                    {single.namaKlien}
                   </h3>
                   <p className="text-xs text-gray-600">
                     {single.layanan} • {single.psikolog} •{" "}
@@ -385,7 +397,6 @@ export default function JadwalHariIniSection({
                     </td>
                     <td className="py-4 px-6 min-w-[130px]">
                       <p className="font-extrabold text-gray-900 whitespace-nowrap">{item.namaKlien}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 whitespace-nowrap">ID: {item.klienId}</p>
                       {item.kontak && (
                         <a
                           href={getWhatsAppUrl(item)}

@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from "react"
-import { Filter, ChevronDown, Check } from "lucide-react"
+import { Filter, ChevronDown, Check, Eye, Trash2 } from "lucide-react"
 import { PengajuanKerjaSama } from "../../types"
 import { isKerjaSamaLeadRead } from "../../data/initialData"
 
@@ -147,7 +147,7 @@ export default function TabPengajuanLeads({
               <th className="py-3 px-4 min-w-[170px] sticky top-0 bg-[#D9C6DF] z-10">Jenis Formulir</th>
               <th className="py-3 px-4 min-w-[140px] sticky top-0 bg-[#D9C6DF] z-10">PIC & Kontak</th>
               <th className="py-3 px-4 sticky top-0 bg-[#D9C6DF] z-10">Status</th>
-              <th className="py-3 px-4 text-center min-w-[160px] sticky top-0 bg-[#D9C6DF] z-10">Aksi & Jawaban</th>
+              <th className="py-3 px-4 text-center min-w-[90px] sticky top-0 bg-[#D9C6DF] z-10">Aksi</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -214,45 +214,22 @@ export default function TabPengajuanLeads({
                     </select>
                   </td>
                   <td className="py-3.5 px-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5">
                       <button
                         onClick={() => onSelectLead(lead)}
-                        className="px-3 py-1 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 font-bold text-[11px] inline-flex items-center gap-1 transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer"
+                        className="p-1.5 rounded-lg text-[#561269] hover:bg-purple-100/60 transition-colors cursor-pointer"
+                        title="Lihat Jawaban & Detail Pengajuan"
+                        aria-label="Lihat Jawaban"
                       >
-                        <svg
-                          className="w-3.5 h-3.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
-                        </svg>
-                        <span>Lihat Jawaban</span>
+                        <Eye className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => onDeleteLead(lead.id)}
-                        className="p-1.5 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all cursor-pointer"
-                        title="Hapus"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        title="Hapus Pengajuan"
+                        aria-label="Hapus Pengajuan"
                       >
-                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>

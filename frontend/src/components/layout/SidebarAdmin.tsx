@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation"
 import { removeAuthCookie } from "@/lib/cookie"
 import { adminService } from "@/services/admin.service"
 import { kerjaSamaService } from "@/services/kerja-sama.service"
+import { internshipService } from "@/services/internship.service"
 import {
   getUnreadKerjaSamaCount,
   getPengajuanKerjaSama,
@@ -44,9 +45,37 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
   const [adminFoto, setAdminFoto] = useState<string | null>(null)
   const [isMounted, setIsMounted] = useState(false)
   const [unreadKerjaSamaCount, setUnreadKerjaSamaCount] = useState<number>(0)
+  const [pendingInternshipCount, setPendingInternshipCount] = useState<number>(0)
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const updatePendingInternship = () => {
+      internshipService
+        .getApplications()
+        .then((apps) => {
+          if (Array.isArray(apps)) {
+            const count = apps.filter((a) => a.status === "MENUNGGU").length
+            setPendingInternshipCount(count)
+          }
+        })
+        .catch(() => {})
+    }
+
+    updatePendingInternship()
+    window.addEventListener("storage", updatePendingInternship)
+    window.addEventListener("focus", updatePendingInternship)
+    window.addEventListener("empathika_internship_updated", updatePendingInternship)
+    window.addEventListener("empathika_internship_applications_updated", updatePendingInternship)
+
+    return () => {
+      window.removeEventListener("storage", updatePendingInternship)
+      window.removeEventListener("focus", updatePendingInternship)
+      window.removeEventListener("empathika_internship_updated", updatePendingInternship)
+      window.removeEventListener("empathika_internship_applications_updated", updatePendingInternship)
+    }
   }, [])
 
   useEffect(() => {
@@ -198,7 +227,12 @@ export function SidebarAdmin({ isOpen, onClose }: SidebarAdminProps) {
           <div className="flex flex-col gap-1">
             {navItems.map((item) => {
               const active = isActive(item.path)
-              const badge = item.name === "Kerja Sama" ? unreadKerjaSamaCount : item.badge
+              const badge =
+                item.name === "Kerja Sama"
+                  ? unreadKerjaSamaCount
+                  : item.name === "Internship"
+                  ? pendingInternshipCount
+                  : item.badge
 
               return (
                 <Link

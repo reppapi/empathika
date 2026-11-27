@@ -35,7 +35,11 @@ export default async function RootLayout({
   if (biroSlug) {
     const cookieColor = cookieStore.get(`biro_theme_${biroSlug}`)?.value
     if (cookieColor) {
-      biroThemeColor = decodeURIComponent(cookieColor)
+      try {
+        biroThemeColor = decodeURIComponent(cookieColor)
+      } catch {
+        biroThemeColor = cookieColor
+      }
     }
 
     // Ambil profil biro langsung dari backend saat SSR dengan cache: "no-store",

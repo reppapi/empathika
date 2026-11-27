@@ -134,16 +134,11 @@ export default function ModalDetailSesiKlien({
         <div className="space-y-4 text-xs sm:text-sm">
           {/* Card Klien */}
           <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2.5 overflow-hidden">
-            <div className="flex justify-between items-start gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Klien</p>
-                <p className="text-base font-extrabold text-gray-900 mt-0.5 truncate">
-                  {session.namaKlien}
-                </p>
-              </div>
-              <span className="px-2.5 py-1 rounded-full bg-purple-100 text-[#561269] text-xs font-bold shrink-0">
-                ID: {session.klienId}
-              </span>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Klien</p>
+              <p className="text-base font-extrabold text-gray-900 mt-0.5 truncate">
+                {session.namaKlien}
+              </p>
             </div>
 
             {(() => {

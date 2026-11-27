@@ -79,8 +79,16 @@ export function middleware(request: NextRequest) {
 
     // Cek apakah ada cookie tema biro yang tersimpan
     const cachedColor = request.cookies.get(`biro_theme_${subdomain}`)?.value
+    let decodedThemeColor: string | null = null
     if (cachedColor) {
-      requestHeaders.set("x-biro-theme-color", decodeURIComponent(cachedColor))
+      try {
+        decodedThemeColor = decodeURIComponent(cachedColor)
+      } catch {
+        decodedThemeColor = cachedColor
+      }
+    }
+    if (decodedThemeColor) {
+      requestHeaders.set("x-biro-theme-color", decodedThemeColor)
     }
 
     const response = NextResponse.next({
@@ -90,8 +98,8 @@ export function middleware(request: NextRequest) {
     })
     response.headers.set("x-biro-slug", subdomain)
     response.headers.set("x-tenant-slug", subdomain)
-    if (cachedColor) {
-      response.headers.set("x-biro-theme-color", decodeURIComponent(cachedColor))
+    if (decodedThemeColor) {
+      response.headers.set("x-biro-theme-color", decodedThemeColor)
     }
     return response
   }

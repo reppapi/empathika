@@ -30,7 +30,7 @@ export default function PublicError({
       <div className="flex items-center gap-3 pt-2">
         <button
           onClick={() => reset()}
-          className="rounded-xl bg-[#561269] px-6 py-2.5 text-xs font-semibold text-white hover:bg-[#6f1b87] transition-colors"
+          className="rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-xs font-bold text-[#0f172a] shadow-sm hover:shadow-md transition-all cursor-pointer"
         >
           Coba Lagi
         </button>

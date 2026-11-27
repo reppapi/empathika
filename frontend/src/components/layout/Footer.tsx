@@ -135,7 +135,7 @@ export function Footer() {
                 ) : isMounted && !isBiro && contact.foto ? (
                   <img src={contact.foto} alt="Empathika" className="w-full h-full object-cover" />
                 ) : (
-                  (biroProfile?.nama_biro?.[0] || (isBiro && slug ? slug.replace(/^biro[-_]/i, "")[0] : "E")).toUpperCase()
+                  (biroProfile?.nama_biro?.trim()?.[0] || (slug ? slug.replace(/^biro[-_]/i, "").trim()?.[0] : null) || slug?.trim()?.[0] || "E").toUpperCase()
                 )}
               </div>
               {isBiro ? (
@@ -144,7 +144,7 @@ export function Footer() {
                     className="text-[18px] sm:text-[20px] font-extrabold tracking-wide uppercase truncate leading-tight"
                     style={{ color: themeColor }}
                   >
-                    {biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "").toUpperCase() : "BIRO MITRA")}
+                    {biroProfile?.nama_biro?.trim() || (slug ? slug.replace(/^biro[-_]/i, "").trim().toUpperCase() : null) || "BIRO MITRA"}
                   </span>
                   <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1.5 leading-none mt-1">
                     <span>powered by</span>

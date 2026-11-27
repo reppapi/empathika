@@ -1,3 +1,5 @@
+"use client"
+
 import { useBookingFlowStore } from "@/store/bookingFlowStore"
 import { usePsikologList } from "@/features/psikolog/hooks/usePsikologList"
 import { PsikologCard } from "@/features/psikolog/components/client/PsikologCard"
@@ -18,4 +20,3 @@ export function StepPilihPsikolog() {
     </div>
   )
 }
-
