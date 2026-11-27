@@ -8,7 +8,7 @@ const createTestimoniInputSchema = z.object({
 
 const submitTestimoniSchema = z.object({
   rating: z.coerce.number().int().min(1).max(5),
-  isi: z.string().trim().min(5, 'Testimoni minimal 5 karakter').max(1000, 'Testimoni maksimal 1000 karakter'),
+  isi: z.string().trim().min(5, 'Testimoni minimal 5 karakter').max(250, 'Testimoni maksimal 250 karakter'),
 })
 
 export default async function testimoniRoutes(fastify: FastifyInstance) {
@@ -27,29 +27,56 @@ export default async function testimoniRoutes(fastify: FastifyInstance) {
       try {
         const { bookingId } = request.body
 
-        // Cek booking
-        const booking = await prisma.bookingKonsultasi.findUnique({
-          where: { id: bookingId },
-          include: {
-            client: true,
-            jadwal: {
-              include: {
-                psikolog: true,
-              },
+        // Cek booking berdasarkan BookingKonsultasi.id, atau fallback ke id_jadwal aktif (bukan CANCELLED)
+        const bookingInclude = {
+          client: true,
+          jadwal: {
+            include: {
+              psikolog: true,
             },
-            testimoni: true,
           },
+          testimoni: true,
+        }
+
+        let booking = await prisma.bookingKonsultasi.findUnique({
+          where: { id: bookingId },
+          include: bookingInclude,
         })
+
+        if (!booking) {
+          booking = await prisma.bookingKonsultasi.findFirst({
+            where: {
+              id_jadwal: bookingId,
+              status: { not: 'CANCELLED' },
+            },
+            orderBy: { createdAt: 'desc' },
+            include: bookingInclude,
+          })
+        }
 
         if (!booking) {
           return reply.code(404).send({ success: false, message: 'Data booking tidak ditemukan' })
         }
 
-        // Cek status harus COMPLETED atau tanggal sesi sudah lewat
-        if (booking.status !== 'COMPLETED') {
-          await prisma.bookingKonsultasi.update({
-            where: { id: bookingId },
-            data: { status: 'COMPLETED' },
+        // Validasi: hanya izinkan jika sesi sudah benar-benar selesai
+        // Cek status COMPLETED ATAU tanggal+jam sesi sudah lewat
+        const isStatusCompleted = booking.status === 'COMPLETED'
+        const jadwal = booking.jadwal
+        let isSessionPast = false
+        if (jadwal) {
+          const tgl = new Date(jadwal.tanggal)
+          const jam = new Date(jadwal.jam_mulai)
+          const sessionEndMs = Date.UTC(
+            tgl.getUTCFullYear(), tgl.getUTCMonth(), tgl.getUTCDate(),
+            jam.getUTCHours(), jam.getUTCMinutes() + (jadwal.durasi_menit || 60)
+          )
+          isSessionPast = sessionEndMs <= Date.now()
+        }
+
+        if (!isStatusCompleted && !isSessionPast) {
+          return reply.code(400).send({
+            success: false,
+            message: 'Link testimoni hanya bisa dibuat untuk sesi yang sudah selesai.',
           })
         }
 
@@ -58,7 +85,7 @@ export default async function testimoniRoutes(fastify: FastifyInstance) {
         if (!testimoni) {
           testimoni = await prisma.testimoni.create({
             data: {
-              id_booking: bookingId,
+              id_booking: booking.id,
             },
           })
         }
@@ -233,6 +260,7 @@ export default async function testimoniRoutes(fastify: FastifyInstance) {
           orderBy: {
             submitted_at: 'desc',
           },
+          take: 20,
         })
 
         const mapped = list.map((t: any) => {
@@ -244,7 +272,6 @@ export default async function testimoniRoutes(fastify: FastifyInstance) {
             .join(' ')
 
           return {
-            id: t.id,
             rating: t.rating || 5,
             isi: t.isi || '',
             pemberi: disguised,

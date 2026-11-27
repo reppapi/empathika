@@ -2,7 +2,6 @@ export type JenisLayanan =
   | "semua"
   | "konseling"
   | "psikotes"
-  | "pelatihan peer helper"
   | "event"
   | "asesment"
 
@@ -13,7 +12,7 @@ export interface TransaksiItem {
   clientName: string
   clientEmail: string
   clientPhone: string
-  jenisLayanan: "konseling" | "psikotes" | "pelatihan peer helper" | "event" | "asesment"
+  jenisLayanan: "konseling" | "psikotes" | "event" | "asesment"
   namaLayanan: string
   psikologOrFasilitator?: string
   jadwal: string

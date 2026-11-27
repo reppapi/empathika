@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ClientSessionToday } from "@/features/konseling/types"
 import {
   getWhatsAppUrl,
@@ -61,6 +61,13 @@ export default function ModalDetailSesiKlien({
   const [testimoniLink, setTestimoniLink] = useState<string | null>(null)
   const [testimoniCopied, setTestimoniCopied] = useState(false)
   const [testimoniError, setTestimoniError] = useState<string | null>(null)
+
+  useEffect(() => {
+    setTestimoniLink(null)
+    setTestimoniError(null)
+    setTestimoniCopied(false)
+    setIsGeneratingTestimoni(false)
+  }, [session?.id])
 
   if (!session) return null
 
@@ -498,7 +505,7 @@ export default function ModalDetailSesiKlien({
                     try {
                       setIsGeneratingTestimoni(true)
                       setTestimoniError(null)
-                      const res = await testimoniService.generateLink(session.id)
+                      const res = await testimoniService.generateLink(session.bookingId || session.id)
                       const origin = typeof window !== "undefined" ? window.location.origin : ""
                       const url = `${origin}/testimoni/${res.data.token}`
                       setTestimoniLink(url)
@@ -517,10 +524,7 @@ export default function ModalDetailSesiKlien({
                       <span>Memproses Link...</span>
                     </>
                   ) : (
-                    <>
-                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                      <span>Kirim Link Testimoni</span>
-                    </>
+                    <span>Kirim Link Testimoni</span>
                   )}
                 </button>
               ) : (
