@@ -597,6 +597,7 @@ model HasilTes {
   snapshot_jawaban     Json?
   catatan_psikolog     String?  @db.Text
   rekomendasi_psikolog String?  @db.Text
+  file_laporan_url     String?  // URL file PDF hasil laporan interpretasi yang di-upload psikolog
   draft_saved_at       DateTime? // Waktu terakhir kali draf telaah disimpan oleh psikolog
   tanggal_review       DateTime?
   tanggal_selesai      DateTime @default(now())
