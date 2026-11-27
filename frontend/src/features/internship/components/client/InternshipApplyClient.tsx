@@ -34,6 +34,7 @@ import {
 } from "@/services/internship.service"
 import { adminService } from "@/services/admin.service"
 import PhoneInputField from "@/components/shared/PhoneInputField"
+import { useTenant } from "@/hooks/useTenant"
 
 interface Props {
   positionId: string
@@ -41,6 +42,7 @@ interface Props {
 
 export default function InternshipApplyClient({ positionId }: Props) {
   const router = useRouter()
+  const { withBiro } = useTenant()
   const [position, setPosition] = useState<InternshipPosition | null>(null)
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -304,7 +306,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
             Lowongan magang yang Anda cari mungkin sudah ditutup atau tautan tidak valid.
           </p>
           <Link
-            href="/internship"
+            href={withBiro("/internship")}
             className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#561269] text-white font-bold text-sm hover:bg-[#6e1885] transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -372,7 +374,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
             </a>
 
             <Link
-              href="/internship"
+              href={withBiro("/internship")}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs sm:text-sm shadow-sm hover:shadow-md transition-all whitespace-nowrap shrink-0"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -436,6 +438,14 @@ export default function InternshipApplyClient({ positionId }: Props) {
         </svg>
 
         <div className="relative z-10 max-w-4xl mx-auto">
+          <Link
+            href={withBiro("/internship")}
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-white/80 hover:text-white mb-4 transition-colors group"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span>Kembali ke Daftar Lowongan Magang</span>
+          </Link>
+
           <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
             {position.judul}
           </h1>

@@ -23,12 +23,14 @@ import {
   Award,
 } from "lucide-react"
 import HeroStarryOverlay from "@/components/shared/HeroStarryOverlay"
+import { useTenant } from "@/hooks/useTenant"
 import {
   internshipService,
   InternshipPosition,
 } from "@/services/internship.service"
 
 export default function InternshipClient() {
+  const { withBiro } = useTenant()
   const [positions, setPositions] = useState<InternshipPosition[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -348,7 +350,9 @@ export default function InternshipClient() {
                           </p>
                         </div>
 
-                        {pos.applyUrl && (pos.applyUrl.startsWith("http://") || pos.applyUrl.startsWith("https://")) ? (
+                        {pos.applyUrl &&
+                        (pos.applyUrl.startsWith("http://") || pos.applyUrl.startsWith("https://")) &&
+                        !pos.applyUrl.includes("empathika.id") ? (
                           <a
                             href={pos.applyUrl}
                             target="_blank"
@@ -360,7 +364,7 @@ export default function InternshipClient() {
                           </a>
                         ) : (
                           <Link
-                            href={`/internship/apply/${pos.id}`}
+                            href={withBiro(`/internship/apply/${pos.id}`)}
                             className="w-full sm:w-auto px-8 py-3 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm sm:text-base shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                           >
                             <span>APPLY NOW</span>

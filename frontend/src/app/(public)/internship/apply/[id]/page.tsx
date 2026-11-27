@@ -8,10 +8,9 @@ export const metadata: Metadata = {
 }
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: { id: string }
 }
 
-export default async function InternshipApplyPage({ params }: PageProps) {
-  const resolvedParams = await params
-  return <InternshipApplyClient positionId={resolvedParams.id} />
+export default function InternshipApplyPage({ params }: PageProps) {
+  return <InternshipApplyClient positionId={params.id} />
 }
