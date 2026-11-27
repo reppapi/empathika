@@ -445,7 +445,7 @@ export default function PsikologReviewAsesmenClient() {
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 z-10 bg-[#FAF8FB] text-gray-600 font-bold uppercase tracking-wider border-b border-gray-200">
               <tr>
-                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Identitas Peserta</th>
+                <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Nama Peserta</th>
                 <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Paket Asesmen</th>
                 <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Waktu &amp; Batas Review (Maks 3 Hari)</th>
                 <th className="py-4 px-6 sticky top-0 bg-[#FAF8FB] z-10">Status Laporan</th>
@@ -494,18 +494,11 @@ export default function PsikologReviewAsesmenClient() {
                       key={item.id}
                       className="hover:bg-purple-50/20 transition-colors group"
                     >
-                      {/* Identitas Peserta */}
+                      {/* Nama Peserta */}
                       <td className="py-4 px-6">
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-gray-900 group-hover:text-[#561269] transition-colors">
-                            {item.nama_peserta}
-                          </p>
-                          {(item.usia || item.jenis_kelamin) && (
-                            <p className="text-gray-500 text-[11px]">
-                              {[item.usia ? `${item.usia} Th` : null, item.jenis_kelamin].filter(Boolean).join(" • ")}
-                            </p>
-                          )}
-                        </div>
+                        <p className="font-bold text-gray-900 group-hover:text-[#561269] transition-colors">
+                          {item.nama_peserta}
+                        </p>
                       </td>
 
                       {/* Paket Asesmen & Tiket */}
@@ -552,7 +545,7 @@ export default function PsikologReviewAsesmenClient() {
 
                               {isMenunggu ? (
                                 <span
-                                  className="text-[10px] text-gray-500 font-medium"
+                                  className="text-[10px] text-rose-600 font-semibold"
                                   title={`Deadline: ${sla.deadlineFormatted}`}
                                 >
                                   Batas: {sla.deadlineFormatted}

@@ -403,6 +403,28 @@ export default function ModalReviewPsikotes({
     }
   }
 
+  // Skoring terpisah untuk Kuesioner Orang Tua (CHOCI-R butir 39–76)
+  const parentSubscales: Array<{
+    label: string;
+    score: string | number;
+    maxScore?: number;
+    rentangButir?: string;
+    deskripsi?: string;
+    category?: string;
+  }> = [];
+  if (!isMcmi && detailSkor && Array.isArray(detailSkor.parentSubscalesList)) {
+    detailSkor.parentSubscalesList.forEach((s: any) =>
+      parentSubscales.push({
+        label: s.nama || s.key || "Skala",
+        score: s.skor ?? 0,
+        maxScore: typeof s.max_skor === "number" ? s.max_skor : undefined,
+        rentangButir: s.rentangButir || undefined,
+        deskripsi: s.deskripsi || undefined,
+        category: s.kategori || s.level || undefined,
+      })
+    );
+  }
+
   const contentJsx = (
     <div
       className={`bg-[#F3F4F6] flex flex-col overflow-hidden ${
@@ -427,21 +449,9 @@ export default function ModalReviewPsikotes({
             </button>
           )}
           <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="font-bold text-sm sm:text-base text-gray-900 truncate">
-                {item.nama_peserta}
-              </h2>
-              {item.kode_akses && (
-                <span className="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-50 text-[#561269] border border-purple-100">
-                  {item.kode_akses}
-                </span>
-              )}
-            </div>
-            <p className="text-[11px] text-gray-500 truncate">
-              {item.nama_paket}
-              {item.usia ? ` • ${item.usia} Th` : ""}
-              {item.jenis_kelamin ? ` • ${item.jenis_kelamin}` : ""}
-            </p>
+            <h2 className="font-bold text-sm sm:text-base text-gray-900 truncate">
+              Telaah &amp; Upload Laporan Asesmen
+            </h2>
           </div>
 
           {!showScoreSidebar && (
@@ -854,7 +864,11 @@ export default function ModalReviewPsikotes({
 
                     {genericSubscales.length > 0 && (
                       <div className="rounded-xl border border-gray-200 bg-white p-3 space-y-2">
-                        <span className="font-bold text-gray-900 block">Rincian Skor Kategori / Skala</span>
+                        <span className="font-bold text-gray-900 block">
+                          {parentSubscales.length > 0
+                            ? "Skor Kuesioner Anak (Self-Report)"
+                            : "Rincian Skor Kategori / Skala"}
+                        </span>
                         <div className="space-y-2">
                           {genericSubscales.map((sub, idx) => (
                             <div
@@ -872,6 +886,47 @@ export default function ModalReviewPsikotes({
                                 </div>
                                 <div className="text-right shrink-0">
                                   <span className="font-extrabold text-[#561269]">
+                                    {sub.score}
+                                    {sub.maxScore !== undefined ? ` / ${sub.maxScore}` : ""}
+                                  </span>
+                                  {sub.category && (
+                                    <span className="ml-1.5 text-[10px] text-gray-500">({sub.category})</span>
+                                  )}
+                                </div>
+                              </div>
+                              {sub.deskripsi && (
+                                <p className="text-[10px] text-gray-500 leading-relaxed">
+                                  {sub.deskripsi}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {parentSubscales.length > 0 && (
+                      <div className="rounded-xl border border-amber-200/80 bg-amber-50/30 p-3 space-y-2">
+                        <span className="font-bold text-amber-950 block">
+                          Skor Kuesioner Orang Tua (Parent-Report)
+                        </span>
+                        <div className="space-y-2">
+                          {parentSubscales.map((sub, idx) => (
+                            <div
+                              key={idx}
+                              className="p-2.5 rounded-lg bg-white border border-amber-100 space-y-1 text-[11px]"
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="font-bold text-gray-800 block">{sub.label}</span>
+                                  {sub.rentangButir && (
+                                    <span className="text-[10px] text-gray-400 block">
+                                      Butir {sub.rentangButir}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="font-extrabold text-amber-800">
                                     {sub.score}
                                     {sub.maxScore !== undefined ? ` / ${sub.maxScore}` : ""}
                                   </span>

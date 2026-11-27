@@ -752,6 +752,7 @@ export class PsikotesBookingRepository {
       nomor: number
       pertanyaan: string
       jawaban: string
+      teks_jawaban?: string | null
       label?: string | null
       skor: number
       id_soal?: string
@@ -759,17 +760,39 @@ export class PsikotesBookingRepository {
     }> = []
 
     const dbJawaban = (booking as any).jawaban_psikotes || []
+    const rawSnapshotForText = booking.hasil_tes?.snapshot_jawaban as any
+    const chociIsianMap: Record<string, string> =
+      rawSnapshotForText?.choci_isian ||
+      rawSnapshotForText?.chociIsian ||
+      {}
+    const snapshotTextBySoalId = new Map<string, string>()
+    if (Array.isArray(rawSnapshotForText)) {
+      rawSnapshotForText.forEach((s: any) => {
+        if (s?.id_soal && typeof s?.teks_jawaban === 'string' && s.teks_jawaban.trim()) {
+          snapshotTextBySoalId.set(String(s.id_soal), s.teks_jawaban.trim())
+        }
+      })
+    }
 
     if (Array.isArray(dbJawaban) && dbJawaban.length > 0) {
-      rekapJawaban = dbJawaban.map((jp: any, idx: number) => ({
-        nomor: jp.soal_psikotes?.urutan ?? idx + 1,
-        pertanyaan: jp.soal_psikotes?.pertanyaan ?? `Butir Pertanyaan #${jp.soal_psikotes?.urutan ?? idx + 1}`,
-        jawaban: jp.pilihan_jawaban?.teks_jawaban ?? '-',
-        label: jp.pilihan_jawaban?.label ?? null,
-        skor: typeof jp.skor === 'number' ? jp.skor : (jp.pilihan_jawaban?.bobot ?? 0),
-        id_soal: jp.id_soal_psikotes,
-        id_pilihan: jp.id_pilihan_jawaban,
-      }))
+      rekapJawaban = dbJawaban.map((jp: any, idx: number) => {
+        const nomor = jp.soal_psikotes?.urutan ?? idx + 1
+        const fallbackFromSnapshot = jp.id_soal_psikotes
+          ? snapshotTextBySoalId.get(String(jp.id_soal_psikotes)) || null
+          : null
+        const fallbackIsian =
+          chociIsianMap[String(nomor - 1)] ?? chociIsianMap[String(nomor)] ?? null
+        return {
+          nomor,
+          pertanyaan: jp.soal_psikotes?.pertanyaan ?? `Butir Pertanyaan #${nomor}`,
+          jawaban: jp.pilihan_jawaban?.teks_jawaban ?? '-',
+          teks_jawaban: jp.teks_jawaban || fallbackFromSnapshot || fallbackIsian || null,
+          label: jp.pilihan_jawaban?.label ?? null,
+          skor: typeof jp.skor === 'number' ? jp.skor : (jp.pilihan_jawaban?.bobot ?? 0),
+          id_soal: jp.id_soal_psikotes,
+          id_pilihan: jp.id_pilihan_jawaban,
+        }
+      })
     } else if (booking.hasil_tes?.snapshot_jawaban) {
       // Fallback jika jawaban tersimpan dalam format snapshot_jawaban JSON
       const soalList = await this.prisma.soalPsikotes.findMany({
@@ -804,6 +827,7 @@ export class PsikotesBookingRepository {
           nomor: soal?.urutan ?? idx + 1,
           pertanyaan: soal?.pertanyaan ?? item.pertanyaan ?? `Butir Pertanyaan #${idx + 1}`,
           jawaban: pilihan?.teks_jawaban ?? item.teks_jawaban ?? item.jawaban ?? (item.val !== undefined ? String(item.val) : '-'),
+          teks_jawaban: item.teks_jawaban || chociIsianMap[String((soal?.urutan ?? idx + 1) - 1)] || null,
           label: pilihan?.label ?? item.label ?? null,
           skor: typeof item.skor === 'number' ? item.skor : (pilihan?.bobot ?? 0),
           id_soal: item.id_soal || soal?.id,

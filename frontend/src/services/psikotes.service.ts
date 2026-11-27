@@ -139,6 +139,7 @@ export interface RekapJawabanItem {
   nomor: number
   pertanyaan: string
   jawaban: string
+  teks_jawaban?: string | null
   label?: string | null
   skor: number
   id_soal?: string

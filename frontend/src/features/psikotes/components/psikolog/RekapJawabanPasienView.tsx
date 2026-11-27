@@ -366,6 +366,7 @@ export default function RekapJawabanPasienView({
               const displayNo = isOrtu
                 ? `No. ${item.nomor - 38}`
                 : `No. ${item.nomor}`;
+              const isIsian = [11, 12, 13, 30, 31, 32, 49, 50, 51, 68, 69, 70].includes(item.nomor);
               return (
                 <div
                   key={item.nomor}
@@ -390,10 +391,20 @@ export default function RekapJawabanPasienView({
                       {isOrtu ? "Jawaban Orang Tua:" : "Jawaban Anak:"}
                     </span>
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 border border-purple-200 text-purple-900 font-semibold text-[10px]">
-                      {item.label && <strong className="font-mono">[{item.label}]</strong>}
+                      {!isIsian && item.label && <strong className="font-mono">[{item.label}]</strong>}
                       {item.jawaban}
                     </span>
                   </div>
+                  {item.teks_jawaban && item.teks_jawaban.trim() && (
+                    <div className="mt-2 p-2 rounded-lg bg-purple-50/60 border border-purple-100 text-[11px] text-gray-800">
+                      <span className="text-[10px] font-semibold text-[#561269] block mb-0.5">
+                        Isian Tertulis:
+                      </span>
+                      <p className="leading-relaxed whitespace-pre-wrap break-words">
+                        &ldquo;{item.teks_jawaban.trim()}&rdquo;
+                      </p>
+                    </div>
+                  )}
                 </div>
               );
             };

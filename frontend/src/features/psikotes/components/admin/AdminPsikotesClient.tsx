@@ -495,8 +495,55 @@ export default function AdminPsikotesClient({ isBiroContext = false }: AdminPsik
       {/* ── 2. Content Tabs ── */}
       {activeTab === "peserta" ? (
         <div className="flex flex-col gap-6">
-          {/* Ringkasan Statistik Peserta (Berbayar & Gratis) */}
-          <PsikotesSummaryCards summary={pesertaSummary} />
+          {/* Ringkasan Statistik Peserta */}
+          <PsikotesSummaryCards
+            summary={(() => {
+              let belumDitugaskan = 0;
+              let sedangDitinjau = 0;
+              let belumKirimWa = 0;
+
+              for (const p of pesertaList) {
+                const lowerPaket = (p.paket || "").toLowerCase();
+                const isDass =
+                  lowerPaket.includes("dass") ||
+                  lowerPaket.includes("depresi, kecemasan, dan stres");
+                const isNeedReview =
+                  !isDass &&
+                  Boolean(
+                    p.perlu_review_psikolog ||
+                      lowerPaket.includes("mcmi") ||
+                      lowerPaket.includes("pola klinis") ||
+                      lowerPaket.includes("multiaxial") ||
+                      lowerPaket.includes("choci") ||
+                      lowerPaket.includes("ocd")
+                  );
+                const isMenungguReview =
+                  isNeedReview &&
+                  (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
+                const isSelesai =
+                  !isMenungguReview &&
+                  (p.status === "Selesai" || p.status_pengerjaan === "SELESAI" || Boolean(p.hasil));
+
+                if (isMenungguReview) {
+                  if (p.id_psikolog || p.psikolog) {
+                    sedangDitinjau++;
+                  } else {
+                    belumDitugaskan++;
+                  }
+                } else if (isSelesai && !isDass && !p.is_wa_sent && !p.wa_sent_at) {
+                  belumKirimWa++;
+                }
+              }
+
+              return {
+                ...pesertaSummary,
+                total_menunggu_review: belumDitugaskan + sedangDitinjau,
+                total_belum_ditugaskan: belumDitugaskan,
+                total_sedang_ditinjau: sedangDitinjau,
+                total_belum_kirim_wa: belumKirimWa,
+              };
+            })()}
+          />
 
           {/* Tabel Data Klien */}
           <TabPesertaPsikotes

@@ -243,7 +243,9 @@ export default function ModalRekapJawabanFullscreen({
           ) : isChoci && hasChociOrtu ? (
             (() => {
               const { anakItems, ortuItems } = splitChociSections(filteredItems);
-              const renderFullscreenCard = (item: RekapJawabanItem, isOrtu: boolean) => (
+              const renderFullscreenCard = (item: RekapJawabanItem, isOrtu: boolean) => {
+                const isIsian = [11, 12, 13, 30, 31, 32, 49, 50, 51, 68, 69, 70].includes(item.nomor);
+                return (
                 <div
                   key={item.nomor}
                   className="p-4 rounded-xl border border-gray-200 bg-white hover:shadow-xs hover:border-purple-200 transition-all"
@@ -265,12 +267,23 @@ export default function ModalRekapJawabanFullscreen({
                       {isOrtu ? "Jawaban Orang Tua:" : "Jawaban Anak:"}
                     </span>
                     <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-900 font-semibold text-xs">
-                      {item.label && <strong className="font-mono">[{item.label}]</strong>}
+                      {!isIsian && item.label && <strong className="font-mono">[{item.label}]</strong>}
                       {item.jawaban}
                     </span>
                   </div>
+                  {item.teks_jawaban && item.teks_jawaban.trim() && (
+                    <div className="mt-2.5 p-2.5 rounded-lg bg-purple-50/60 border border-purple-100 text-xs text-gray-800">
+                      <span className="text-[11px] font-semibold text-[#561269] block mb-0.5">
+                        Isian Tertulis:
+                      </span>
+                      <p className="leading-relaxed whitespace-pre-wrap break-words">
+                        &ldquo;{item.teks_jawaban.trim()}&rdquo;
+                      </p>
+                    </div>
+                  )}
                 </div>
-              );
+                );
+              };
 
               return (
                 <div className="space-y-6">

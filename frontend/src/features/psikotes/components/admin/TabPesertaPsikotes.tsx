@@ -20,6 +20,20 @@ import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPe
 import { calculateReviewSla } from "../../utils/reviewSla";
 import type { AdminPsikotesPeserta } from "../../types/adminPsikotes";
 
+function isReviewRequiredPaket(paketName?: string | null, perluReviewFlag?: boolean): boolean {
+  const lower = (paketName || "").toLowerCase();
+  const isDass = lower.includes("dass") || lower.includes("depresi, kecemasan, dan stres");
+  if (isDass) return false;
+  return Boolean(
+    perluReviewFlag ||
+    lower.includes("mcmi") ||
+    lower.includes("pola klinis") ||
+    lower.includes("multiaxial") ||
+    lower.includes("choci") ||
+    lower.includes("ocd")
+  );
+}
+
 export interface TabPesertaPsikotesProps {
   pesertaList: AdminPsikotesPeserta[];
   searchQuery: string;
@@ -109,36 +123,18 @@ export default function TabPesertaPsikotes({
   const isSelectedPaketNeedReview = useMemo(() => {
     if (!selectedPaket || selectedPaket === "ALL") {
       // Jika "ALL", hanya tampilkan bar review jika memang ada tiket yang butuh review klinis
-      return scopedPesertaList.some((p) => {
-        const isDass = Boolean(
-          p.paket?.toLowerCase().includes("dass") ||
-          p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-        );
-        return !isDass && Boolean(
-          p.perlu_review_psikolog ||
-          p.paket?.toLowerCase().includes("mcmi") ||
-          p.paket?.toLowerCase().includes("pola klinis") ||
-          p.paket?.toLowerCase().includes("multiaxial")
-        );
-      });
+      return scopedPesertaList.some((p) =>
+        isReviewRequiredPaket(p.paket, p.perlu_review_psikolog)
+      );
     }
     const lower = selectedPaket.toLowerCase();
-    const isDass = lower.includes("dass") || lower.includes("depresi, kecemasan, dan stres");
-    if (isDass) return false;
-
-    // Cek dari data peserta yang cocok dengan paket ini
     const match = scopedPesertaList.find(
       (p) => (p.paket || "").toLowerCase().includes(lower) || lower.includes((p.paket || "").toLowerCase())
     );
     if (match) {
-      return Boolean(
-        match.perlu_review_psikolog ||
-        match.paket?.toLowerCase().includes("mcmi") ||
-        match.paket?.toLowerCase().includes("pola klinis") ||
-        match.paket?.toLowerCase().includes("multiaxial")
-      );
+      return isReviewRequiredPaket(match.paket, match.perlu_review_psikolog);
     }
-    return lower.includes("mcmi") || lower.includes("pola klinis") || lower.includes("multiaxial");
+    return isReviewRequiredPaket(selectedPaket, false);
   }, [selectedPaket, scopedPesertaList]);
 
   // Reset status filter ke ALL jika paket yang dipilih tidak memerlukan review klinis
@@ -157,16 +153,7 @@ export default function TabPesertaPsikotes({
     const nowMs = Date.now();
 
     for (const p of scopedPesertaList) {
-      const isDass = Boolean(
-        p.paket?.toLowerCase().includes("dass") ||
-        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-      );
-      const isNeedReview = !isDass && Boolean(
-        p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi") ||
-        p.paket?.toLowerCase().includes("pola klinis") ||
-        p.paket?.toLowerCase().includes("multiaxial")
-      );
+      const isNeedReview = isReviewRequiredPaket(p.paket, p.perlu_review_psikolog);
 
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       const isSelesai = !isMenunggu && (p.status === "Selesai" || p.status_pengerjaan === "SELESAI" || Boolean(p.hasil));
@@ -201,16 +188,7 @@ export default function TabPesertaPsikotes({
   const urgentTickets = useMemo(() => {
     const nowMs = Date.now();
     return scopedPesertaList.filter((p) => {
-      const isDass = Boolean(
-        p.paket?.toLowerCase().includes("dass") ||
-        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-      );
-      const isNeedReview = !isDass && Boolean(
-        p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi") ||
-        p.paket?.toLowerCase().includes("pola klinis") ||
-        p.paket?.toLowerCase().includes("multiaxial")
-      );
+      const isNeedReview = isReviewRequiredPaket(p.paket, p.perlu_review_psikolog);
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || !p.psikolog) return false;
       const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
@@ -223,16 +201,7 @@ export default function TabPesertaPsikotes({
   const unclaimedUrgentTickets = useMemo(() => {
     const nowMs = Date.now();
     return scopedPesertaList.filter((p) => {
-      const isDass = Boolean(
-        p.paket?.toLowerCase().includes("dass") ||
-        p.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-      );
-      const isNeedReview = !isDass && Boolean(
-        p.perlu_review_psikolog ||
-        p.paket?.toLowerCase().includes("mcmi") ||
-        p.paket?.toLowerCase().includes("pola klinis") ||
-        p.paket?.toLowerCase().includes("multiaxial")
-      );
+      const isNeedReview = isReviewRequiredPaket(p.paket, p.perlu_review_psikolog);
       const isMenunggu = isNeedReview && (p.status === "Menunggu Review" || p.status_pengerjaan === "MENUNGGU_REVIEW");
       if (!isMenunggu || p.psikolog || p.id_psikolog) return false;
       const sla = calculateReviewSla(p.rawTanggal || p.tanggal);
@@ -282,16 +251,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
   const filteredPeserta = useMemo(() => {
     return scopedPesertaList.filter((peserta) => {
       // Filter cepat Status / Urgensi SLA
-      const isDass = Boolean(
-        peserta.paket?.toLowerCase().includes("dass") ||
-        peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-      );
-      const isNeedReview = !isDass && Boolean(
-        peserta.perlu_review_psikolog ||
-        peserta.paket?.toLowerCase().includes("mcmi") ||
-        peserta.paket?.toLowerCase().includes("pola klinis") ||
-        peserta.paket?.toLowerCase().includes("multiaxial")
-      );
+      const isNeedReview = isReviewRequiredPaket(peserta.paket, peserta.perlu_review_psikolog);
       const isMenungguReview = isNeedReview && (peserta.status === "Menunggu Review" || peserta.status_pengerjaan === "MENUNGGU_REVIEW");
       const isSelesaiStatus = !isMenungguReview && (peserta.status === "Selesai" || peserta.status_pengerjaan === "SELESAI" || Boolean(peserta.hasil));
 
@@ -370,14 +330,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
       key: "status",
       header: "Status",
       render: (peserta: AdminPsikotesPeserta) => {
-        const isDass = Boolean(
-          peserta.paket?.toLowerCase().includes("dass") ||
-          peserta.paket?.toLowerCase().includes("depresi, kecemasan, dan stres")
-        );
-        const isNeedReview = !isDass && Boolean(
-          peserta.perlu_review_psikolog ||
-          peserta.paket?.toLowerCase().includes("mcmi")
-        );
+        const isNeedReview = isReviewRequiredPaket(peserta.paket, peserta.perlu_review_psikolog);
         const isMenungguReview =
           isNeedReview && (
             peserta.status === "Menunggu Review" ||
@@ -587,7 +540,7 @@ Terima kasih banyak atas bantuan dan dedikasinya! 🙏`;
 
             {isMenungguReview ? (
               <span
-                className="text-[10px] text-gray-500 font-medium"
+                className="text-[10px] text-rose-600 font-semibold"
                 title={`Deadline: ${sla.deadlineFormatted}`}
               >
                 Batas: {sla.deadlineFormatted}
