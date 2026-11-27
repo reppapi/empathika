@@ -228,6 +228,9 @@ export default function AdminInternshipClient() {
       if (selectedApp?.id === id) {
         setSelectedApp(updated)
       }
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("empathika_internship_updated"))
+      }
       showToast("Status pelamar berhasil diperbarui!")
     } catch (err: any) {
       alert("Gagal memperbarui status pelamar: " + (err?.message || "Kesalahan server"))
@@ -246,6 +249,9 @@ export default function AdminInternshipClient() {
       )
       setApplications((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
       setSelectedApp(updated)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("empathika_internship_updated"))
+      }
       showToast("Status pelamar berhasil diperbarui!")
     } catch (err: any) {
       alert("Gagal memperbarui status pelamar: " + (err?.message || "Kesalahan server"))
@@ -265,6 +271,9 @@ export default function AdminInternshipClient() {
         setSelectedApp(null)
       }
       setAppToDelete(null)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("empathika_internship_updated"))
+      }
       showToast("Data pelamar berhasil dihapus!")
     } catch (err: any) {
       alert("Gagal menghapus pelamar: " + (err?.message || "Kesalahan server"))
@@ -446,6 +455,11 @@ export default function AdminInternshipClient() {
           >
             {totalApplications}
           </span>
+          {pendingApplications > 0 && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
+              {pendingApplications} Baru
+            </span>
+          )}
         </button>
       </div>
 
@@ -784,7 +798,14 @@ export default function AdminInternshipClient() {
 
                       {/* Nama & Universitas */}
                       <td className="py-3.5 px-4">
-                        <p className="font-bold text-gray-900 text-sm">{app.nama}</p>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="font-bold text-gray-900 text-sm">{app.nama}</p>
+                          {app.status === "MENUNGGU" && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500 text-white animate-pulse">
+                              Baru
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[11px] text-gray-600 mt-0.5">{app.universitas}</p>
                         {app.jurusan && (
                           <span className="text-[10px] text-purple-700 font-medium">
