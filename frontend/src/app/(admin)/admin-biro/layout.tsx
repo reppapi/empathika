@@ -153,7 +153,7 @@ export default function AdminBiroLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Konten Halaman */}
-          <main className="flex-1 p-3 sm:p-6 md:p-8 min-w-0 overflow-x-hidden">
+          <main className="flex-1 p-3 sm:p-6 md:p-8 min-w-0">
             {children}
           </main>
 

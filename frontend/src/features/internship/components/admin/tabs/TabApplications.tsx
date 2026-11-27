@@ -138,8 +138,84 @@ export function TabApplications({
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto admin-table-scrollbar">
+        <>
+          {/* ── TAMPILAN MOBILE: KARTU APLIKASI PELAMAR (Layar HP < md) ── */}
+          <div className="block md:hidden space-y-3">
+            {applications.map((app) => (
+              <div
+                key={app.id}
+                className="bg-white rounded-2xl border border-gray-200/90 p-4 shadow-2xs space-y-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-900 leading-snug">{app.nama}</h4>
+                    <p className="text-xs text-gray-400 mt-0.5">{app.email}</p>
+                  </div>
+                  <select
+                    value={app.status}
+                    onChange={(e) =>
+                      onQuickUpdateStatus(
+                        app.id,
+                        e.target.value as InternshipApplication["status"]
+                      )
+                    }
+                    className={`rounded-lg px-2 py-1 text-[11px] font-bold border cursor-pointer transition-colors ${
+                      app.status === "MENUNGGU"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : app.status === "REVIEW"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : app.status === "DITERIMA"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }`}
+                  >
+                    <option value="MENUNGGU">Menunggu</option>
+                    <option value="REVIEW">Review</option>
+                    <option value="DITERIMA">Diterima</option>
+                    <option value="DITOLAK">Ditolak</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 text-xs">
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Posisi:</span>
+                    <span className="font-semibold text-purple-950 truncate block">{app.positionTitle}</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-400 block font-medium">Universitas:</span>
+                    <span className="font-medium text-gray-800 truncate block">{app.universitas}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-between text-gray-500 text-[11px] pt-1">
+                    <span>{app.jurusan || "-"} {app.semester ? `(Sem. ${app.semester})` : ""}</span>
+                    <span>{formatDateTime(app.createdAt)}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                  <button
+                    type="button"
+                    onClick={() => onOpenAppDetail(app)}
+                    className="px-3 py-1.5 rounded-lg border border-purple-200 text-[#561269] bg-purple-50/50 hover:bg-purple-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Lihat Detail</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onDeleteApp(app)}
+                    className="p-1.5 rounded-lg border border-gray-200 text-rose-500 hover:bg-rose-50 text-xs cursor-pointer"
+                    title="Hapus Data Pelamar"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* ── TAMPILAN DESKTOP: TABEL LENGKAP ASLI (Layar >= md) ── */}
+          <div className="hidden md:block bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-2xs">
+            <div className="overflow-x-auto admin-table-scrollbar">
             <table className="w-full min-w-[720px] text-left text-xs text-gray-600">
               <thead className="bg-[#FAF7FB] border-b border-gray-100 text-gray-700 font-bold uppercase text-[11px] tracking-wider">
                 <tr>
@@ -233,6 +309,7 @@ export function TabApplications({
             </table>
           </div>
         </div>
+        </>
       )}
     </div>
   )
