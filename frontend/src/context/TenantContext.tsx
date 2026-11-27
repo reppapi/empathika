@@ -177,8 +177,8 @@ export function TenantProvider({
 
     // Bersihkan prefix /biro/[slug] jika ada referensi string lama
     if (slug && path.startsWith(`/biro/${slug}`)) {
-      const cleaned = path.replace(new RegExp(`^/biro/${slug}`), "")
-      return cleaned || "/"
+      const prefix = `/biro/${slug}`
+      return path.slice(prefix.length) || "/"
     }
 
     return path.startsWith("/") ? path : `/${path}`

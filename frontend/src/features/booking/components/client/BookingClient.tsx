@@ -311,7 +311,7 @@ export default function BookingClient() {
               Jadwalkan Sesi Konsultasi Anda
             </h1>
             <p className={`mt-2 ${isBiro ? 'text-white/80' : 'text-purple-200'} text-xs sm:text-sm lg:text-base max-w-xl mx-auto font-light`}>
-              Temukan profesional yang tepat dan mulai perjalanan pemulihan Anda bersama {isBiro ? (biroProfile?.nama_biro || (slug ? slug.replace(/^biro-/, '').toUpperCase() : "Biro")) : "Empathika"}.
+              Temukan profesional yang tepat dan mulai perjalanan pemulihan Anda bersama {isBiro ? (biroProfile?.nama_biro?.trim() || (slug ? slug.replace(/^biro[-_]/i, "").trim().toUpperCase() : null) || "Biro") : "Empathika"}.
             </p>
           </div>
         </div>
