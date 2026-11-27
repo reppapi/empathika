@@ -147,10 +147,11 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => handleSectionChange("baru")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeSection === "baru"
-            ? "bg-[#EAB308] text-gray-950 shadow-sm"
-            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-            }`}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeSection === "baru"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+          }`}
         >
           Event Baru
         </button>
@@ -158,10 +159,11 @@ export default function AdminEventClient() {
         <button
           type="button"
           onClick={() => handleSectionChange("selesai")}
-          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${activeSection === "selesai"
-            ? "bg-[#EAB308] text-gray-950 shadow-sm"
-            : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
-            }`}
+          className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            activeSection === "selesai"
+              ? "bg-[#EAB308] text-gray-950 shadow-sm"
+              : "text-gray-600 hover:text-gray-900 hover:bg-white/60"
+          }`}
         >
           Event / Kolaborasi Sebelumnya
         </button>
@@ -189,7 +191,7 @@ export default function AdminEventClient() {
             <button
               type="button"
               onClick={() => router.push("/admin/event/tambah")}
-              className="w-full sm:w-auto self-start sm:self-center flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
+              className="self-start sm:self-center flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition-all transform active:scale-95 cursor-pointer shrink-0"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -206,7 +208,7 @@ export default function AdminEventClient() {
           </div>
 
           {/* Main Card Table Container */}
-          <div className="w-full rounded-2xl md:rounded-[1.5rem] border border-gray-200/90 bg-white p-4 md:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+          <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
             {/* Header Bar: Filter Tabs & Search */}
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
               {/* Tabs */}
@@ -214,10 +216,11 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("semua")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "semua"
-                    ? "text-[#561269]"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "semua"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   Semua Event
                   {activeTab === "semua" && (
@@ -228,10 +231,11 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("seminar")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "seminar"
-                    ? "text-[#561269]"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "seminar"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   Seminar
                   {activeTab === "seminar" && (
@@ -242,10 +246,11 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("workshop")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "workshop"
-                    ? "text-[#561269]"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "workshop"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   Workshop
                   {activeTab === "workshop" && (
@@ -256,10 +261,11 @@ export default function AdminEventClient() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("selesai")}
-                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${activeTab === "selesai"
-                    ? "text-[#561269]"
-                    : "text-gray-600 hover:text-gray-900"
-                    }`}
+                  className={`relative pb-2 font-bold whitespace-nowrap transition-colors ${
+                    activeTab === "selesai"
+                      ? "text-[#561269]"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
                 >
                   Selesai
                   {activeTab === "selesai" && (
@@ -294,113 +300,8 @@ export default function AdminEventClient() {
               </div>
             </div>
 
-            {/* ── TAMPILAN MOBILE: KARTU LIST CANTIK (Tampil di Layar HP < md) ── */}
-            <div className="block md:hidden space-y-3">
-              {loading ? (
-                <div className="py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-100 flex flex-col items-center justify-center gap-2">
-                  <Loader2 className="w-6 h-6 animate-spin text-[#561269]" />
-                  <span className="text-xs">Memuat data event...</span>
-                </div>
-              ) : filteredEvents.length === 0 ? (
-                <div className="py-12 text-center text-gray-400 text-xs bg-white rounded-2xl border border-dashed border-gray-200">
-                  Tidak ada data event yang ditemukan.
-                </div>
-              ) : (
-                filteredEvents.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedEventForModal(item)}
-                    className="bg-white rounded-2xl border border-gray-200/90 p-4 shadow-2xs hover:shadow-sm transition-all space-y-3 cursor-pointer"
-                  >
-                    {/* Header Card: Banner + Judul + Badges */}
-                    <div className="flex items-start gap-3">
-                      <div className="relative h-14 w-18 rounded-xl bg-gray-100 overflow-hidden shrink-0 border border-gray-200">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={item.bannerUrl}
-                          alt={item.judul}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5 flex-wrap mb-1">
-                          <span className="px-2 py-0.5 rounded-md bg-purple-50 text-[#561269] text-[10px] font-extrabold uppercase">
-                            {item.jenis}
-                          </span>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
-                              item.tipe === "Offline"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
-                          >
-                            {item.tipe || "Online"}
-                          </span>
-                        </div>
-                        <h4 className="font-bold text-sm text-gray-900 leading-snug line-clamp-2">
-                          {item.judul}
-                        </h4>
-                      </div>
-                    </div>
-
-                    {/* Info Rincian: Pembicara, Tanggal, Tiket */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-100 text-xs text-gray-600">
-                      <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Pembicara:</span>
-                        <span className="font-bold text-gray-800 truncate block">{item.pembicara}</span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-gray-400 block font-medium">Tiket Terjual:</span>
-                        <span className="font-bold text-gray-800">
-                          {item.tiketTerjual} <span className="font-normal text-gray-400">/ {item.totalTiket}</span>
-                        </span>
-                      </div>
-                      <div className="col-span-2 flex items-center justify-between gap-2 pt-1">
-                        <div className="flex items-center gap-1.5 text-gray-600 text-xs">
-                          <Calendar className="w-3.5 h-3.5 text-[#561269]" />
-                          <span>{item.tanggal} • {item.waktu}</span>
-                        </div>
-                        <div>{getStatusBadge(item.status)}</div>
-                      </div>
-                    </div>
-
-                    {/* Tombol Aksi di Bawah Card */}
-                    <div
-                      className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => setSelectedEventForModal(item)}
-                        className="px-3 py-1.5 rounded-lg border border-purple-200 text-[#561269] bg-purple-50/50 hover:bg-purple-100 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        Detail
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleEditEvent(item.id, e)}
-                        className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => handleOpenDeleteEvent(item, e)}
-                        className="p-1.5 rounded-lg border border-gray-200 text-rose-500 hover:bg-rose-50 text-xs cursor-pointer"
-                        title="Hapus Event"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* ── TAMPILAN DESKTOP: TABEL LENGKAP ASLI (Tampil di Layar >= md) ── */}
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto">
+            {/* Table */}
+            <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto">
               <table className="w-full text-left text-sm min-w-[760px]">
                 <thead className="sticky top-0 z-10 bg-[#FAF4FC]">
                   <tr className="bg-[#FAF4FC] text-xs text-gray-800 uppercase font-extrabold tracking-wider border-b border-purple-100">
@@ -458,10 +359,11 @@ export default function AdminEventClient() {
                           <div className="flex flex-col items-center gap-1">
                             <span className="font-bold text-gray-800 text-xs">{item.jenis}</span>
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${item.tipe === "Offline"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-blue-100 text-blue-800"
-                                }`}
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                                item.tipe === "Offline"
+                                  ? "bg-emerald-100 text-emerald-800"
+                                  : "bg-blue-100 text-blue-800"
+                              }`}
                             >
                               {item.tipe || "Online"}
                             </span>

@@ -49,7 +49,7 @@ export function PsikologJadwalMingguanSection({
   handleRemoveSlot,
 }: PsikologJadwalMingguanSectionProps) {
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 md:p-8">
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Jadwal Mingguan</h2>
       <p className="text-sm text-gray-500 mb-6">
         Lihat ringkasan jadwal sesi konseling yang telah dibooking oleh klien dan slot yang Anda buka
@@ -57,7 +57,7 @@ export function PsikologJadwalMingguanSection({
       </p>
 
       {/* Week Selector */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[13px] font-bold text-gray-800 mb-4">
+      <div className="flex items-center gap-3 text-[13px] font-bold text-gray-800 mb-4">
         <button
           type="button"
           onClick={goToPrevWeek}
@@ -72,7 +72,7 @@ export function PsikologJadwalMingguanSection({
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        <span className="font-semibold text-gray-900 min-w-[140px] sm:min-w-[160px] text-center text-xs sm:text-[13px]">
+        <span className="font-semibold text-gray-900 min-w-[160px] text-center">
           {weekRangeLabel}
         </span>
         <button
@@ -97,7 +97,7 @@ export function PsikologJadwalMingguanSection({
           <button
             type="button"
             onClick={goToCurrentWeek}
-            className="text-xs px-2.5 py-1 font-semibold text-[#561269] bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-auto sm:ml-1 cursor-pointer"
+            className="text-xs px-2.5 py-1 font-semibold text-[#561269] bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors ml-1 cursor-pointer"
           >
             Minggu Ini
           </button>

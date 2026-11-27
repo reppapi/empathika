@@ -109,10 +109,10 @@ export function EventListClient() {
           </p>
 
           {/* Tab Selector */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 mt-8 w-full sm:w-auto">
+          <div className="flex items-center justify-center gap-3 mt-8">
             <button
               onClick={() => setActiveTab("UPCOMING")}
-              className={`w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
+              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
                 activeTab === "UPCOMING"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -122,7 +122,7 @@ export function EventListClient() {
             </button>
             <button
               onClick={() => setActiveTab("PAST")}
-              className={`w-full sm:w-auto px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer ${
+              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
                 activeTab === "PAST"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -157,11 +157,11 @@ export function EventListClient() {
               {upcomingEvents.map((ev) => {
                 const tanggalTeks = ev.tanggal
                   ? new Date(ev.tanggal).toLocaleDateString("id-ID", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })
                   : "Jadwal Segera Diumumkan"
 
                 let jamTeks = "Waktu Belum Ditentukan"
@@ -425,10 +425,11 @@ export function EventListClient() {
                             }
                             setShowAllArsip(false)
                           }}
-                          className={`relative pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 ${isSelected
-                            ? "text-[#561269] font-extrabold"
-                            : "text-gray-400 hover:text-gray-700 font-semibold"
-                            }`}
+                          className={`relative pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 ${
+                            isSelected
+                              ? "text-[#561269] font-extrabold"
+                              : "text-gray-400 hover:text-gray-700 font-semibold"
+                          }`}
                         >
                           <span>{tab.label}</span>
                           {isSelected && (
@@ -459,8 +460,9 @@ export function EventListClient() {
                             </span>
                           </div>
                           <ChevronDown
-                            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isWorkshopDropdownOpen ? "rotate-180" : ""
-                              }`}
+                            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
+                              isWorkshopDropdownOpen ? "rotate-180" : ""
+                            }`}
                           />
                         </button>
 
@@ -481,10 +483,11 @@ export function EventListClient() {
                                       setSelectedWorkshopPill(pill)
                                       setShowAllArsip(false)
                                     }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${isPillSelected
-                                      ? "bg-purple-50 text-[#561269] font-bold"
-                                      : "text-gray-700 hover:bg-gray-50 font-semibold"
-                                      }`}
+                                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                                      isPillSelected
+                                        ? "bg-purple-50 text-[#561269] font-bold"
+                                        : "text-gray-700 hover:bg-gray-50 font-semibold"
+                                    }`}
                                   >
                                     <span className={isPillSelected ? "font-bold text-[#561269] truncate" : "font-semibold text-gray-800 truncate"}>
                                       {pill}

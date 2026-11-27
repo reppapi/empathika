@@ -30,8 +30,8 @@ export function ModalApplicationDetail({
   if (!selectedApp) return null
 
   return (
-    <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-3 sm:p-4 animate-fadeIn">
-      <div className="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-black/50 backdrop-blur-2xs p-4 animate-fadeIn">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-6 sm:p-7 shadow-xl relative border border-gray-100 max-h-[90vh] overflow-y-auto">
         <button
           type="button"
           onClick={onClose}
@@ -219,11 +219,11 @@ export function ModalApplicationDetail({
         </div>
 
         {/* Footer */}
-        <div className="mt-5 pt-4 border-t border-gray-100 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 sm:gap-2.5">
+        <div className="mt-5 pt-4 border-t border-gray-100 flex items-center justify-end gap-2.5">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold text-xs transition-colors cursor-pointer text-center"
+            className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 font-semibold text-xs transition-colors cursor-pointer"
           >
             Tutup
           </button>
@@ -232,7 +232,7 @@ export function ModalApplicationDetail({
             type="button"
             onClick={onSaveStatus}
             disabled={updatingStatus}
-            className="w-full sm:w-auto px-5 py-2.5 sm:py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer text-center"
+            className="px-5 py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-xs shadow-xs transition-all disabled:opacity-50 cursor-pointer"
           >
             {updatingStatus ? "Menyimpan..." : "Simpan Perubahan"}
           </button>

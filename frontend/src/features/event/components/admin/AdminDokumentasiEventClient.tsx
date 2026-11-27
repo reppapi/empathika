@@ -90,7 +90,7 @@ export default function AdminDokumentasiEventClient() {
       </div>
 
       {/* Main Card Table Container */}
-      <div className="w-full rounded-2xl md:rounded-[1.5rem] border border-gray-200/90 bg-white p-4 md:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
+      <div className="w-full rounded-[1.5rem] border border-gray-200/90 bg-white p-6 sm:p-7 shadow-[0_2px_15px_rgba(0,0,0,0.03)]">
         {/* Search Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h2 className="text-base font-bold text-gray-900">
@@ -138,78 +138,8 @@ export default function AdminDokumentasiEventClient() {
             )}
           </div>
         ) : (
-          <>
-            {/* ── TAMPILAN MOBILE: KARTU LIST KHUSUS HP (Layar < md) ── */}
-            <div className="block md:hidden space-y-3">
-              {filteredItems.map((item) => {
-                const tglTeks = item.tanggal
-                  ? new Date(item.tanggal).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                  : "-"
-
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedItemForModal(item)}
-                    className="bg-white rounded-2xl border border-gray-200/90 p-4 shadow-2xs hover:shadow-sm transition-all space-y-3 cursor-pointer"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="relative w-16 h-14 rounded-xl overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
-                        {item.thumbnail ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.thumbnail}
-                            alt={item.judul}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <ImageIcon className="w-5 h-5 opacity-40" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-bold text-sm text-gray-900 leading-snug line-clamp-2">
-                          {item.judul}
-                        </h4>
-                        <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                          <span>{tglTeks}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      className="flex items-center justify-end gap-1.5 pt-2 border-t border-gray-100"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <ActionButtonDetail
-                        onClick={() => setSelectedItemForModal(item)}
-                        title="Lihat Detail Dokumentasi"
-                      />
-                      <ActionButtonEdit
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/admin/event/dokumentasi/edit/${item.id}`)
-                        }}
-                        title="Edit Dokumentasi"
-                      />
-                      <ActionButtonDelete
-                        onClick={(e) => handleOpenDelete(item, e)}
-                        title="Hapus Dokumentasi"
-                      />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* ── TAMPILAN DESKTOP: TABEL LENGKAP ASLI (Layar >= md) ── */}
-            <div className="hidden md:block overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto p-1">
-              <table className="w-full text-left text-sm border-separate border-spacing-y-2">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white admin-table-scrollbar max-h-[500px] overflow-y-auto p-1">
+            <table className="w-full text-left text-sm border-separate border-spacing-y-2">
               <thead className="sticky top-0 z-10 bg-white">
                 <tr className="bg-purple-100/70 text-gray-700 text-xs uppercase font-extrabold tracking-wider">
                   <th className="py-3 px-4 rounded-l-xl sticky top-0 bg-purple-100/90 z-10">Event Selesai</th>
@@ -221,10 +151,10 @@ export default function AdminDokumentasiEventClient() {
                 {filteredItems.map((item) => {
                   const tglTeks = item.tanggal
                     ? new Date(item.tanggal).toLocaleDateString("id-ID", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
                     : "-"
 
                   return (
@@ -299,7 +229,6 @@ export default function AdminDokumentasiEventClient() {
               </tbody>
             </table>
           </div>
-          </>
         )}
       </div>
 

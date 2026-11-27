@@ -192,10 +192,11 @@ export default function AdminEventDetailModal({
                     {currentEvent.jenis}
                   </span>
                   <span
-                    className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${currentEvent.tipe === "Offline"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-blue-100 text-blue-800"
-                      }`}
+                    className={`inline-block rounded-xl px-3 py-1 text-xs font-bold ${
+                      currentEvent.tipe === "Offline"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-blue-100 text-blue-800"
+                    }`}
                   >
                     {currentEvent.tipe}
                   </span>
@@ -206,8 +207,8 @@ export default function AdminEventDetailModal({
                     currentEvent.status === "Dipublikasi"
                       ? "success"
                       : currentEvent.status === "Draft"
-                        ? "warning"
-                        : "danger"
+                      ? "warning"
+                      : "danger"
                   }
                 >
                   {currentEvent.status}
@@ -468,21 +469,21 @@ export default function AdminEventDetailModal({
         </div>
 
         {/* Footer Modal */}
-        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 px-6 sm:px-8 py-4 border-t border-gray-100 bg-white">
+        <div className="flex items-center justify-between px-6 sm:px-8 py-4 border-t border-gray-100 bg-white">
           <button
             type="button"
             onClick={onClose}
-            className="w-full sm:w-auto rounded-full border border-gray-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition active:scale-95 cursor-pointer text-center"
+            className="rounded-full border border-gray-300 bg-white px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-700 hover:bg-gray-100 transition active:scale-95 cursor-pointer"
           >
             Tutup
           </button>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               disabled={updating}
               onClick={handleMarkAsCompleted}
-              className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer disabled:opacity-50 ${
+              className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-xs sm:text-sm font-bold transition-all shadow-sm hover:shadow-md active:scale-95 cursor-pointer disabled:opacity-50 ${
                 currentEvent.status === "Selesai"
                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
                   : "bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -498,7 +499,7 @@ export default function AdminEventDetailModal({
                 onClose()
                 onEdit(currentEvent.id)
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-2 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] px-6 py-2.5 text-xs sm:text-sm font-bold text-gray-950 shadow-sm hover:shadow-md transition active:scale-95 cursor-pointer"
             >
               <Edit className="w-4 h-4" />
               Edit Data Event

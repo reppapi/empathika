@@ -186,57 +186,15 @@ export function Navbar() {
           {/* ============================== */}
           {/* TAMPILAN MOBILE / HP           */}
           {/* ============================== */}
-          <div className="flex w-full items-center justify-between lg:hidden">
-            {/* Logo & Brand Name di Mobile */}
-            <Link
-              href={withBiro("/") as any}
-              prefetch={true}
-              className="flex items-center gap-2.5 transition-transform active:scale-95 min-w-0"
-              aria-label="Home"
-            >
-              <div
-                suppressHydrationWarning
-                className="h-10 w-10 shrink-0 rounded-full flex items-center justify-center text-white font-extrabold text-base overflow-hidden shadow-sm"
-                style={{ backgroundColor: themeColor }}
-              >
-                {isMounted && isBiro && biroProfile?.logoURI ? (
-                  <img src={biroProfile.logoURI} alt="Logo" className="w-full h-full object-cover" />
-                ) : isMounted && !isBiro && adminFoto ? (
-                  <img src={adminFoto} alt="Empathika" className="w-full h-full object-cover" />
-                ) : (
-                  (biroProfile?.nama_biro?.trim()?.[0] || (slug ? slug.replace(/^biro[-_]/i, "").trim()?.[0] : null) || slug?.trim()?.[0] || "E").toUpperCase()
-                )}
-              </div>
-              {isBiro ? (
-                <div className="flex flex-col min-w-0 max-w-[190px]">
-                  <span
-                    className="text-base font-extrabold tracking-wide uppercase truncate leading-tight"
-                    style={{ color: themeColor }}
-                  >
-                    {biroProfile?.nama_biro?.trim() || (slug ? slug.replace(/^biro[-_]/i, "").trim().toUpperCase() : null) || "BIRO MITRA"}
-                  </span>
-                  <span className="text-[10px] font-medium text-gray-500 leading-none mt-0.5 truncate">
-                    powered by Empathika
-                  </span>
-                </div>
-              ) : (
-                <span
-                  className="text-lg font-extrabold tracking-widest uppercase truncate"
-                  style={{ color: themeColor }}
-                >
-                  EMPATHIKA
-                </span>
-              )}
-            </Link>
-
+          <div className="flex w-full items-center justify-end lg:hidden">
             {/* Hamburger Button Only */}
             <button 
               onClick={toggleMenu}
-              className="relative z-50 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md transition-transform active:scale-95"
+              className="relative z-50 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white shadow-lg transition-transform active:scale-95"
               style={{ backgroundColor: themeColor }}
               aria-label="Toggle Menu"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="h-5 w-5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6">
                 {isMobileMenuOpen ? (
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 ) : (

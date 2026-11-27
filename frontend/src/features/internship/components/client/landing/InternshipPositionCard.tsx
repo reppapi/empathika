@@ -26,23 +26,23 @@ export function InternshipPositionCard({ position, withBiro }: InternshipPositio
     !position.applyUrl.includes("empathika.id")
 
   return (
-    <div className="bg-white border border-purple-100/90 rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+    <div className="bg-white border border-purple-100/90 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
       {/* Header Kartu Posisi */}
-      <div className="p-4 sm:p-6 md:p-8 border-b border-gray-100 bg-gradient-to-r from-white via-white to-purple-50/40">
+      <div className="p-6 sm:p-8 border-b border-gray-100 bg-gradient-to-r from-white via-white to-purple-50/40">
         <div className="space-y-3">
-          <h3 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-950 tracking-tight">
+          <h3 className="text-2xl sm:text-3xl font-extrabold text-gray-950 tracking-tight">
             {position.judul}
           </h3>
 
           {position.deskripsi && (
-            <p className="text-gray-600 text-xs sm:text-sm md:text-base max-w-3xl leading-relaxed">
+            <p className="text-gray-600 text-sm sm:text-base max-w-3xl leading-relaxed">
               {position.deskripsi}
             </p>
           )}
         </div>
 
         {/* Info Pills Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3 mt-5 sm:mt-6 pt-5 sm:pt-6 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mt-6 pt-6 border-t border-gray-100">
           <div className="bg-[#FAF7FB] rounded-xl p-3 border border-purple-50">
             <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5 mb-1">
               <Clock className="w-3.5 h-3.5 text-[#561269]" />
@@ -86,7 +86,7 @@ export function InternshipPositionCard({ position, withBiro }: InternshipPositio
       </div>
 
       {/* Body: Responsibilities & Qualifications & CTA */}
-      <div className="p-4 sm:p-6 md:p-8 space-y-6 sm:space-y-8">
+      <div className="p-6 sm:p-8 space-y-8">
         {/* Responsibilities */}
         <div>
           <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
