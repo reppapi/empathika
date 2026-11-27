@@ -1,8 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Link as LinkIcon, ChevronLeft } from 'lucide-react';
 import { useTenantContext } from '@/context/TenantContext';
 import { blogService } from '@/services/blog.service';
@@ -126,10 +126,13 @@ export default function BlogDetailClient({ slug }: Props) {
           {/* Image */}
           {blog.banner_url && (
             <div className={styles.articleImg}>
-              <img
+              <Image
                 src={blog.banner_url}
                 alt={blog.judul}
                 className={styles.articleCoverImg}
+                width={800}
+                height={450}
+                style={{ width: '100%', height: 'auto' }}
               />
             </div>
           )}
@@ -168,7 +171,7 @@ export default function BlogDetailClient({ slug }: Props) {
                 <Link key={p.id} href={`/blog/${p.id}`} className={styles.recentCard}>
                   {p.banner_url && (
                     <div className={styles.recentCardImg}>
-                      <img src={p.banner_url} alt={p.judul} className={styles.recentThumb} />
+                      <Image src={p.banner_url} alt={p.judul} className={styles.recentThumb} width={200} height={120} style={{ width: '100%', height: 'auto' }} />
                     </div>
                   )}
                   <div className={styles.recentCardBody}>

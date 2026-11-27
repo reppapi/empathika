@@ -8,7 +8,6 @@
 
 import {
   PERSEN_PSIKOLOG,
-  DP_NOMINAL,
   KOMISI_BIRO_PERSEN,
   KOMISI_BIRO_MODE,
   MIDTRANS_FEE,
@@ -158,7 +157,7 @@ export function hitungPembagianDPHangus(
   tipeSesi: TipeSesi,
   jumlahDibayar: number
 ): HasilDPHangus {
-  const ditahan = Math.min(DP_NOMINAL, jumlahDibayar)
+  const ditahan = Math.min(0, jumlahDibayar)
   const persenPsik = PERSEN_PSIKOLOG[tipeSesi]
   const porsiPsikologDP = Math.floor(ditahan * persenPsik / 100)
   const porsiEmpathikaDP = ditahan - porsiPsikologDP

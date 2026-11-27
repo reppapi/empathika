@@ -489,7 +489,7 @@ export class TransaksiService {
       throw Object.assign(new Error('Booking tidak ditemukan'), { statusCode: 404 })
     }
 
-    const nominal = booking.layanan?.harga_weekday ? Number(booking.layanan.harga_weekday) : 150000
+    const nominal = booking.layanan?.harga_weekday ? Number(booking.layanan.harga_weekday) : 0
 
     let transaksi = null
     if (booking.id_transaksi) {
