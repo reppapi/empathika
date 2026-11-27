@@ -2,8 +2,8 @@
 // Business Constants & Shared Financial Calculations
 // =====================================================================
 
-export const PSIKOLOG_SHARE = 0.6 // 60% untuk Psikolog
-export const EMPATHIKA_SHARE = 0.4 // 40% untuk Empathika Platform
+export const PSIKOLOG_SHARE = 0.5 // 50% untuk Psikolog
+export const EMPATHIKA_SHARE = 0.5 // 50% untuk Empathika Platform
 
 /**
  * Format angka ke format mata uang Rupiah tanpa desimal

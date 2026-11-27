@@ -396,7 +396,21 @@ function normalizeTransaksi(raw: any) {
       raw.layanan ||
       "Asesmen Minat Bakat (Offline)"
   } else {
-    namaLayanan = layanan.nama || layanan.nama_layanan || raw.nama_layanan || "–"
+    const baseNama = layanan.nama || layanan.nama_layanan || raw.nama_layanan || "–"
+    const metodeBooking = (booking.metode || "").toUpperCase()
+    if (metodeBooking === "OFFLINE") {
+      namaLayanan = baseNama.replace(/\(Online\)/gi, "(Offline)")
+      if (!namaLayanan.toLowerCase().includes("offline") && namaLayanan !== "–") {
+        namaLayanan = `${namaLayanan} (Offline)`
+      }
+    } else if (metodeBooking === "ONLINE") {
+      namaLayanan = baseNama.replace(/\(Offline\)/gi, "(Online)")
+      if (!namaLayanan.toLowerCase().includes("online") && namaLayanan !== "–") {
+        namaLayanan = `${namaLayanan} (Online)`
+      }
+    } else {
+      namaLayanan = baseNama
+    }
   }
 
   // Status transaksi

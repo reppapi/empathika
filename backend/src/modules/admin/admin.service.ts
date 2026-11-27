@@ -15,8 +15,6 @@ import type {
 import bcrypt from 'bcrypt'
 import type { StatusBooking } from '@prisma/client'
 import { formatDateToString, formatTimeToString } from '../../utils/date-time'
-import { existsSync, readFileSync, writeFileSync, mkdirSync, renameSync } from 'fs'
-import { join } from 'path'
 
 const DEFAULT_TENTANG_KAMI: UpdateTentangKamiInput = {
   hero: {
@@ -898,68 +896,42 @@ export class AdminService {
     return normalizedInput
   }
 
-  // ── Manajemen Banner Hero Promosi & Slide Utama ──────────────────────
+  // ── Manajemen Banner Hero Promosi & Slide Utama (Database Murni) ─────
+
+  private readonly DEFAULT_HERO_SLIDE: DefaultSlideConfigInput = {
+    title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
+    subtitle:
+      'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
+    link: '/konseling',
+  }
 
   async getHeroBanners(): Promise<UpdateHeroBannersInput> {
-    const fallbackSlide: DefaultSlideConfigInput = {
-      title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
-      subtitle:
-        'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
-      link: '/konseling',
-    }
-
-    let bannersFromDb: BannerPromoItemInput[] | null = null
-    let slideFromDb: DefaultSlideConfigInput | null = null
-
-    // 1. Coba baca dari Database (tabel SiteSetting dengan key 'hero_banners')
+    // 1. Baca langsung dari Database (tabel SiteSetting dengan key 'hero_banners')
     try {
       const setting = await this.repo.getSiteSetting('hero_banners')
       if (setting && setting.value) {
         const val = typeof setting.value === 'string' ? JSON.parse(setting.value) : setting.value
-        if (Array.isArray(val.promoBanners)) {
-          bannersFromDb = val.promoBanners
-        }
-        if (val.defaultSlide) {
-          slideFromDb = val.defaultSlide
-        }
-      }
-    } catch {
-      // Abaikan error jika database belum terhubung
-    }
-
-    // 2. Baca file JSON lokal
-    let bannersFromFile: BannerPromoItemInput[] | null = null
-    let slideFromFile: DefaultSlideConfigInput | null = null
-
-    const dataDir = join(process.cwd(), 'data')
-    const filePath = join(dataDir, 'hero-banners.json')
-    try {
-      if (existsSync(filePath)) {
-        const raw = readFileSync(filePath, 'utf-8')
-        const parsed = JSON.parse(raw)
-        if (Array.isArray(parsed.promoBanners)) {
-          bannersFromFile = parsed.promoBanners
-        }
-        if (parsed.defaultSlide) {
-          slideFromFile = parsed.defaultSlide
+        const promoBanners: BannerPromoItemInput[] = Array.isArray(val.promoBanners)
+          ? val.promoBanners
+          : []
+        const chosenSlide = val.defaultSlide
+        return {
+          promoBanners,
+          defaultSlide: {
+            title: chosenSlide?.title ?? this.DEFAULT_HERO_SLIDE.title,
+            subtitle: chosenSlide?.subtitle ?? this.DEFAULT_HERO_SLIDE.subtitle,
+            link: chosenSlide?.link ?? this.DEFAULT_HERO_SLIDE.link,
+          },
         }
       }
-    } catch {
-      // Abaikan jika berkas belum ada
+    } catch (err: any) {
+      console.warn('Gagal membaca Hero Banners dari database, gunakan default bawaan:', err?.message)
     }
 
-    // Prioritaskan DB jika ada, jika DB kosong/belum ada maka pakai file lokal
-    const promoBanners = bannersFromDb !== null ? bannersFromDb : (bannersFromFile ?? [])
-    const chosenSlide = slideFromDb ?? slideFromFile
-    const defaultSlide: DefaultSlideConfigInput = {
-      title: chosenSlide?.title ?? fallbackSlide.title,
-      subtitle: chosenSlide?.subtitle ?? fallbackSlide.subtitle,
-      link: chosenSlide?.link ?? fallbackSlide.link,
-    }
-
+    // 2. Jika database belum terisi atau baru dideploy, gunakan default bawaan sistem
     return {
-      promoBanners,
-      defaultSlide,
+      promoBanners: [],
+      defaultSlide: this.DEFAULT_HERO_SLIDE,
     }
   }
 
@@ -989,46 +961,18 @@ export class AdminService {
 
     return {
       activeBanners,
-      defaultSlide: data.defaultSlide || {
-        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
-        subtitle:
-          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
-        link: '/konseling',
-      },
+      defaultSlide: data.defaultSlide || this.DEFAULT_HERO_SLIDE,
     }
   }
 
   async updateHeroBanners(input: UpdateHeroBannersInput): Promise<UpdateHeroBannersInput> {
     const dataToSave: UpdateHeroBannersInput = {
       promoBanners: input.promoBanners || [],
-      defaultSlide: input.defaultSlide || {
-        title: 'Ruang Aman untuk Pulih Bersama Psikolog Profesional & Terpercaya',
-        subtitle:
-          'Kamu tidak harus memikul semuanya sendirian. Ceritakan apa yang kamu rasakan, mari temukan jalan keluar dan bertumbuh bersama Empathika.',
-        link: '/konseling',
-      },
+      defaultSlide: input.defaultSlide || this.DEFAULT_HERO_SLIDE,
     }
 
-    // 1. Simpan ke Database (tabel SiteSetting dengan key 'hero_banners')
-    try {
-      await this.repo.upsertSiteSetting('hero_banners', dataToSave)
-    } catch (err: any) {
-      console.warn('Gagal menyimpan Hero Banners ke database, fallback ke berkas JSON:', err.message)
-    }
-
-    // 2. Dual-write ke JSON lokal
-    try {
-      const dataDir = join(process.cwd(), 'data')
-      const filePath = join(dataDir, 'hero-banners.json')
-      const tempPath = join(dataDir, `hero-banners.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`)
-      if (!existsSync(dataDir)) {
-        mkdirSync(dataDir, { recursive: true })
-      }
-      writeFileSync(tempPath, JSON.stringify(dataToSave, null, 2), 'utf-8')
-      renameSync(tempPath, filePath)
-    } catch {
-      // Abaikan jika read-only
-    }
+    // Simpan murni ke Database (tabel SiteSetting dengan key 'hero_banners')
+    await this.repo.upsertSiteSetting('hero_banners', dataToSave)
 
     return dataToSave
   }
