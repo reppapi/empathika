@@ -808,9 +808,9 @@ export default function AdminInternshipClient() {
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 text-center">
                         <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          className={`inline-flex items-center justify-center w-24 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                             app.status === "MENUNGGU"
                               ? "bg-amber-100 text-amber-800 border border-amber-200"
                               : app.status === "REVIEW"
