@@ -82,7 +82,9 @@ export function SesiCard({
 
   let nominalKalkulasi = pendapatanPsikolog
   if (nominalKalkulasi === undefined && hargaPenuh !== undefined && hargaPenuh !== null && hargaPenuh > 0) {
-    nominalKalkulasi = Math.round(hargaPenuh * PSIKOLOG_SHARE)
+    const isOffline = metode?.toUpperCase().includes("OFFLINE")
+    const share = isOffline ? 0.6 : 0.5
+    nominalKalkulasi = Math.round(hargaPenuh * share)
   }
 
   const formattedPendapatan = formatRupiahPendapatan(nominalKalkulasi)
