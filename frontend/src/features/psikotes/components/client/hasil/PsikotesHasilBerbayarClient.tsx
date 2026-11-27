@@ -17,6 +17,7 @@ import { evaluateDASS } from "@/features/psikotes/utils/dassEvaluation";
 import {
   isCATS as checkCATS,
   isCDI as checkCDI,
+  isCHOCI as checkCHOCI,
   isDASS as checkDASS,
   isRCMAS as checkRCMAS,
   isMCMI as checkMCMI,
@@ -158,6 +159,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     statusPengerjaan?: string | null;
     catatanPsikolog?: string | null;
     rekomendasiPsikolog?: string | null;
+    fileLaporanUrl?: string | null;
     psikolog?: { id?: number; nama?: string; gelar?: string; nama_gelar?: string } | null;
     tanggalReview?: string | null;
     tanggalSelesai?: string | null;
@@ -253,6 +255,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
               statusPengerjaan: (bData as any).status_pengerjaan || null,
               catatanPsikolog: bData.hasil?.catatan_psikolog || (bData as any).catatan_psikolog || null,
               rekomendasiPsikolog: bData.hasil?.rekomendasi_psikolog || (bData as any).rekomendasi_psikolog || null,
+              fileLaporanUrl: (bData as any).file_laporan_url || (bData.hasil as any)?.file_laporan_url || null,
               psikolog: bData.psikolog || (bData as any).psikolog || null,
               tanggalReview: bData.hasil?.tanggal_review || (bData as any).tanggal_review || null,
               tanggalSelesai: bData.hasil?.tanggal_selesai || (bData as any).tanggal_mulai || null,
@@ -341,20 +344,22 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   const isCDI = checkCDI(dbPackage, params.testId);
   const isCATS = checkCATS(dbPackage, params.testId);
   const isMCMI = checkMCMI(dbPackage, params.testId);
+  const isCHOCI = checkCHOCI(dbPackage, params.testId);
+
+  // Status ketersediaan dokumen telaah klinis resmi (PDF atau catatan) yang sudah diterbitkan oleh psikolog
+  const hasCatatanPsikolog = Boolean(
+    bookingReport?.fileLaporanUrl ||
+      (bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0)
+  );
 
   // Status Menunggu Review Psikolog (SLA Maks. 3 Hari)
   // Menahan tampilan hasil analitik mentah/grafik klinis sebelum verifikasi psikolog diterbitkan
-  const isKlinisPerluReview = Boolean((dbPackage as any)?.perlu_review_psikolog) || isMCMI;
+  const isKlinisPerluReview = Boolean((dbPackage as any)?.perlu_review_psikolog) || isMCMI || isCHOCI;
   const isMenungguReview =
     bookingReport?.statusPengerjaan === "MENUNGGU_REVIEW" ||
     (isKlinisPerluReview &&
       bookingReport?.statusPengerjaan !== "SELESAI" &&
-      !bookingReport?.catatanPsikolog);
-
-  // Status ketersediaan dokumen telaah klinis resmi yang sudah dibuat dan diterbitkan oleh psikolog
-  const hasCatatanPsikolog = Boolean(
-    bookingReport?.catatanPsikolog && bookingReport.catatanPsikolog.trim().length > 0
-  );
+      !hasCatatanPsikolog);
 
   // Informasi SLA batas waktu telaah psikolog (maksimal 3 hari kerja)
   const slaInfo = calculateReviewSla(bookingReport?.tanggalSelesai || peserta.tanggal);
@@ -775,6 +780,33 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
     if (isDownloading || isMenungguReview) return;
     setIsDownloading(true);
     try {
+      if (bookingReport?.fileLaporanUrl) {
+        const safeName = (peserta.nama || "Peserta")
+          .replace(/[^a-zA-Z0-9\s-]/g, "")
+          .trim()
+          .replace(/\s+/g, "-");
+        const fileName = `Laporan-Psikotes-${safeName}.pdf`;
+        try {
+          const response = await fetch(bookingReport.fileLaporanUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+            return;
+          }
+        } catch {
+          // Fallback jika fetch terhalang CORS
+        }
+        window.open(bookingReport.fileLaporanUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
+
       const noDokumen = `EMP-PSI-${
         peserta.bookingId ? String(peserta.bookingId).slice(-6).toUpperCase() : "VERIFIED"
       }`;
@@ -966,7 +998,7 @@ export default function PsikotesHasilBerbayarClient({ params }: { params: { test
   // Jika kategori interpretasi belum dikonfigurasi di database untuk skor ini,
   // dan bukan instrumen DASS-42 (yang memiliki perhitungan evaluasi multidimensi khusus),
   // JANGAN gunakan fallback dummy (misal judul pura-pura "Tes Tingkat Kecemasan").
-  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult && !bookingReport?.catatanPsikolog) {
+  if (!isMenungguReview && !dbInterpretasi && !dassEvaluation && !pbqProfile && !mcmiResult && !hasCatatanPsikolog) {
     return (
       <div className="min-h-screen bg-[#FAFAFC] font-sans pt-24 pb-12 px-4 flex flex-col items-center justify-center">
         <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-amber-200 shadow-sm text-center">

@@ -66,6 +66,7 @@ export default function PsikologReviewDetailClient({
             perlu_review_psikolog: true,
             catatan_psikolog: d.hasil?.catatan_psikolog || null,
             rekomendasi_psikolog: d.hasil?.rekomendasi_psikolog || null,
+            file_laporan_url: (d as any).file_laporan_url || (d.hasil as any)?.file_laporan_url || null,
             tanggal_review: d.hasil?.tanggal_review,
             psikolog: d.psikolog ? { id: d.psikolog.id, nama: d.psikolog.nama_gelar } : null,
             total_skor: d.hasil?.total_skor,
@@ -75,11 +76,10 @@ export default function PsikologReviewDetailClient({
 
           setItem(mapped);
           try {
-            if (d.hasil?.catatan_psikolog) {
+            if (d.hasil?.catatan_psikolog || (d as any).file_laporan_url || (d.hasil as any)?.file_laporan_url) {
               sessionStorage.setItem(`empathika_active_review_${bookingId}`, JSON.stringify(mapped));
             } else {
               sessionStorage.removeItem(`empathika_active_review_${bookingId}`);
-              localStorage.removeItem(`empathika_draft_review_${bookingId}`);
             }
           } catch {}
         } else {

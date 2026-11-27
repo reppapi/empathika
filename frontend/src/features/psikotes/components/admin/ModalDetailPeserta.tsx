@@ -15,32 +15,43 @@ import {
   AlertCircle,
   AlertTriangle,
   RotateCcw,
+  UserCheck,
 } from "lucide-react";
-import type { AdminPsikotesPeserta, JudulPsikotesItem } from "../../types/adminPsikotes";
+import type {
+  AdminPsikotesPeserta,
+  AdminPsikologOption,
+  JudulPsikotesItem,
+} from "../../types/adminPsikotes";
 import { formatToIndonesianPhone } from "@/components/shared/checkout/FormDataPeserta";
 
 export interface ModalDetailPesertaProps {
   peserta: AdminPsikotesPeserta | null;
   judulList?: JudulPsikotesItem[];
+  psikologList?: AdminPsikologOption[];
   onClose: () => void;
   onDownloadPdf: (peserta: AdminPsikotesPeserta) => Promise<void> | void;
   onToggleWaStatus?: (bookingId: string, currentSent?: boolean) => void;
   onReleaseTicket?: (bookingId: string) => Promise<void> | void;
+  onAssignPsikolog?: (bookingId: string, idPsikolog: string) => Promise<void> | void;
   isBiroContext?: boolean;
 }
 
 export default function ModalDetailPeserta({
   peserta,
+  psikologList = [],
   onClose,
   onDownloadPdf,
   onToggleWaStatus,
   onReleaseTicket,
+  onAssignPsikolog,
   isBiroContext = false,
 }: ModalDetailPesertaProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [showReleaseConfirm, setShowReleaseConfirm] = useState(false);
   const [isReleasing, setIsReleasing] = useState(false);
+  const [selectedPsikologId, setSelectedPsikologId] = useState("");
+  const [isAssigning, setIsAssigning] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -52,6 +63,8 @@ export default function ModalDetailPeserta({
     setIsDownloading(false);
     setShowReleaseConfirm(false);
     setIsReleasing(false);
+    setSelectedPsikologId("");
+    setIsAssigning(false);
   }, [peserta?.id]);
 
   if (!peserta || !mounted) return null;
@@ -100,6 +113,19 @@ export default function ModalDetailPeserta({
       console.error("Gagal melepas tiket:", err);
     } finally {
       setIsReleasing(false);
+    }
+  };
+
+  const handleAssign = async () => {
+    if (!peserta || !onAssignPsikolog || !selectedPsikologId || isAssigning) return;
+    setIsAssigning(true);
+    try {
+      await onAssignPsikolog(String(peserta.id), selectedPsikologId);
+      setSelectedPsikologId("");
+    } catch (err) {
+      console.error("Gagal menugaskan psikolog:", err);
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -395,7 +421,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                   <p className="text-[11px] text-gray-500">
                     {isBiroContext
                       ? "Sedang dalam proses telaah dan penyusunan laporan resmi psikotes"
-                      : `Diambil pada ${keepDateFormatted || "—"}${deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}`}
+                      : `Ditugaskan pada ${keepDateFormatted || "—"}${deadlineFormatted ? ` • Batas telaah: ${deadlineFormatted}` : ""}`}
                   </p>
                 </div>
 
@@ -406,30 +432,74 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                       onClick={() => setShowReleaseConfirm(true)}
                       disabled={isReleasing}
                       className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 bg-white hover:bg-rose-50 text-rose-700 text-xs font-semibold shadow-2xs hover:shadow-xs transition active:scale-95 shrink-0 cursor-pointer disabled:opacity-60"
-                      title="Cabut tiket dari psikolog ini dan kembalikan ke Kolam Antrean Bersama"
+                      title="Batalkan penugasan psikolog ini agar dapat ditugaskan ke psikolog lain"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Kembalikan ke Antrean</span>
+                      <span>Batalkan Penugasan</span>
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              /* Menunggu di-keep (Kolam antrean) */
-              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              /* Menunggu Penugasan Admin */
+              <div className="p-4 rounded-xl bg-amber-50/60 border border-amber-100 space-y-3">
                 <div className="space-y-0.5">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-amber-700 block">
-                    {isBiroContext ? "Status Telaah" : "Status Antrean"}
+                    {isBiroContext ? "Status Telaah" : "Menunggu Penugasan Psikolog"}
                   </span>
                   <p className="font-semibold text-gray-900 text-sm">
-                    {isBiroContext ? "Sedang Dalam Antrean Telaah" : "Kolam Antrean Bersama"}
+                    {isBiroContext ? "Sedang Dalam Antrean Penugasan" : "Pilih Psikolog Pemeriksa"}
                   </p>
                   <p className="text-[11px] text-gray-500">
                     {isBiroContext
-                      ? "Tes selesai dikerjakan • Menunggu giliran telaah oleh tim psikolog klinis"
-                      : `Selesai tes ${keepDateFormatted || peserta.tanggal} • Menunggu diambil oleh psikolog penelaah`}
+                      ? "Tes selesai dikerjakan • Menunggu penugasan psikolog klinis oleh Admin Empathika"
+                      : `Selesai tes ${keepDateFormatted || peserta.tanggal} • Tugaskan ke psikolog sesuai spesialisasi tes agar muncul di dashboard psikolog.`}
                   </p>
                 </div>
+
+                {!isBiroContext && onAssignPsikolog && (
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1 min-w-0">
+                    <select
+                      value={selectedPsikologId}
+                      onChange={(e) => setSelectedPsikologId(e.target.value)}
+                      disabled={isAssigning}
+                      className="w-full sm:flex-1 min-w-0 truncate px-3 py-2 rounded-xl border border-amber-200 bg-white text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#EAB308]/40 focus:border-[#EAB308]"
+                    >
+                      <option value="">
+                        {psikologList.length === 0
+                          ? "-- Belum ada psikolog dengan hak Reviewer Psikotes aktif --"
+                          : "-- Pilih Psikolog Reviewer --"}
+                      </option>
+                      {psikologList.map((psi) => {
+                        const spec = [psi.spesialisasi, psi.kategori].filter(Boolean).join(" · ");
+                        const statusTag = psi.status && psi.status !== "ACTIVE" ? " [Nonaktif]" : "";
+                        return (
+                          <option key={psi.id} value={psi.id}>
+                            {psi.nama_gelar}{spec ? ` (${spec})` : ""}{statusTag}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleAssign}
+                      disabled={!selectedPsikologId || isAssigning}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs font-bold shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                    >
+                      {isAssigning ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Menugaskan...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck className="w-3.5 h-3.5" />
+                          <span>Tugaskan Psikolog</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )
           ) : isCompleted && isNeedReview ? (
@@ -764,10 +834,10 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
             </div>
             <div>
               <h3 className="font-bold text-gray-900 text-sm">
-                Kembalikan Tiket ke Antrean Bersama?
+                Batalkan Penugasan Psikolog?
               </h3>
               <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
-                Tiket asesmen untuk <strong className="text-gray-800">{peserta.peserta?.nama_lengkap || peserta.nama}</strong> akan dicabut dari <strong className="text-gray-800">{namaPsikolog || "Psikolog Pemeriksa"}</strong> dan dikembalikan ke Kolam Antrean Terbuka. Draf telaah sementara akan dibersihkan agar psikolog pengganti dapat menelaah secara bersih dan independen.
+                Penugasan asesmen untuk <strong className="text-gray-800">{peserta.peserta?.nama_lengkap || peserta.nama}</strong> akan dicabut dari <strong className="text-gray-800">{namaPsikolog || "Psikolog Pemeriksa"}</strong> agar Anda dapat menugaskannya kembali ke psikolog lain. Draf telaah sementara akan dibersihkan.
               </p>
             </div>
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
@@ -791,7 +861,7 @@ Mohon kesediaannya untuk menuntaskan telaah dan menerbitkan laporan resminya via
                     <span>Memproses...</span>
                   </>
                 ) : (
-                  <span>Ya, Kembalikan ke Antrean</span>
+                  <span>Ya, Batalkan Penugasan</span>
                 )}
               </button>
             </div>

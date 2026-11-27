@@ -30,6 +30,40 @@ export async function printLaporanPsikotes(
     }
   }
 
+  // Jika psikolog sudah mengunggah PDF resmi, unduh file PDF tersebut secara langsung
+  const uploadedPdfUrl =
+    peserta.hasil?.file_laporan_url ||
+    apiDetail?.file_laporan_url ||
+    apiDetail?.hasil?.file_laporan_url ||
+    null;
+
+  if (uploadedPdfUrl) {
+    const safeName = (peserta.peserta?.nama_lengkap || peserta.nama || "Peserta")
+      .replace(/[^a-zA-Z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+    const fileName = `Laporan-Psikotes-${safeName}.pdf`;
+    try {
+      const response = await fetch(uploadedPdfUrl);
+      if (response.ok) {
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+        return;
+      }
+    } catch {
+      // Fallback jika fetch terhalang CORS
+    }
+    window.open(uploadedPdfUrl, "_blank", "noopener,noreferrer");
+    return;
+  }
+
   const detail = getPesertaReportDetail(peserta, judulList);
   const paketLower = (peserta.paket || "").toLowerCase();
   const isDASS =

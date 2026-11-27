@@ -12,6 +12,7 @@ import type {
   VerifyTicketInput,
   ReviewPsikotesQueryInput,
   SubmitReviewPsikotesInput,
+  AssignPsikologInput,
 } from './psikotes.schema'
 
 export class PsikotesController {
@@ -399,38 +400,6 @@ export class PsikotesController {
     }
   }
 
-  claimReviewTicket = async (
-    request: FastifyRequest<{ Params: { bookingId: string } }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      let user = (request as any).user as { id?: string; role?: string } | undefined
-      if (!user && (request as any).jwtVerify) {
-        try {
-          await (request as any).jwtVerify()
-          user = (request as any).user
-        } catch {}
-      }
-
-      const data = await this.service.claimReviewTicket(
-        request.params.bookingId,
-        user?.id,
-        user?.role
-      )
-      return reply.code(200).send({
-        success: true,
-        message: 'Tiket asesmen berhasil diklaim dan dikunci untuk Anda.',
-        data,
-      })
-    } catch (err: any) {
-      const statusCode = err.statusCode || 400
-      return reply.code(statusCode).send({
-        success: false,
-        message: err.message || 'Gagal mengklaim tiket asesmen.',
-      })
-    }
-  }
-
   releaseReviewTicket = async (
     request: FastifyRequest<{ Params: { bookingId: string } }>,
     reply: FastifyReply
@@ -459,6 +428,32 @@ export class PsikotesController {
       return reply.code(statusCode).send({
         success: false,
         message: err.message || 'Gagal melepas tiket asesmen.',
+      })
+    }
+  }
+
+  assignPsikolog = async (
+    request: FastifyRequest<{
+      Params: { bookingId: string }
+      Body: AssignPsikologInput
+    }>,
+    reply: FastifyReply
+  ) => {
+    try {
+      const data = await this.service.assignPsikolog(
+        request.params.bookingId,
+        request.body.id_psikolog
+      )
+      return reply.code(200).send({
+        success: true,
+        message: `Tiket asesmen berhasil ditugaskan kepada ${data.psikolog.nama_gelar}.`,
+        data,
+      })
+    } catch (err: any) {
+      const statusCode = err.statusCode || 400
+      return reply.code(statusCode).send({
+        success: false,
+        message: err.message || 'Gagal menugaskan psikolog pemeriksa.',
       })
     }
   }

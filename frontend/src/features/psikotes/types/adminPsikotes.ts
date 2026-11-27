@@ -84,6 +84,7 @@ export type AdminPsikotesPeserta = {
     detail_skor?: any;
     catatan_psikolog?: string | null;
     rekomendasi_psikolog?: string | null;
+    file_laporan_url?: string | null;
     draft_saved_at?: string | null;
     tanggal_review?: string | null;
   } | null;
@@ -117,5 +118,14 @@ export type AdminPsikotesPeserta = {
     pekerjaan?: string | null;
     status_pernikahan?: string | null;
   } | null;
+};
+
+export type AdminPsikologOption = {
+  id: string;
+  nama_gelar: string;
+  kategori?: string;
+  spesialisasi?: string;
+  foto?: string | null;
+  status?: string;
 };
 

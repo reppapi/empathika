@@ -20,7 +20,7 @@ export interface CHOCIScores {
 }
 
 export interface CHOCICalculationResult {
-  totalSkor: number; // Menggunakan totalSymptoms untuk kompatibilitas DB
+  totalSkor: number; // Menggunakan totalSymptoms untuk kompatibilitas DB (versi Anak)
   tanpaSkorTotal: true; // Menandai penyajian dalam bentuk profil multi-skor (Symptoms & Impairment)
   hasInterpretation: false; // Tidak membuat kategori artifisial ringan/sedang/berat
   grade: string;
@@ -31,6 +31,13 @@ export interface CHOCICalculationResult {
   subscalesList: CHOCISubscaleItem[];
   catatanKlinis: string[];
   kualitatif: {
+    kebiasaanKompulsi: string[];
+    pikiranObsesi: string[];
+  };
+  // Skoring terpisah untuk Kuesioner Orang Tua (Butir 39–76), tidak digabung dengan skor Anak
+  parentScores?: CHOCIScores;
+  parentSubscalesList?: CHOCISubscaleItem[];
+  parentKualitatif?: {
     kebiasaanKompulsi: string[];
     pikiranObsesi: string[];
   };
@@ -56,90 +63,81 @@ function extractText(val: unknown): string {
   return "";
 }
 
-/**
- * Menghitung skor instrumen CHOCI-R dari 38 nomor butir pertanyaan:
- * - Butir 1–10  : Gejala Kompulsi (0–2, total 0–20)
- * - Butir 11–13 : Isian Kualitatif 3 Kebiasaan Kompulsi (skor 0)
- * - Butir 14–19 : Keparahan Kompulsi (0–4, total 0–24)
- * - Butir 20–29 : Gejala Obsesi (0–2, total 0–20)
- * - Butir 30–32 : Isian Kualitatif 3 Pikiran Obsesi (skor 0)
- * - Butir 33–38 : Keparahan Obsesi (0–4, total 0–24)
- *
- * Menghasilkan:
- * - Total Symptoms Score (0–40)
- * - Total Impairment Score (0–48)
- */
-export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalculationResult {
-  if (!answers || typeof answers !== "object") {
-    throw new Error("Jawaban kuesioner CHOCI-R tidak valid.");
-  }
+function computeCHOCISet(
+  answers: Record<string | number, any>,
+  offset: number
+): {
+  scores: CHOCIScores;
+  subscalesList: CHOCISubscaleItem[];
+  kualitatif: { kebiasaanKompulsi: string[]; pikiranObsesi: string[] };
+} {
+  const rawChociIsian = (answers as any)?.choci_isian || (answers as any)?.chociIsian;
+  const r = (start: number, end: number) => `${start + offset}–${end + offset}`;
 
-  // 1. Hitung Compulsion Symptoms Score (Butir 1 s/d 10, skala 0–2)
+  // 1. Compulsion Symptoms Score (1–10 + offset, skala 0–2)
   let compulsionSymptoms = 0;
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1 + offset; i <= 10 + offset; i++) {
     const raw = answers[i] ?? answers[String(i)];
     compulsionSymptoms += clampScore(raw, 2);
   }
 
-  // 2. Ekstrak Isian Kualitatif Kebiasaan Kompulsi (Butir 11, 12, 13)
+  // 2. Isian Kualitatif Kebiasaan Kompulsi (11–13 + offset)
   const kebiasaanKompulsi: string[] = [];
-  const rawChociIsian = (answers as any)?.choci_isian || (answers as any)?.chociIsian;
   if (rawChociIsian && typeof rawChociIsian === "object") {
-    const k1 = extractText(rawChociIsian[10] ?? rawChociIsian["10"] ?? rawChociIsian[11] ?? rawChociIsian["11"]);
-    const k2 = extractText(rawChociIsian[11] ?? rawChociIsian["11"] ?? rawChociIsian[12] ?? rawChociIsian["12"]);
-    const k3 = extractText(rawChociIsian[12] ?? rawChociIsian["12"] ?? rawChociIsian[13] ?? rawChociIsian["13"]);
-    if (k1) kebiasaanKompulsi.push(k1);
-    if (k2 && k2 !== k1) kebiasaanKompulsi.push(k2);
-    if (k3 && k3 !== k2 && k3 !== k1) kebiasaanKompulsi.push(k3);
+    for (let idx = 11 + offset; idx <= 13 + offset; idx++) {
+      const text = extractText(
+        rawChociIsian[idx - 1] ?? rawChociIsian[String(idx - 1)] ?? rawChociIsian[idx] ?? rawChociIsian[String(idx)]
+      );
+      if (text && !kebiasaanKompulsi.includes(text)) kebiasaanKompulsi.push(text);
+    }
   }
   if (kebiasaanKompulsi.length === 0) {
-    for (let i = 11; i <= 13; i++) {
+    for (let i = 11 + offset; i <= 13 + offset; i++) {
       const text = extractText(answers[i] ?? answers[String(i)]);
       if (text) kebiasaanKompulsi.push(text);
     }
   }
 
-  // 3. Hitung Compulsion Severity Score (Butir 14 s/d 19, skala 0–4)
+  // 3. Compulsion Severity Score (14–19 + offset, skala 0–4)
   let compulsionSeverity = 0;
-  for (let i = 14; i <= 19; i++) {
+  for (let i = 14 + offset; i <= 19 + offset; i++) {
     const raw = answers[i] ?? answers[String(i)];
     compulsionSeverity += clampScore(raw, 4);
   }
 
-  // 4. Hitung Obsession Symptoms Score (Butir 20 s/d 29, skala 0–2)
+  // 4. Obsession Symptoms Score (20–29 + offset, skala 0–2)
   let obsessionSymptoms = 0;
-  for (let i = 20; i <= 29; i++) {
+  for (let i = 20 + offset; i <= 29 + offset; i++) {
     const raw = answers[i] ?? answers[String(i)];
     obsessionSymptoms += clampScore(raw, 2);
   }
 
-  // 5. Ekstrak Isian Kualitatif Pikiran Obsesi (Butir 30, 31, 32)
+  // 5. Isian Kualitatif Pikiran Obsesi (30–32 + offset)
   const pikiranObsesi: string[] = [];
   if (rawChociIsian && typeof rawChociIsian === "object") {
-    const p1 = extractText(rawChociIsian[29] ?? rawChociIsian["29"] ?? rawChociIsian[30] ?? rawChociIsian["30"]);
-    const p2 = extractText(rawChociIsian[30] ?? rawChociIsian["30"] ?? rawChociIsian[31] ?? rawChociIsian["31"]);
-    const p3 = extractText(rawChociIsian[31] ?? rawChociIsian["31"] ?? rawChociIsian[32] ?? rawChociIsian["32"]);
-    if (p1) pikiranObsesi.push(p1);
-    if (p2 && p2 !== p1) pikiranObsesi.push(p2);
-    if (p3 && p3 !== p2 && p3 !== p1) pikiranObsesi.push(p3);
+    for (let idx = 30 + offset; idx <= 32 + offset; idx++) {
+      const text = extractText(
+        rawChociIsian[idx - 1] ?? rawChociIsian[String(idx - 1)] ?? rawChociIsian[idx] ?? rawChociIsian[String(idx)]
+      );
+      if (text && !pikiranObsesi.includes(text)) pikiranObsesi.push(text);
+    }
   }
   if (pikiranObsesi.length === 0) {
-    for (let i = 30; i <= 32; i++) {
+    for (let i = 30 + offset; i <= 32 + offset; i++) {
       const text = extractText(answers[i] ?? answers[String(i)]);
       if (text) pikiranObsesi.push(text);
     }
   }
 
-  // 6. Hitung Obsession Severity Score (Butir 33 s/d 38, skala 0–4)
+  // 6. Obsession Severity Score (33–38 + offset, skala 0–4)
   let obsessionSeverity = 0;
-  for (let i = 33; i <= 38; i++) {
+  for (let i = 33 + offset; i <= 38 + offset; i++) {
     const raw = answers[i] ?? answers[String(i)];
     obsessionSeverity += clampScore(raw, 4);
   }
 
-  // 7. Hitung Skor Total Gabungan Sesuai Handout
-  const totalSymptoms = compulsionSymptoms + obsessionSymptoms; // 0–40
-  const totalImpairment = compulsionSeverity + obsessionSeverity; // 0–48
+  const totalSymptoms = compulsionSymptoms + obsessionSymptoms;
+  const totalImpairment = compulsionSeverity + obsessionSeverity;
 
   const scores: CHOCIScores = {
     compulsionSymptoms,
@@ -150,12 +148,11 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     totalImpairment,
   };
 
-  // 8. Bentuk daftar subskala untuk visualisasi UI dan laporan PDF
   const subscalesList: CHOCISubscaleItem[] = [
     {
       key: "totalSymptoms",
       nama: "Total Symptoms Score (Gejala OCD)",
-      rentangButir: "1–10 & 20–29",
+      rentangButir: `${r(1, 10)} & ${r(20, 29)}`,
       total_item: 20,
       max_skor: 40,
       skor: totalSymptoms,
@@ -165,7 +162,7 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     {
       key: "totalImpairment",
       nama: "Total Impairment Score (Keparahan & Distres)",
-      rentangButir: "14–19 & 33–38",
+      rentangButir: `${r(14, 19)} & ${r(33, 38)}`,
       total_item: 12,
       max_skor: 48,
       skor: totalImpairment,
@@ -175,7 +172,7 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     {
       key: "compulsionSymptoms",
       nama: "Compulsion Symptoms (Gejala Kompulsi)",
-      rentangButir: "1–10",
+      rentangButir: r(1, 10),
       total_item: 10,
       max_skor: 20,
       skor: compulsionSymptoms,
@@ -184,7 +181,7 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     {
       key: "compulsionSeverity",
       nama: "Compulsion Severity (Keparahan Kompulsi)",
-      rentangButir: "14–19",
+      rentangButir: r(14, 19),
       total_item: 6,
       max_skor: 24,
       skor: compulsionSeverity,
@@ -193,7 +190,7 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     {
       key: "obsessionSymptoms",
       nama: "Obsession Symptoms (Gejala Obsesi)",
-      rentangButir: "20–29",
+      rentangButir: r(20, 29),
       total_item: 10,
       max_skor: 20,
       skor: obsessionSymptoms,
@@ -202,13 +199,45 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
     {
       key: "obsessionSeverity",
       nama: "Obsession Severity (Keparahan Obsesi)",
-      rentangButir: "33–38",
+      rentangButir: r(33, 38),
       total_item: 6,
       max_skor: 24,
       skor: obsessionSeverity,
       deskripsi: "Waktu, gangguan, distres, kendali, dan penghindaran akibat pikiran obsesi.",
     },
   ];
+
+  return {
+    scores,
+    subscalesList,
+    kualitatif: {
+      kebiasaanKompulsi,
+      pikiranObsesi,
+    },
+  };
+}
+
+/**
+ * Menghitung skor instrumen CHOCI-R secara terpisah untuk:
+ * - Kuesioner Anak (Self-Report): Butir 1–38
+ * - Kuesioner Orang Tua (Parent-Report): Butir 39–76 (jika tersedia)
+ */
+export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalculationResult {
+  if (!answers || typeof answers !== "object") {
+    throw new Error("Jawaban kuesioner CHOCI-R tidak valid.");
+  }
+
+  const childResult = computeCHOCISet(answers, 0);
+
+  // Cek apakah jawaban Kuesioner Orang Tua (butir 39–76) tersedia
+  let hasParentAnswers = false;
+  for (let i = 39; i <= 76; i++) {
+    if (answers[i] !== undefined || answers[String(i)] !== undefined) {
+      hasParentAnswers = true;
+      break;
+    }
+  }
+  const parentResult = hasParentAnswers ? computeCHOCISet(answers, 38) : null;
 
   const catatanKlinis = [
     "Total Symptoms Score: Semakin tinggi skor, semakin besar kompleksitas dan luasnya gejala OCD.",
@@ -218,21 +247,25 @@ export function calculateCHOCI(answers: Record<string | number, any>): CHOCICalc
   ];
 
   return {
-    totalSkor: totalSymptoms,
+    totalSkor: childResult.scores.totalSymptoms,
     tanpaSkorTotal: true,
     hasInterpretation: false,
     grade: "Profil Gejala & Keparahan CHOCI-R",
     kategori: "Profil Skor Gejala & Keparahan OCD (CHOCI-R)",
     deskripsi:
-      "Hasil CHOCI-R menyajikan profil Total Symptoms Score (rentang 0–40) dan Total Impairment Score (rentang 0–48) tanpa pengelompokan kategori artifisial. Semakin tinggi skor, semakin besar kompleksitas dan tingkat keparahan/stres terkait gejala OCD.",
+      "Hasil CHOCI-R menyajikan profil Total Symptoms Score (rentang 0–40) dan Total Impairment Score (rentang 0–48) secara terpisah untuk Kuesioner Anak dan Kuesioner Orang Tua tanpa pengelompokan kategori artifisial.",
     saran: catatanKlinis,
-    scores,
-    subscalesList,
+    scores: childResult.scores,
+    subscalesList: childResult.subscalesList,
     catatanKlinis,
-    kualitatif: {
-      kebiasaanKompulsi,
-      pikiranObsesi,
-    },
+    kualitatif: childResult.kualitatif,
+    ...(parentResult
+      ? {
+          parentScores: parentResult.scores,
+          parentSubscalesList: parentResult.subscalesList,
+          parentKualitatif: parentResult.kualitatif,
+        }
+      : {}),
   };
 }
 
