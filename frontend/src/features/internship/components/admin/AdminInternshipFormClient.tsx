@@ -472,7 +472,7 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
                     setIsAddingQuestion(true)
                     setNewQuestionLabel("")
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] text-xs font-bold transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-95 self-start sm:self-auto"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] text-xs font-semibold transition-all shadow-xs hover:shadow-md cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5 text-[#0f172a]" />
                   <span>Tambah Pertanyaan</span>
@@ -624,20 +624,20 @@ export default function AdminInternshipFormClient({ positionId }: Props) {
             <button
               type="button"
               onClick={() => setFormData({ ...formData, isOpen: !formData.isOpen })}
-              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer self-start sm:self-auto whitespace-nowrap shrink-0 ${
                 formData.isOpen
-                  ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                  ? "bg-emerald-600 text-white shadow-xs hover:bg-emerald-700"
                   : "bg-gray-200 text-gray-700 hover:bg-gray-300"
               }`}
             >
               {formData.isOpen ? (
                 <>
-                  <Eye className="w-4 h-4" />
+                  <Eye className="w-3.5 h-3.5" />
                   <span>Dibuka (Tampil di Klien)</span>
                 </>
               ) : (
                 <>
-                  <EyeOff className="w-4 h-4" />
+                  <EyeOff className="w-3.5 h-3.5" />
                   <span>Ditutup (Disembunyikan)</span>
                 </>
               )}
