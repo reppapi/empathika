@@ -387,7 +387,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
   return (
     <div className="min-h-screen bg-[#FAF7FB] font-poppins pb-24">
       {/* ── HEADER NAVIGATION ── */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-16 px-4 sm:px-6 lg:px-8 shadow-md">
+      <div className="relative overflow-hidden bg-gradient-to-r from-[#561269] via-[#6f1886] to-[#8B3A9C] text-white pt-32 sm:pt-36 md:pt-40 pb-20 sm:pb-24 md:pb-28 px-4 sm:px-6 lg:px-8 shadow-md">
         {/* Decorative Background Elements (Geometric & Fluid Waves - Tanpa Bintang) */}
         {/* 1. Subtle Radial Dot Grid Pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(255,255,255,0.12)_1px,_transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_top_right,black_40%,transparent_80%)] pointer-events-none" />
@@ -406,18 +406,18 @@ export default function InternshipApplyClient({ positionId }: Props) {
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none opacity-25"
           preserveAspectRatio="none"
-          viewBox="0 0 1200 400"
+          viewBox="0 0 1200 450"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
-            d="M-100 200 C 300 350, 700 50, 1300 220"
+            d="M-100 220 C 300 380, 700 60, 1300 250"
             stroke="url(#hero-wave-1)"
             strokeWidth="1.5"
             strokeDasharray="6 6"
           />
           <path
-            d="M-100 120 C 400 40, 800 320, 1300 140"
+            d="M-100 140 C 400 50, 800 360, 1300 160"
             stroke="url(#hero-wave-2)"
             strokeWidth="1.5"
           />
@@ -436,9 +436,14 @@ export default function InternshipApplyClient({ positionId }: Props) {
         </svg>
 
         <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-4">
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight mb-3">
             {position.judul}
           </h1>
+
+          <p className="text-white/85 text-xs sm:text-sm max-w-2xl leading-relaxed mb-4">
+            {position.deskripsi ||
+              "Silakan lengkapi data diri dan berkas lamaran Anda untuk bergabung dalam program internship di Empathika."}
+          </p>
 
           {/* Quick Info Badges */}
           <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-xs sm:text-sm text-white/90">
@@ -467,7 +472,7 @@ export default function InternshipApplyClient({ positionId }: Props) {
       </div>
 
       {/* ── FORM CONTAINER ── */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 -mt-10 sm:-mt-12 relative z-20">
         <form
           onSubmit={handleSubmit}
           className="bg-white rounded-3xl border border-purple-100 shadow-xl p-6 sm:p-10 space-y-10"
