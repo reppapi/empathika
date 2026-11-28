@@ -37,13 +37,8 @@ export function getDetailPsikolog(id: string): DetailPsikologUI | null {
       basePsikolog.bio || 'Konselor dan tenaga ahli profesional di Empathika yang berfokus mendampingi pemulihan serta pertumbuhan mental klien.',
       'Hadir dengan pendekatan empatik dan bebas stigma untuk membantu menemukan jalan keluar terbaik.'
     ],
-    keahlian: basePsikolog.keahlian || [
-      'Hubungan Interpersonal',
-      'Pengembangan Diri & Self-Esteem',
-      'Manajemen Emosi & Stres',
-      'Quarter Life Crisis'
-    ],
-    pendidikan: basePsikolog.pendidikanText ? [basePsikolog.pendidikanText] : ['Pendidikan Profesi Psikologi / Konseling'],
+    keahlian: basePsikolog.keahlian || [],
+    pendidikan: basePsikolog.pendidikanText ? [basePsikolog.pendidikanText] : [],
     testimoni: []
   };
 }

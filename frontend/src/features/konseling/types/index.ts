@@ -30,6 +30,7 @@ export type ClientSessionStatus =
 
 export interface ClientSessionToday {
   id: string
+  bookingId?: string
   date?: string // format YYYY-MM-DD
   waktu: string
   newDate?: string

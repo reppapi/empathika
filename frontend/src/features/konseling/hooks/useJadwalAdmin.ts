@@ -753,6 +753,7 @@ export function useJadwalAdmin(options?: { isBiroContext?: boolean }) {
                 nominalRefund: s.nominalRefund,
                 idTransaksi: s.idTransaksi,
                 kodeTransaksi: s.kodeTransaksi,
+                bookingId: s.bookingId || s.id_booking || undefined,
               }
             })
 

@@ -55,22 +55,14 @@ export class PsikotesReviewRepository {
     }
 
     if (isPsikologPersonal) {
-      if (params?.status === 'MENUNGGU_REVIEW' || params?.status === 'KOLAM_BERSAMA') {
+      // Alur Baru: Kolam Bersama ditutup untuk psikolog; psikolog hanya melihat tiket yang ditugaskan Admin ke dirinya
+      baseWhere.id_psikolog = resolvedPsikologId
+      if (params?.status === 'KOLAM_BERSAMA') {
+        baseWhere.id_psikolog = '__CLOSED_FOR_PSIKOLOG__'
+      } else if (params?.status === 'MENUNGGU_REVIEW' || params?.status === 'SEDANG_DITELAAH') {
         baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-        baseWhere.id_psikolog = null
-      } else if (params?.status === 'SEDANG_DITELAAH') {
-        baseWhere.status_pengerjaan = 'MENUNGGU_REVIEW'
-        baseWhere.id_psikolog = resolvedPsikologId
       } else if (params?.status === 'SELESAI') {
         baseWhere.status_pengerjaan = 'SELESAI'
-        baseWhere.id_psikolog = resolvedPsikologId
-      } else {
-        // params?.status === 'ALL' atau default:
-        // Antrean bersama yang belum diklaim siapapun + tiket ruang kerja psikolog yang bersangkutan
-        baseWhere.OR = [
-          { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
-          { id_psikolog: resolvedPsikologId },
-        ]
       }
     } else {
       baseWhere.OR = [
@@ -108,31 +100,32 @@ export class PsikotesReviewRepository {
     const [totalAntrean, kolamBersama, sedangDitelaah, selesaiReview, items] = await Promise.all([
       this.prisma.bookingPsikotes.count({
         where: {
-          OR: isPsikologPersonal
-            ? [
-                { status_pengerjaan: 'MENUNGGU_REVIEW', id_psikolog: null },
-                { id_psikolog: resolvedPsikologId! },
-              ]
-            : [
+          ...(isPsikologPersonal
+            ? { id_psikolog: resolvedPsikologId! }
+            : {
+                OR: [
+                  { paket: { perlu_review_psikolog: true } },
+                  { status_pengerjaan: 'MENUNGGU_REVIEW' },
+                ],
+              }),
+          hasil_tes: { isNot: null },
+          AND: [nonExpiredFilter, nonDassFilter],
+        },
+      }),
+      isPsikologPersonal
+        ? Promise.resolve(0)
+        : this.prisma.bookingPsikotes.count({
+            where: {
+              OR: [
                 { paket: { perlu_review_psikolog: true } },
                 { status_pengerjaan: 'MENUNGGU_REVIEW' },
               ],
-          hasil_tes: { isNot: null },
-          AND: [nonExpiredFilter, nonDassFilter],
-        },
-      }),
-      this.prisma.bookingPsikotes.count({
-        where: {
-          OR: [
-            { paket: { perlu_review_psikolog: true } },
-            { status_pengerjaan: 'MENUNGGU_REVIEW' },
-          ],
-          hasil_tes: { isNot: null },
-          status_pengerjaan: 'MENUNGGU_REVIEW',
-          id_psikolog: null,
-          AND: [nonExpiredFilter, nonDassFilter],
-        },
-      }),
+              hasil_tes: { isNot: null },
+              status_pengerjaan: 'MENUNGGU_REVIEW',
+              id_psikolog: null,
+              AND: [nonExpiredFilter, nonDassFilter],
+            },
+          }),
       this.prisma.bookingPsikotes.count({
         where: {
           OR: [
@@ -276,6 +269,7 @@ export class PsikotesReviewRepository {
           perlu_review_psikolog: (b.paket as any).perlu_review_psikolog,
           catatan_psikolog: (b.hasil_tes as any)?.catatan_psikolog || null,
           rekomendasi_psikolog: (b.hasil_tes as any)?.rekomendasi_psikolog || null,
+          file_laporan_url: (b.hasil_tes as any)?.file_laporan_url || null,
           draft_saved_at: (b.hasil_tes as any)?.draft_saved_at || null,
           tanggal_review: (b.hasil_tes as any)?.tanggal_review || null,
           psikolog: (b as any).psikolog
@@ -417,15 +411,20 @@ export class PsikotesReviewRepository {
 
       // 1. Update HasilTes
       const now = new Date()
+      const updateData: Record<string, any> = {
+        catatan_psikolog: input.catatan_psikolog?.trim() || null,
+        rekomendasi_psikolog: input.rekomendasi_psikolog?.trim() || null,
+        ...(input.is_draft
+          ? { draft_saved_at: now }
+          : { tanggal_review: now }),
+      }
+      if (input.file_laporan_url !== undefined) {
+        updateData.file_laporan_url = input.file_laporan_url?.trim() || null
+      }
+
       const updatedHasil = await tx.hasilTes.update({
         where: { id: booking.hasil_tes.id },
-        data: {
-          catatan_psikolog: input.catatan_psikolog.trim(),
-          rekomendasi_psikolog: input.rekomendasi_psikolog?.trim() || null,
-          ...(input.is_draft
-            ? ({ draft_saved_at: now } as any)
-            : { tanggal_review: now }),
-        },
+        data: updateData,
       })
 
       // 2. Update BookingPsikotes: status_pengerjaan -> SELESAI jika bukan draft
@@ -449,141 +448,12 @@ export class PsikotesReviewRepository {
         booking: updatedBooking,
         hasil: updatedHasil,
       }
-    })
+    }, { maxWait: 15000, timeout: 30000 })
   }
 
   /**
-   * Mengklaim / mengunci tiket asesmen dari Kolam Bersama (Shared Pool) untuk psikolog yang bersangkutan.
-   * Mencegah tumpang tindih pengerjaan (race condition) antar rekan psikolog.
-   */
-  async claimReviewTicket(bookingId: string, userId?: string, userRole?: string) {
-    return this.prisma.$transaction(async (tx) => {
-      const booking = await tx.bookingPsikotes.findUnique({
-        where: { id: bookingId },
-        include: {
-          hasil_tes: true,
-          psikolog: { select: { id: true, nama_gelar: true, kategori: true } },
-        },
-      })
-
-      if (!booking) {
-        throw Object.assign(new Error('Data booking atau tiket asesmen tidak ditemukan.'), { statusCode: 404 })
-      }
-
-      if (booking.status_pengerjaan === 'SELESAI') {
-        throw Object.assign(new Error('Asesmen ini sudah selesai ditelaah dan diverifikasi.'), { statusCode: 400 })
-      }
-
-      // Resolusi profil psikolog yang melakukan klaim
-      let resolvedPsikolog: any = null
-      if (userId) {
-        try {
-          const rows = typeof tx.$queryRawUnsafe === 'function'
-            ? await tx.$queryRawUnsafe<any[]>(
-                `SELECT id, nama_gelar, kategori, is_reviewer_psikotes FROM "psikologs" WHERE id = $1 OR id_account = $1 LIMIT 1`,
-                userId
-              )
-            : null
-          resolvedPsikolog = rows && rows[0] ? rows[0] : null
-        } catch {
-          resolvedPsikolog = null
-        }
-        if (!resolvedPsikolog) {
-          resolvedPsikolog = await tx.psikolog.findFirst({
-            where: {
-              OR: [{ id_account: userId }, { id: userId }],
-            },
-            select: { id: true, nama_gelar: true, kategori: true, ...({ is_reviewer_psikotes: true } as any) },
-          })
-        }
-      }
-
-      if (!resolvedPsikolog && userRole !== 'ADMIN') {
-        throw Object.assign(
-          new Error('Akses ditolak: Akun Anda tidak terhubung dengan profil psikolog resmi Empathika.'),
-          { statusCode: 403 }
-        )
-      }
-
-      if (userRole !== 'ADMIN' && resolvedPsikolog && !resolvedPsikolog.is_reviewer_psikotes) {
-        throw Object.assign(
-          new Error(
-            'Akses ditolak: Anda belum memiliki wewenang klinis sebagai Reviewer Psikotes. Hubungi Administrator Empathika untuk mengaktifkan hak review.'
-          ),
-          { statusCode: 403 }
-        )
-      }
-
-      const targetPsikologId = resolvedPsikolog?.id || booking.id_psikolog
-
-      // Jika tiket sudah terkunci oleh psikolog lain (hanya ADMIN yang berhak mengalihkan):
-      if (booking.id_psikolog && booking.id_psikolog !== targetPsikologId) {
-        if (userRole !== 'ADMIN') {
-          const claimedByName = booking.psikolog?.nama_gelar || 'rekan psikolog lain'
-          throw Object.assign(
-            new Error(
-              `Tiket ini sedang aktif ditelaah oleh ${claimedByName}. Anda tidak dapat menimpa tiket yang sedang dikerjakan.`
-            ),
-            { statusCode: 409 }
-          )
-        }
-      }
-
-      // Kunci tiket atas nama psikolog ini
-      const updated = await tx.bookingPsikotes.update({
-        where: { id: bookingId },
-        data: {
-          id_psikolog: targetPsikologId,
-        },
-        include: {
-          psikolog: { select: { id: true, nama_gelar: true, kategori: true, foto: true } },
-        },
-      })
-
-      // Simpan waktu awal klaim tiket secara permanen jika belum ada
-      if (typeof tx.$executeRawUnsafe === 'function') {
-        try {
-          await tx.$executeRawUnsafe(
-            `UPDATE "booking_psikotes" SET "claimed_at" = COALESCE("claimed_at", NOW()) WHERE id = $1`,
-            bookingId
-          )
-        } catch {}
-      }
-
-      let actualClaimedAt = updated.updatedAt
-      if (typeof tx.$queryRawUnsafe === 'function') {
-        try {
-          const claimedRaw = await tx.$queryRawUnsafe<any[]>(
-            `SELECT "claimed_at" FROM "booking_psikotes" WHERE id = $1 LIMIT 1`,
-            bookingId
-          )
-          if (claimedRaw && claimedRaw[0]?.claimed_at) {
-            actualClaimedAt = claimedRaw[0].claimed_at
-          }
-        } catch {}
-      }
-
-      return {
-        id: updated.id,
-        status_pengerjaan: updated.status_pengerjaan,
-        is_claimed: true,
-        claimed_by: updated.psikolog
-          ? {
-              id: updated.psikolog.id,
-              nama: updated.psikolog.nama_gelar,
-              nama_gelar: updated.psikolog.nama_gelar,
-              kategori: updated.psikolog.kategori,
-              foto: updated.psikolog.foto,
-            }
-          : null,
-        claimed_at: actualClaimedAt,
-      }
-    })
-  }
-
-  /**
-   * Mengembalikan tiket asesmen kembali ke Kolam Bersama (Shared Pool)
-   * agar dapat ditinjau oleh 3 rekan psikolog lainnya.
+   * Mengembalikan tiket asesmen kembali ke antrean belum ditugaskan
+   * agar dapat ditugaskan ulang ke psikolog pemeriksa lainnya oleh Admin.
    */
   async releaseReviewTicket(bookingId: string, userId?: string, userRole?: string) {
     return this.prisma.$transaction(async (tx) => {
@@ -651,8 +521,9 @@ export class PsikotesReviewRepository {
             data: {
               catatan_psikolog: null,
               rekomendasi_psikolog: null,
+              file_laporan_url: null,
               draft_saved_at: null,
-            },
+            } as any,
           })
         } catch (e) {
           console.warn('[ReleaseReviewTicket] Gagal mereset draft hasil_tes:', e)
@@ -667,5 +538,108 @@ export class PsikotesReviewRepository {
         message: 'Tiket berhasil dikembalikan ke Kolam Bersama (Shared Pool).',
       }
     })
+  }
+
+  /**
+   * Menugaskan tiket asesmen psikotes ke psikolog pemeriksa tertentu oleh Admin.
+   * Jika dialihkan ke psikolog yang berbeda, draf lama dibersihkan agar telaah baru tetap netral.
+   */
+  async assignPsikolog(bookingId: string, idPsikolog: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const booking = await tx.bookingPsikotes.findUnique({
+        where: { id: bookingId },
+        include: {
+          hasil_tes: true,
+        },
+      })
+
+      if (!booking) {
+        throw Object.assign(new Error('Data booking atau pengerjaan asesmen tidak ditemukan.'), {
+          statusCode: 404,
+        })
+      }
+
+      if (!booking.hasil_tes) {
+        throw Object.assign(
+          new Error('Peserta belum menyelesaikan tes sehingga belum dapat ditugaskan ke psikolog.'),
+          { statusCode: 400 }
+        )
+      }
+
+      if (booking.status_pengerjaan === 'SELESAI') {
+        throw Object.assign(
+          new Error('Laporan asesmen ini sudah selesai diterbitkan dan tidak dapat ditugaskan ulang.'),
+          { statusCode: 400 }
+        )
+      }
+
+      const targetPsikolog = await tx.psikolog.findFirst({
+        where: {
+          OR: [{ id: idPsikolog }, { id_account: idPsikolog }],
+        },
+        select: {
+          id: true,
+          nama_gelar: true,
+          kategori: true,
+          foto: true,
+          status: true,
+          is_reviewer_psikotes: true,
+          spesialisasi: { select: { id: true, nama: true } },
+        },
+      })
+
+      if (!targetPsikolog) {
+        throw Object.assign(new Error('Data psikolog pemeriksa tidak ditemukan.'), {
+          statusCode: 404,
+        })
+      }
+
+      if (!targetPsikolog.is_reviewer_psikotes) {
+        throw Object.assign(
+          new Error(
+            'Psikolog yang dipilih belum memiliki hak akses sebagai Reviewer Psikotes. Aktifkan hak review terlebih dahulu di menu Manajemen Psikolog.'
+          ),
+          { statusCode: 400 }
+        )
+      }
+
+      const isReassigned = Boolean(booking.id_psikolog && booking.id_psikolog !== targetPsikolog.id)
+
+      const updatedBooking = await tx.bookingPsikotes.update({
+        where: { id: bookingId },
+        data: {
+          id_psikolog: targetPsikolog.id,
+          status_pengerjaan: 'MENUNGGU_REVIEW',
+          claimed_at: new Date(),
+        },
+      })
+
+      if (isReassigned) {
+        await tx.hasilTes.update({
+          where: { id: booking.hasil_tes.id },
+          data: {
+            catatan_psikolog: null,
+            rekomendasi_psikolog: null,
+            file_laporan_url: null,
+            draft_saved_at: null,
+          } as any,
+        })
+      }
+
+      return {
+        id: updatedBooking.id,
+        status_pengerjaan: updatedBooking.status_pengerjaan,
+        id_psikolog: targetPsikolog.id,
+        claimed_at: updatedBooking.claimed_at,
+        psikolog: {
+          id: targetPsikolog.id,
+          nama: targetPsikolog.nama_gelar,
+          nama_gelar: targetPsikolog.nama_gelar,
+          kategori: targetPsikolog.kategori,
+          spesialisasi: targetPsikolog.spesialisasi?.nama || null,
+          foto: targetPsikolog.foto || null,
+        },
+      }
+    }, { maxWait: 15000, timeout: 30000 })
   }
 }

@@ -153,29 +153,39 @@ export default function PsikologWebLayout({ children }: { children: React.ReactN
   const [reviewBadgeCount, setReviewBadgeCount] = useState<number>(0)
 
   useEffect(() => {
-    if (!currentPsikolog?.isReviewerPsikotes) return
+    if (!currentPsikolog?.isReviewerPsikotes && user?.role !== "ADMIN") {
+      setReviewBadgeCount(0)
+      return
+    }
     let isMounted = true
     const fetchBadge = async () => {
       try {
-        const res = await psikotesService.getReviewList({ status: "MENUNGGU_REVIEW" })
+        const res = await psikotesService.getReviewList({ status: "MENUNGGU_REVIEW", limit: 200 })
         if (isMounted && res.data) {
-          const unassignedCount =
-            typeof res.data.summary?.kolam_bersama === "number"
-              ? res.data.summary.kolam_bersama
-              : res.data.items.filter(
-                  (i) => i.status_pengerjaan === "MENUNGGU_REVIEW" && !i.id_psikolog
-                ).length
-          setReviewBadgeCount(unassignedCount)
+          const pendingCount = res.data.items.filter((i) => {
+            if (i.status_pengerjaan !== "MENUNGGU_REVIEW") return false
+            if (!i.id_psikolog) return false
+            if (user?.role === "ADMIN") return true
+            if (currentPsikolog?.id) {
+              return i.id_psikolog === currentPsikolog.id || i.psikolog?.id === currentPsikolog.id
+            }
+            return true
+          }).length
+          setReviewBadgeCount(pendingCount)
         }
       } catch {}
     }
     fetchBadge()
+    window.addEventListener("focus", fetchBadge)
+    window.addEventListener("empathika:review-updated", fetchBadge)
     const timer = setInterval(fetchBadge, 60000)
     return () => {
       isMounted = false
+      window.removeEventListener("focus", fetchBadge)
+      window.removeEventListener("empathika:review-updated", fetchBadge)
       clearInterval(timer)
     }
-  }, [currentPsikolog?.isReviewerPsikotes, currentPsikolog?.id, pathname])
+  }, [currentPsikolog?.isReviewerPsikotes, currentPsikolog?.id, user?.role, pathname])
 
   const isDedicatedEditor = Boolean(
     pathname?.startsWith("/psikolog-web/review-asesmen/") && pathname !== "/psikolog-web/review-asesmen"

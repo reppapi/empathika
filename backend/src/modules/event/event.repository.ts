@@ -2,6 +2,9 @@ import { Prisma } from '@prisma/client'
 import type { PrismaClient, JenisEvent, StatusEvent, TipeEvent } from '@prisma/client'
 import type { CreateEventInput, UpdateEventInput } from './event.schema'
 
+// Throttle: autoUpdatePassedEvents hanya dijalankan max 1x per 60 detik
+let _lastAutoUpdate = 0
+
 export interface EventQueryInput {
   page?: number
   limit?: number
@@ -21,6 +24,11 @@ export class EventRepository {
    *    (baik yang baru saja lewat maupun yang ditandai COMPLETED secara manual oleh admin).
    */
   async autoUpdatePassedEvents() {
+    // Throttle: skip jika sudah dijalankan dalam 60 detik terakhir
+    const now = Date.now()
+    if (now - _lastAutoUpdate < 60_000) return
+    _lastAutoUpdate = now
+
     try {
       const activeEvents = await this.prisma.event.findMany({
         where: {

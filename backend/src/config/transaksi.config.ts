@@ -12,9 +12,6 @@ export const PERSEN_PSIKOLOG: Record<'OFFLINE' | 'ONLINE', number> = {
   ONLINE: 50,
 }
 
-// ── DP / Aturan Lama Ditiadakan ──
-// Aturan lama nominal tetap Rp150.000 ditiadakan. Nilai dipertahankan sebagai 0 / deprecated alias.
-export const DP_NOMINAL = 0
 
 // ── Komisi Biro ──
 // TODO: Isi setelah ada keputusan bisnis. Saat ini 0 (tidak ada komisi).
@@ -40,9 +37,6 @@ export const MIDTRANS_FEE: Record<string, { tipe: 'persen' | 'flat'; nilai: numb
 // Fee payout keluar per transfer (nominal tetap)
 export const MIDTRANS_PAYOUT_FLAT = 0
 
-// Kompatibilitas alias untuk fungsi kalkulasi transaksi
-export const XENDIT_FEE = MIDTRANS_FEE
-export const XENDIT_PAYOUT_FLAT = MIDTRANS_PAYOUT_FLAT
 
 // ── Perlakuan saat DP hangus / refund ──
 export const DP_HANGUS_CONFIG = {
