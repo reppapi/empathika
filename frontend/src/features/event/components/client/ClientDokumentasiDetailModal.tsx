@@ -52,15 +52,15 @@ export default function ClientDokumentasiDetailModal({
       <button
         type="button"
         onClick={onClose}
-        className="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 p-2.5 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all cursor-pointer backdrop-blur-sm shadow-lg hover:scale-105"
+        className="fixed top-3 right-3 sm:top-6 sm:right-6 z-50 p-2 sm:p-2.5 rounded-full bg-black/50 hover:bg-black/80 text-white/90 hover:text-white transition-all cursor-pointer backdrop-blur-sm shadow-lg hover:scale-105"
         title="Tutup"
       >
-        <X className="w-6 h-6" />
+        <X className="w-5 h-5 sm:w-6 sm:h-6" />
       </button>
 
       {/* Counter Foto (Kiri Atas) seperti 4/6 di screenshot */}
       {hasPhotos && (
-        <div className="fixed top-4 left-4 sm:top-6 sm:left-6 z-50 px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-sm text-white/90 text-xs sm:text-sm font-semibold tracking-wide">
+        <div className="fixed top-3 left-3 sm:top-6 sm:left-6 z-50 px-3 py-1 sm:px-3.5 sm:py-1 rounded-full bg-black/50 backdrop-blur-sm text-white/90 text-[11px] sm:text-sm font-semibold tracking-wide">
           {activePhotoIdx + 1} / {photos.length}
         </div>
       )}
@@ -68,10 +68,10 @@ export default function ClientDokumentasiDetailModal({
       {/* Main Container Foto & Teks */}
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-5xl flex flex-col items-center justify-center gap-4"
+        className="relative w-full max-w-5xl flex flex-col items-center justify-center gap-3 sm:gap-4"
       >
         {/* Foto Frame Utama */}
-        <div className="relative w-full max-h-[72vh] aspect-[16/10] sm:aspect-[16/9] rounded-2xl sm:rounded-3xl overflow-hidden bg-black/40 flex items-center justify-center shadow-2xl">
+        <div className="relative w-full max-h-[55vh] sm:max-h-[72vh] aspect-[4/3] sm:aspect-[16/10] rounded-xl sm:rounded-3xl overflow-hidden bg-black/40 flex items-center justify-center shadow-2xl">
           {activePhoto ? (
             <Image
               src={activePhoto.foto_url}
@@ -81,7 +81,7 @@ export default function ClientDokumentasiDetailModal({
               className="object-cover sm:object-contain"
             />
           ) : (
-            <div className="text-white/60 text-sm">Tidak ada foto dokumentasi</div>
+            <div className="text-white/60 text-xs sm:text-sm">Tidak ada foto dokumentasi</div>
           )}
 
           {/* Tombol Prev / Next (Panah Bulat) */}
@@ -90,35 +90,35 @@ export default function ClientDokumentasiDetailModal({
               <button
                 type="button"
                 onClick={handlePrev}
-                className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
                 title="Foto Sebelumnya"
               >
-                <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7" />
+                <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7" />
               </button>
               <button
                 type="button"
                 onClick={handleNext}
-                className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all cursor-pointer shadow-xl backdrop-blur-sm hover:scale-110 z-10"
                 title="Foto Selanjutnya"
               >
-                <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7" />
+                <ChevronRight className="w-5 h-5 sm:w-7 sm:h-7" />
               </button>
             </>
           )}
         </div>
 
         {/* Teks Judul, Deskripsi & Tanggal di bawah foto */}
-        <div className="text-center max-w-3xl px-4">
-          <h3 className="text-white text-sm sm:text-base md:text-lg font-bold drop-shadow-md">
+        <div className="text-center max-w-3xl px-2 sm:px-4">
+          <h3 className="text-white text-xs sm:text-base md:text-lg font-bold drop-shadow-md line-clamp-2">
             {item.judul}
           </h3>
           {item.deskripsi && (
-            <p className="text-white/85 text-xs sm:text-sm mt-1 leading-relaxed drop-shadow-sm font-normal whitespace-pre-wrap">
+            <p className="text-white/85 text-[11px] sm:text-sm mt-0.5 sm:mt-1 leading-relaxed drop-shadow-sm font-normal line-clamp-3 sm:line-clamp-none whitespace-pre-wrap">
               {item.deskripsi}
             </p>
           )}
           {tglTeks && (
-            <p className="text-white/60 text-[11px] sm:text-xs mt-1.5 font-medium tracking-wide drop-shadow-sm">
+            <p className="text-white/60 text-[10px] sm:text-xs mt-1 sm:mt-1.5 font-medium tracking-wide drop-shadow-sm">
               {tglTeks}
             </p>
           )}

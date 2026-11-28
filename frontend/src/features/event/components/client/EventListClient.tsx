@@ -90,29 +90,29 @@ export function EventListClient() {
   const upcomingEvents = events.filter((e) => e.status === "UPCOMING" || e.status === "ONGOING")
 
   return (
-    <div className="min-h-screen bg-[#FDFBF9] pt-28 sm:pt-36 pb-24 font-poppins">
+    <div className="min-h-screen bg-[#FDFBF9] pt-24 sm:pt-36 pb-16 sm:pb-24 font-poppins">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header Hero Section */}
-        <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-14">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-14">
           {/* Badge Sub-Header (Modern Tag Kotak Halus, Bukan Pil) */}
-          <div className="inline-flex items-center justify-center gap-2 px-3.5 py-1 bg-purple-50/90 border border-purple-100 rounded-lg mb-3.5 shadow-xs">
+          <div className="inline-flex items-center justify-center gap-2 px-3 py-1 bg-purple-50/90 border border-purple-100 rounded-lg mb-3 shadow-xs">
             <span className="w-1.5 h-1.5 rounded-sm bg-[#EAB308]" />
-            <span className="text-[11px] sm:text-xs font-extrabold text-[#561269] tracking-widest uppercase">
+            <span className="text-[10px] sm:text-xs font-extrabold text-[#561269] tracking-widest uppercase">
               PROGRAM &amp; KEGIATAN {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro.toUpperCase() : "EMPATHIKA"}
             </span>
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-[#561269] tracking-tight mb-4">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-[#561269] tracking-tight mb-3 sm:mb-4">
             Eksplorasi Event &amp; Workshop
           </h1>
-          <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+          <p className="text-gray-600 text-xs sm:text-base leading-relaxed max-w-2xl mx-auto">
             Ikuti berbagai workshop interaktif, webinar inspiratif, serta lihat jejak rekam kegiatan dan event seru yang telah kami laksanakan bersama para ahli.
           </p>
 
-          {/* Tab Selector */}
-          <div className="flex items-center justify-center gap-3 mt-8">
+          {/* Tab Selector Responsif untuk Mobile */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 mt-6 sm:mt-8 w-full max-w-sm sm:max-w-none mx-auto">
             <button
               onClick={() => setActiveTab("UPCOMING")}
-              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
+              className={`w-full sm:w-auto justify-center px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
                 activeTab === "UPCOMING"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -122,7 +122,7 @@ export function EventListClient() {
             </button>
             <button
               onClick={() => setActiveTab("PAST")}
-              className={`px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
+              className={`w-full sm:w-auto justify-center px-4 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer ${
                 activeTab === "PAST"
                   ? "bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold shadow-md shadow-yellow-200/60"
                   : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200/90"
@@ -157,11 +157,11 @@ export function EventListClient() {
               {upcomingEvents.map((ev) => {
                 const tanggalTeks = ev.tanggal
                   ? new Date(ev.tanggal).toLocaleDateString("id-ID", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })
                   : "Jadwal Segera Diumumkan"
 
                 let jamTeks = "Waktu Belum Ditentukan"
@@ -216,9 +216,9 @@ export function EventListClient() {
                 return (
                   <div
                     key={ev.id}
-                    className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group min-w-0 w-full"
+                    className="bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col sm:flex-row group min-w-0 w-full"
                   >
-                    <div className="relative h-56 sm:h-auto sm:w-[38%] md:w-[36%] lg:w-[38%] shrink-0 overflow-hidden bg-gray-100">
+                    <div className="relative h-48 sm:h-auto sm:w-[38%] md:w-[36%] lg:w-[38%] shrink-0 overflow-hidden bg-gray-100">
                       {ev.banner_url ? (
                         <Image
                           unoptimized
@@ -228,52 +228,52 @@ export function EventListClient() {
                           className="object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (
-                        <div className="w-full h-full min-h-[14rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
+                        <div className="w-full h-full min-h-[12rem] sm:min-h-[14rem] bg-gradient-to-br from-[#450a54] via-[#561269] to-[#250630] flex items-center justify-center p-4">
                           <span className="text-white/70 text-xs font-bold uppercase tracking-wider">{ev.jenis_event}</span>
                         </div>
                       )}
-                      <div className="absolute top-3 left-3 flex flex-col gap-0.5 items-start">
-                        <span className="text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
+                      <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 flex flex-col gap-0.5 items-start">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-white drop-shadow uppercase tracking-wider">
                           {ev.jenis_event}
                         </span>
-                        <span className={`text-[10px] font-semibold drop-shadow ${isOnline ? "text-blue-200" : "text-emerald-200"}`}>
+                        <span className={`text-[9px] sm:text-[10px] font-semibold drop-shadow ${isOnline ? "text-blue-200" : "text-emerald-200"}`}>
                           {isOnline ? "Online" : "Offline"}
                         </span>
                         {hasBundling && (
-                          <span className="text-[10px] font-semibold text-amber-200 drop-shadow">
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-amber-200 drop-shadow">
                             Tersedia {namaBundling}
                           </span>
                         )}
                       </div>
                     </div>
 
-                    <div className="p-5 md:p-6 flex flex-col flex-1 min-w-0 justify-between">
+                    <div className="p-4 sm:p-5 md:p-6 flex flex-col flex-1 min-w-0 justify-between">
                       <div className="min-w-0">
-                        <h3 className="font-bold text-lg md:text-xl text-gray-900 mb-2 line-clamp-2 leading-tight break-words">
+                        <h3 className="font-bold text-base sm:text-lg md:text-xl text-gray-900 mb-1.5 sm:mb-2 line-clamp-2 leading-tight break-words">
                           {ev.judul}
                         </h3>
 
                         {ev.deskripsi && (
-                          <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-4 leading-relaxed break-words">
+                          <p className="text-gray-500 text-xs sm:text-sm line-clamp-2 mb-3 sm:mb-4 leading-relaxed break-words">
                             {ev.deskripsi}
                           </p>
                         )}
 
-                        <div className="space-y-1.5 mb-5">
+                        <div className="space-y-1 sm:space-y-1.5 mb-3.5 sm:mb-5">
                           <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
-                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                             <span className="truncate">{tanggalTeks}</span>
                           </div>
                           <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
-                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                             <span className="truncate">{jamTeks}</span>
                           </div>
                           <div className="flex items-center text-xs sm:text-sm text-gray-500 min-w-0">
-                            <svg className="w-4 h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 text-[#d97706] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
@@ -283,52 +283,52 @@ export function EventListClient() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 mb-5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="flex items-center gap-2.5 sm:gap-3 mb-3.5 sm:mb-5 min-w-0">
+                          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-purple-100 text-[#561269] flex items-center justify-center font-bold text-xs shrink-0">
                             {ev.nama_pembicara ? ev.nama_pembicara.charAt(0) : "E"}
                           </div>
-                          <div className="text-sm min-w-0 flex-1">
+                          <div className="text-xs sm:text-sm min-w-0 flex-1">
                             <p className="font-bold text-gray-900 truncate">{ev.nama_pembicara}</p>
-                            <p className="text-xs text-gray-500">Narasumber / Pembicara</p>
+                            <p className="text-[11px] sm:text-xs text-gray-500">Narasumber / Pembicara</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-gray-100 flex items-center justify-between gap-3 sm:gap-4 min-w-0">
+                      <div className="pt-3 sm:pt-4 border-t border-gray-100 flex items-center justify-between gap-2.5 sm:gap-4 min-w-0">
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5 truncate">Harga Tiket</p>
+                          <p className="text-[10px] sm:text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-0.5 truncate">Harga Tiket</p>
                           {hasBundling ? (
                             <div className="min-w-0">
-                              <p className="text-base sm:text-lg font-black text-[#561269] leading-tight truncate">
+                              <p className="text-sm sm:text-base md:text-lg font-black text-[#561269] leading-tight truncate">
                                 Mulai dari {hargaTeks}
                               </p>
-                              <div className="inline-flex items-center gap-1.5 mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-2 py-0.5 rounded-lg text-[10px] font-bold truncate max-w-full">
+                              <div className="inline-flex items-center gap-1 mt-0.5 sm:mt-1 bg-amber-50 text-amber-900 border border-amber-200/80 px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg text-[9px] sm:text-[10px] font-bold truncate max-w-full">
                                 <span className="truncate">Tersedia {namaBundling} (Rp {hargaBundlingNum.toLocaleString("id-ID")})</span>
                               </div>
                             </div>
                           ) : hargaCoretTeks && hargaCoretNum > hargaNum ? (
                             <div className="flex flex-col min-w-0">
                               <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="text-xs text-gray-400 line-through font-medium">
+                                <span className="text-[11px] sm:text-xs text-gray-400 line-through font-medium">
                                   {hargaCoretTeks}
                                 </span>
                                 {diskonPersen > 0 && (
-                                  <span className="text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100 whitespace-nowrap">
+                                  <span className="text-[9px] sm:text-[10px] font-extrabold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100 whitespace-nowrap">
                                     Hemat {diskonPersen}%
                                   </span>
                                 )}
                               </div>
-                              <p className="text-base sm:text-lg font-black text-[#561269] leading-tight truncate">
+                              <p className="text-sm sm:text-base md:text-lg font-black text-[#561269] leading-tight truncate">
                                 {hargaTeks}
                               </p>
                             </div>
                           ) : (
-                            <p className="text-base sm:text-lg font-black text-[#561269] truncate">{hargaTeks}</p>
+                            <p className="text-sm sm:text-base md:text-lg font-black text-[#561269] truncate">{hargaTeks}</p>
                           )}
                         </div>
                         <Link
                           href={checkoutHref}
-                          className="bg-[#EAB308] hover:bg-yellow-500 text-black text-xs sm:text-sm font-bold py-2.5 px-5 sm:px-6 rounded-2xl transition-colors shrink-0 shadow-sm cursor-pointer whitespace-nowrap"
+                          className="bg-[#EAB308] hover:bg-yellow-500 text-black text-xs sm:text-sm font-bold py-2 sm:py-2.5 px-4 sm:px-6 rounded-xl sm:rounded-2xl transition-colors shrink-0 shadow-sm cursor-pointer whitespace-nowrap active:scale-95"
                         >
                           Daftar
                         </Link>
@@ -405,12 +405,12 @@ export function EventListClient() {
             return (
               <div className="space-y-8">
                 {/* 1. Baris Kategori Utama (Seminar, Workshop, Kolaborasi) & Filter Topik Workshop di Kanan */}
-                <div className="relative w-full flex flex-col sm:flex-row items-center justify-between gap-3 min-h-[48px]">
+                <div className="relative w-full flex flex-col sm:flex-row items-center justify-between gap-3 min-h-[44px] sm:min-h-[48px]">
                   {/* Spacer kiri di desktop agar ketiga tab tetap simetris di tengah */}
                   <div className="hidden sm:block sm:w-56 shrink-0" />
 
                   {/* Kategori Utama di Tengah: Modern Underline Tabs */}
-                  <div className="flex items-center justify-center gap-6 sm:gap-10 border-b border-gray-200/80 px-2">
+                  <div className="flex items-center justify-center gap-4 sm:gap-10 border-b border-gray-200/80 px-2 w-full sm:w-auto">
                     {ARSIP_KATEGORI_TABS.map((tab) => {
                       const isSelected = selectedCategoryTab === tab.id
                       return (
@@ -425,7 +425,7 @@ export function EventListClient() {
                             }
                             setShowAllArsip(false)
                           }}
-                          className={`relative pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 ${
+                          className={`relative pb-2.5 sm:pb-3 text-xs sm:text-base font-bold transition-all duration-200 cursor-pointer px-1 sm:px-2 ${
                             isSelected
                               ? "text-[#561269] font-extrabold"
                               : "text-gray-400 hover:text-gray-700 font-semibold"
@@ -441,17 +441,17 @@ export function EventListClient() {
                   </div>
 
                   {/* Tombol Filter Topik Workshop di Kanan (Tampil saat tab Workshop aktif) */}
-                  <div className="sm:w-56 flex justify-center sm:justify-end shrink-0">
+                  <div className="w-full sm:w-56 flex justify-center sm:justify-end shrink-0">
                     {selectedCategoryTab === "WORKSHOP" && (
-                      <div className="relative">
+                      <div className="relative w-full sm:w-auto flex justify-center sm:justify-end">
                         <button
                           type="button"
                           onClick={() => setIsWorkshopDropdownOpen((prev) => !prev)}
-                          className="flex items-center justify-between gap-1.5 w-48 sm:w-52 h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
+                          className="flex items-center justify-between gap-1.5 w-full sm:w-52 h-9 sm:h-10 rounded-full border border-gray-200/90 bg-white px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
                         >
                           <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
                             <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
-                            <span className="text-gray-400 font-medium text-xs shrink-0">Topik:</span>
+                            <span className="text-gray-400 font-medium text-[11px] sm:text-xs shrink-0">Topik:</span>
                             <span
                               className="text-[#561269] font-bold text-xs sm:text-sm truncate min-w-0"
                               title={selectedWorkshopPill}
@@ -460,15 +460,14 @@ export function EventListClient() {
                             </span>
                           </div>
                           <ChevronDown
-                            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
-                              isWorkshopDropdownOpen ? "rotate-180" : ""
-                            }`}
+                            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isWorkshopDropdownOpen ? "rotate-180" : ""
+                              }`}
                           />
                         </button>
 
                         {/* Dropdown Floating di Atas Foto Sesuai Desain Filter Transaksi */}
                         {isWorkshopDropdownOpen && (
-                          <div className="absolute right-0 top-full mt-2 z-20 w-60 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                          <div className="absolute right-0 sm:right-0 left-0 sm:left-auto top-full mt-2 z-20 w-full sm:w-60 rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
                             <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
                               Pilih Topik Workshop
                             </p>
@@ -483,11 +482,10 @@ export function EventListClient() {
                                       setSelectedWorkshopPill(pill)
                                       setShowAllArsip(false)
                                     }}
-                                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
-                                      isPillSelected
-                                        ? "bg-purple-50 text-[#561269] font-bold"
-                                        : "text-gray-700 hover:bg-gray-50 font-semibold"
-                                    }`}
+                                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${isPillSelected
+                                      ? "bg-purple-50 text-[#561269] font-bold"
+                                      : "text-gray-700 hover:bg-gray-50 font-semibold"
+                                      }`}
                                   >
                                     <span className={isPillSelected ? "font-bold text-[#561269] truncate" : "font-semibold text-gray-800 truncate"}>
                                       {pill}
@@ -515,16 +513,16 @@ export function EventListClient() {
                   </div>
                 </div>
 
-                {/* 3. Grid Foto Dokumentasi Langsung (Card Sesuai Referensi Gambar) */}
+                {/* 3. Grid Foto Dokumentasi Langsung (Card 2 Kolom di Mobile, 2 di Tablet, 3 di Desktop) */}
                 {displayedDokumentasi.length > 0 ? (
-                  <div className="space-y-10">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                  <div className="space-y-8 sm:space-y-10">
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6 lg:gap-8">
                       {displayedDokumentasi.map((dok) => {
                         return (
                           <div
                             key={dok.id}
                             onClick={() => setSelectedDokumentasi(dok)}
-                            className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-md hover:shadow-2xl transition-all duration-500 cursor-pointer group bg-black"
+                            className="relative w-full aspect-[4/3] rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 cursor-pointer group bg-black"
                           >
                             {/* Foto Penuh */}
                             {dok.thumbnail ? (
@@ -537,7 +535,7 @@ export function EventListClient() {
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-900">
-                                <ImageIcon className="w-10 h-10" />
+                                <ImageIcon className="w-6 h-6 sm:w-10 sm:h-10" />
                               </div>
                             )}
 
@@ -546,18 +544,18 @@ export function EventListClient() {
 
                             {/* Counter Foto Kecil di Kanan Atas */}
                             {dok.jumlah_foto > 0 && (
-                              <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
+                              <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-black/60 backdrop-blur-md text-white text-[9px] sm:text-[11px] font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full border border-white/20 shadow-sm">
                                 {dok.jumlah_foto} Foto
                               </div>
                             )}
 
                             {/* Judul & Deskripsi */}
-                            <div className="absolute bottom-5 left-5 right-5 text-white z-10">
-                              <h3 className="font-extrabold text-base sm:text-lg md:text-xl leading-snug drop-shadow-md line-clamp-2">
+                            <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:bottom-5 sm:left-5 sm:right-5 text-white z-10">
+                              <h3 className="font-extrabold text-xs sm:text-base md:text-xl leading-tight sm:leading-snug drop-shadow-md line-clamp-2">
                                 {dok.judul}
                               </h3>
                               {dok.deskripsi && (
-                                <p className="text-white/80 text-xs sm:text-sm mt-1.5 line-clamp-2 leading-relaxed drop-shadow-sm font-medium">
+                                <p className="hidden sm:block text-white/80 text-xs sm:text-sm mt-1 sm:mt-1.5 line-clamp-2 leading-relaxed drop-shadow-sm font-medium">
                                   {dok.deskripsi}
                                 </p>
                               )}
@@ -573,7 +571,7 @@ export function EventListClient() {
                         <button
                           type="button"
                           onClick={() => setShowAllArsip(true)}
-                          className="inline-flex items-center gap-2.5 bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold text-sm sm:text-base py-3.5 px-8 rounded-full shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
+                          className="inline-flex items-center gap-2 bg-[#EAB308] hover:bg-yellow-500 text-black font-extrabold text-xs sm:text-base py-3 sm:py-3.5 px-6 sm:px-8 rounded-full shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer hover:scale-105 active:scale-95"
                         >
                           <span>Lihat Selengkapnya ({filteredDokumentasi.length - maxInitialCards} foto lainnya)</span>
                           <ArrowRight className="w-4 h-4 stroke-[3]" />
