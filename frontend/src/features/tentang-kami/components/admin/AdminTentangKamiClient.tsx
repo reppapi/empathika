@@ -352,56 +352,33 @@ export default function AdminTentangKamiClient() {
         </div>
       )}
 
-      {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          {hasUnsavedChanges ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 animate-pulse">
-              Ada perubahan belum disimpan
-            </span>
-          ) : (
-            <span className="text-xs text-gray-400 font-medium">
-              Semua perubahan telah tersimpan
-            </span>
-          )}
+      {/* Tabs Navigation: Modern Segmented Pill Controls Tanpa Scrollbar Abu-abu */}
+      <div className="bg-white p-1.5 sm:p-2 rounded-2xl border border-gray-200/80 shadow-2xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
+          {[
+            { key: "hero", label: "1. Hero & Galeri Foto" },
+            { key: "berkenalan", label: "2. Mari Berkenalan" },
+            { key: "nilai", label: "3. Nilai yang Kami Bawa" },
+            { key: "kenapaHadir", label: "4. Kenapa Kami Hadir" },
+            { key: "pemimpin", label: "5. Pendiri & Manajer" },
+          ].map((tab) => {
+            const isActive = activeTab === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key as any)}
+                className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                  isActive
+                    ? "bg-[#EAB308] text-gray-950 font-extrabold shadow-xs"
+                    : "text-gray-600 hover:text-gray-950 hover:bg-gray-100"
+                }`}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="flex border-b border-gray-200/80 gap-2 sm:gap-4 overflow-x-auto pb-px">
-        {[
-          { key: "hero", label: "1. Hero & Galeri Foto" },
-          { key: "berkenalan", label: "2. Mari Berkenalan" },
-          { key: "nilai", label: "3. Nilai yang Kami Bawa" },
-          { key: "kenapaHadir", label: "4. Kenapa Kami Hadir" },
-          { key: "pemimpin", label: "5. Pendiri & Manajer" },
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-4 sm:px-6 py-3 font-semibold text-xs sm:text-sm tracking-wide transition-all border-b-2 whitespace-nowrap cursor-pointer ${
-              activeTab === tab.key
-                ? "border-[#561269] text-[#561269] font-bold"
-                : "border-transparent text-gray-500 hover:text-gray-900"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
       </div>
 
       {/* ======================================================== */}

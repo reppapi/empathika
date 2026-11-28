@@ -11,6 +11,8 @@ import {
 import { bannerService } from "@/services/banner.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import { Calendar, X } from "lucide-react"
+import { formatIsoToDisplayDate } from "@/features/internship/utils/internshipDateUtils"
 
 export function CardBannerPromoAdmin() {
   const [banners, setBanners] = useState<BannerPromoItem[]>([])
@@ -28,6 +30,8 @@ export function CardBannerPromoAdmin() {
   const [uploadError, setUploadError] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const tanggalMulaiRef = useRef<HTMLInputElement>(null)
+  const tanggalBerakhirRef = useRef<HTMLInputElement>(null)
 
   // State Form Input (Nama Banner/Iklan, Gambar, Link Tujuan, Tanggal & Status)
   const [nama, setNama] = useState("")
@@ -470,27 +474,104 @@ export function CardBannerPromoAdmin() {
             {/* 4. Tanggal Mulai & Berakhir */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Tanggal Mulai Tayang
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Tanggal Mulai Tayang</span>
                 </label>
-                <input
-                  type="date"
-                  value={tanggalMulai}
-                  onChange={(e) => setTanggalMulai(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/10"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    ref={tanggalMulaiRef}
+                    value={tanggalMulai}
+                    onChange={(e) => setTanggalMulai(e.target.value)}
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                  <div
+                    onClick={() => {
+                      try {
+                        tanggalMulaiRef.current?.showPicker?.()
+                        tanggalMulaiRef.current?.focus()
+                      } catch {
+                        tanggalMulaiRef.current?.focus()
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer transition-colors bg-white hover:border-[#561269]"
+                  >
+                    <span className={tanggalMulai ? "text-gray-900 font-medium" : "text-gray-400"}>
+                      {tanggalMulai ? formatIsoToDisplayDate(tanggalMulai) : "Pilih tanggal mulai..."}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {tanggalMulai && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTanggalMulai("")
+                          }}
+                          className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                          title="Hapus tanggal mulai"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                  Tanggal Berakhir Tayang
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-rose-500" />
+                  <span>Tanggal Berakhir Tayang</span>
                 </label>
-                <input
-                  type="date"
-                  value={tanggalBerakhir}
-                  onChange={(e) => setTanggalBerakhir(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/10"
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    ref={tanggalBerakhirRef}
+                    value={tanggalBerakhir}
+                    min={tanggalMulai || undefined}
+                    onChange={(e) => setTanggalBerakhir(e.target.value)}
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-hidden="true"
+                  />
+                  <div
+                    onClick={() => {
+                      try {
+                        tanggalBerakhirRef.current?.showPicker?.()
+                        tanggalBerakhirRef.current?.focus()
+                      } catch {
+                        tanggalBerakhirRef.current?.focus()
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-xs sm:text-sm border border-gray-200 rounded-xl flex items-center justify-between cursor-pointer transition-colors bg-white hover:border-[#561269]"
+                  >
+                    <span className={tanggalBerakhir ? "text-gray-900 font-medium" : "text-gray-400"}>
+                      {tanggalBerakhir ? formatIsoToDisplayDate(tanggalBerakhir) : "Pilih tanggal berakhir..."}
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {tanggalBerakhir && (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setTanggalBerakhir("")
+                          }}
+                          className="p-1 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+                          title="Hapus tanggal berakhir"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                      <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <p className="text-[11px] text-gray-400">

@@ -168,6 +168,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
   const [tarifPeerWeekend, setTarifPeerWeekend] = useState("")
 
   const isPartnership = selectedCategory === "03" || selectedCategory === "04"
+  const isKonsultasi = selectedCategory === "01"
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -295,7 +296,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
               setLoading(false)
             }
           }
-        } catch {}
+        } catch { }
       }
 
       // 2. Coba baca dari localStorage
@@ -326,7 +327,7 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
             populateFields(found)
             foundData = true
           }
-        } catch {}
+        } catch { }
       } finally {
         if (isMounted) {
           setLoading(false)
@@ -360,10 +361,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     const computedMetode = isPartnershipMode
       ? "-"
       : isOnline && isOffline
-      ? "Online/Offline"
-      : isOnline
-      ? "Online"
-      : "Offline"
+        ? "Online/Offline"
+        : isOnline
+          ? "Online"
+          : "Offline"
 
     if (selectedCategory === "05") {
       const onlineVal = parseRupiahNumber(hargaAsesmenOnline)
@@ -438,22 +439,22 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
     const finalWeekday = isKonsultasi
       ? String(activeExpert?.weekday || "0")
       : isPartnershipMode
-      ? "0"
-      : selectedCategory === "05"
-      ? isOffline
-        ? String(parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
-        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
-      : hargaWeekday
+        ? "0"
+        : selectedCategory === "05"
+          ? isOffline
+            ? String(parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+            : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
+          : hargaWeekday
 
     const finalWeekend = isKonsultasi
       ? String(activeExpert?.weekend || "0")
       : isPartnershipMode
-      ? "0"
-      : selectedCategory === "05"
-      ? isOffline
-        ? String(parseRupiahNumber(hargaWeekend) || parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
-        : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
-      : hargaWeekend
+        ? "0"
+        : selectedCategory === "05"
+          ? isOffline
+            ? String(parseRupiahNumber(hargaWeekend) || parseRupiahNumber(hargaWeekday) || (isOnline ? parseRupiahNumber(hargaAsesmenOnline) : 0))
+            : String(parseRupiahNumber(hargaAsesmenOnline) || 0)
+          : hargaWeekend
 
     const validFotos = fotoKegiatan.filter((f): f is string => typeof f === "string" && f.trim().length > 0)
     const validManfaat = manfaatList.map((m) => m.trim()).filter((m) => m.length > 0)
@@ -463,10 +464,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
     const finalTarifTenagaAhli = isPartnershipMode
       ? {
-          ...(tarifTenagaAhli && typeof tarifTenagaAhli === "object" ? tarifTenagaAhli : {}),
-          ...(validFotos.length > 0 ? { foto_kegiatan: validFotos } : {}),
-          ...(validManfaat.length > 0 ? { manfaat: validManfaat } : {}),
-        }
+        ...(tarifTenagaAhli && typeof tarifTenagaAhli === "object" ? tarifTenagaAhli : {}),
+        ...(validFotos.length > 0 ? { foto_kegiatan: validFotos } : {}),
+        ...(validManfaat.length > 0 ? { manfaat: validManfaat } : {}),
+      }
       : tarifTenagaAhli
 
     const updatedData: Partial<AdminLayananItem> = {
@@ -698,16 +699,37 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
 
           {/* ── Baris 3: Deskripsi Layanan ── */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Deskripsi Layanan <span className="text-red-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Deskripsi Layanan <span className="text-red-500">*</span>
+              </label>
+              {isKonsultasi && (
+                <span
+                  className={`text-xs font-semibold ${
+                    deskripsi.length >= 120 ? "text-amber-600 font-bold" : "text-gray-400"
+                  }`}
+                >
+                  {deskripsi.length} / 120 karakter
+                </span>
+              )}
+            </div>
             <textarea
               value={deskripsi}
               onChange={(e) => setDeskripsi(e.target.value)}
-              placeholder="Masukkan deskripsi mengenai layanan ini"
-              rows={4}
+              maxLength={isKonsultasi ? 120 : undefined}
+              placeholder={
+                isKonsultasi
+                  ? "Contoh: Konseling tatap muka langsung di rumah klien bersama psikolog profesional untuk kenyamanan konsultasi."
+                  : "Masukkan deskripsi mengenai layanan ini"
+              }
+              rows={3}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
             />
+            {isKonsultasi && (
+              <p className="text-[11px] text-gray-500 mt-1">
+                Maksimal 120 karakter agar deskripsi tampil padat dan pas 2 baris pada kartu layanan.
+              </p>
+            )}
           </div>
 
           {/* Kolom Manfaat Khusus Workshop & Seminar */}
@@ -784,17 +806,15 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   {(() => {
                     const isPsiActive = Boolean(tarifPsikologWeekday.trim() || tarifPsikologWeekend.trim())
                     return (
-                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
-                        isPsiActive ? "border-purple-300 ring-1 ring-purple-200" : "border-gray-200 opacity-85"
-                      }`}>
+                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${isPsiActive ? "border-purple-300 ring-1 ring-purple-200" : "border-gray-200 opacity-85"
+                        }`}>
                         <div className="flex items-center justify-between pb-2 border-b border-purple-100">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-[#561269]"></span>
                             <h4 className="text-xs font-bold text-gray-800">Psikolog</h4>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            isPsiActive ? "bg-purple-100 text-[#561269]" : "bg-gray-100 text-gray-400"
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isPsiActive ? "bg-purple-100 text-[#561269]" : "bg-gray-100 text-gray-400"
+                            }`}>
                             {isPsiActive ? "Tersedia" : "Kosong"}
                           </span>
                         </div>
@@ -828,17 +848,15 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   {(() => {
                     const isKonActive = Boolean(tarifKonselorWeekday.trim() || tarifKonselorWeekend.trim())
                     return (
-                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
-                        isKonActive ? "border-blue-300 ring-1 ring-blue-200" : "border-gray-200 opacity-85"
-                      }`}>
+                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${isKonActive ? "border-blue-300 ring-1 ring-blue-200" : "border-gray-200 opacity-85"
+                        }`}>
                         <div className="flex items-center justify-between pb-2 border-b border-blue-100">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                             <h4 className="text-xs font-bold text-gray-800">Konselor</h4>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            isKonActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isKonActive ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"
+                            }`}>
                             {isKonActive ? "Tersedia" : "Kosong"}
                           </span>
                         </div>
@@ -872,17 +890,15 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   {(() => {
                     const isPeerActive = Boolean(tarifPeerWeekday.trim() || tarifPeerWeekend.trim())
                     return (
-                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${
-                        isPeerActive ? "border-emerald-300 ring-1 ring-emerald-200" : "border-gray-200 opacity-85"
-                      }`}>
+                      <div className={`p-4 rounded-xl border transition-all bg-white shadow-xs space-y-3 ${isPeerActive ? "border-emerald-300 ring-1 ring-emerald-200" : "border-gray-200 opacity-85"
+                        }`}>
                         <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
                           <div className="flex items-center gap-2">
                             <span className="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
                             <h4 className="text-xs font-bold text-gray-800">Peer Konselor</h4>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            isPeerActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-400"
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isPeerActive ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-400"
+                            }`}>
                             {isPeerActive ? "Tersedia" : "Kosong"}
                           </span>
                         </div>
@@ -920,11 +936,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   Poster / Banner Layanan
                 </label>
                 <div
-                  className={`mt-1 flex justify-center border-2 ${
-                    imagePreview
-                      ? "border-solid border-gray-200 p-2"
-                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                  className={`mt-1 flex justify-center border-2 ${imagePreview
+                    ? "border-solid border-gray-200 p-2"
+                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                    } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
                   onClick={handleImageClick}
                   style={{ minHeight: "160px" }}
                 >
@@ -1053,11 +1068,10 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                   Poster / Banner Layanan
                 </label>
                 <div
-                  className={`mt-1 flex justify-center border-2 ${
-                    imagePreview
-                      ? "border-solid border-gray-200 p-2"
-                      : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
-                  } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
+                  className={`mt-1 flex justify-center border-2 ${imagePreview
+                    ? "border-solid border-gray-200 p-2"
+                    : "border-dashed border-gray-300 px-6 pt-10 pb-10 hover:bg-gray-100"
+                    } rounded-lg bg-gray-50 transition-colors cursor-pointer relative overflow-hidden`}
                   onClick={handleImageClick}
                   style={{ minHeight: "160px" }}
                 >
@@ -1129,20 +1143,18 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
                     return (
                       <div
                         key={slotIdx}
-                        className={`relative rounded-2xl border-2 transition-all p-3.5 flex flex-col justify-between ${
-                          isSlot0
-                            ? "border-[#561269]/40 bg-purple-50/20 shadow-xs ring-1 ring-[#561269]/10"
-                            : "border-gray-200 bg-gray-50/40 hover:border-gray-300"
-                        }`}
+                        className={`relative rounded-2xl border-2 transition-all p-3.5 flex flex-col justify-between ${isSlot0
+                          ? "border-[#561269]/40 bg-purple-50/20 shadow-xs ring-1 ring-[#561269]/10"
+                          : "border-gray-200 bg-gray-50/40 hover:border-gray-300"
+                          }`}
                       >
                         {/* Header Slot */}
                         <div className="flex items-center justify-between mb-2.5">
                           <span
-                            className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${
-                              isSlot0
-                                ? "bg-[#561269] text-white shadow-xs"
-                                : "bg-gray-200 text-gray-700"
-                            }`}
+                            className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full ${isSlot0
+                              ? "bg-[#561269] text-white shadow-xs"
+                              : "bg-gray-200 text-gray-700"
+                              }`}
                           >
                             {isSlot0 ? "⭐ Foto 1 (Sampul & Hero)" : `Foto Kegiatan ${slotIdx + 1}`}
                           </span>

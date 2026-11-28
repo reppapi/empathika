@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef, useMemo } from "react"
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Sparkles } from "lucide-react"
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, Sparkles, X } from "lucide-react"
 
 export interface DatePickerMiniCalendarProps {
   value: string // YYYY-MM-DD
@@ -15,6 +15,7 @@ export interface DatePickerMiniCalendarProps {
   placeholder?: string
   colorTheme?: "purple" | "amber"
   className?: string
+  allowClear?: boolean
 }
 
 const INDO_MONTHS = [
@@ -96,6 +97,7 @@ export default function DatePickerMiniCalendar({
   placeholder = "Pilih Tanggal",
   colorTheme = "purple",
   className = "",
+  allowClear = false,
 }: DatePickerMiniCalendarProps) {
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -229,13 +231,27 @@ export default function DatePickerMiniCalendar({
               colorTheme === "amber" ? "text-amber-600" : "text-[#5D205E]"
             }`}
           />
-          <span className="truncate font-semibold text-gray-900 text-xs">
+          <span className={`truncate text-xs ${value ? "font-semibold text-gray-900" : "font-normal text-gray-400"}`}>
             {value ? formatDisplayDateIndo(value) : placeholder}
           </span>
         </div>
 
         {/* Indikator status slot pada tanggal yang sedang aktif */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {allowClear && value && !disabled && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation()
+                onChange("")
+              }}
+              className="p-0.5 rounded-full hover:bg-gray-200 text-gray-400 hover:text-gray-600 transition"
+              title="Hapus tanggal"
+            >
+              <X className="w-3.5 h-3.5" />
+            </span>
+          )}
           {value && datesWithSlots && datesWithSlots.length > 0 && (
             isSelectedDateHasSlots ? (
               <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center gap-1 border border-emerald-200">
@@ -409,6 +425,19 @@ export default function DatePickerMiniCalendar({
               >
                 Hari Ini
               </button>
+
+              {allowClear && value && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange("")
+                    setIsOpen(false)
+                  }}
+                  className="px-2.5 py-1 rounded-lg text-rose-600 hover:bg-rose-50 font-bold text-[10px] transition cursor-pointer"
+                >
+                  Kosongkan
+                </button>
+              )}
 
               {datesWithSlots.length > 0 && (
                 <button

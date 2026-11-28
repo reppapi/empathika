@@ -29,7 +29,7 @@ export function QuoteBanner() {
       </div>
 
       {/* Bottom-Right Quote Icon */}
-      <span className="absolute -bottom-8 sm:-bottom-10 right-2 sm:right-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
+      <span className="absolute -bottom-11 sm:-bottom-14 right-2 sm:right-4 text-4xl sm:text-6xl text-[#400B4D]/40 font-serif select-none z-10 leading-none">
         ”
       </span>
     </div>

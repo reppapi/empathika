@@ -39,8 +39,8 @@ export function TabPositions({
 }: TabPositionsProps) {
   return (
     <div className="space-y-4">
-      {/* Search & Actions Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs">
+      {/* Search Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-2xs">
         <div className="relative w-full sm:w-80">
           <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
@@ -50,16 +50,6 @@ export function TabPositions({
             placeholder="Cari lowongan posisi..."
             className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#561269] transition-colors"
           />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-          <Link
-            href="/admin/internship/tambah"
-            className="w-full sm:w-auto px-4 py-2 rounded-xl bg-[#561269] hover:bg-[#6e1885] text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-colors cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Lowongan</span>
-          </Link>
         </div>
       </div>
 

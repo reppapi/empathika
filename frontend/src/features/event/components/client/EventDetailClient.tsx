@@ -32,10 +32,10 @@ export default function EventDetailClient({ id: _id, event }: Props) {
       {/* Hero Section */}
       <div className="relative w-full h-[50vh] md:h-[70vh] flex items-center justify-center overflow-hidden pt-20">
         <div className="absolute inset-0 z-0">
-          <Image 
-            src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
-            alt="Event Background" 
-            fill 
+          <Image
+            src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80"
+            alt="Event Background"
+            fill
             className="object-cover"
             unoptimized
           />
@@ -43,42 +43,41 @@ export default function EventDetailClient({ id: _id, event }: Props) {
           <div className="absolute inset-0 bg-[#561269]/40 mix-blend-multiply"></div>
           {/* Top gradient for navbar blending if needed */}
           <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#561269] to-transparent opacity-90"></div>
-          
+
           {/* Bottom diagonal shape if we want to match exactly, but based on image it's a soft gradient fade */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-white to-transparent"></div>
         </div>
-        
-        <div className="relative z-10 text-center px-4 mt-8">
-          <h1 className="text-4xl md:text-5xl lg:text-[64px] font-extrabold text-white drop-shadow-md">
+
+        <div className="relative z-10 text-center px-4 mt-6 sm:mt-8">
+          <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-[64px] font-extrabold text-white drop-shadow-md">
             {judul}
           </h1>
           {subjudul && (
-            <p className="mt-3 text-lg md:text-xl text-white/90 font-medium drop-shadow">{subjudul}</p>
+            <p className="mt-2 sm:mt-3 text-sm sm:text-lg md:text-xl text-white/90 font-medium drop-shadow">{subjudul}</p>
           )}
         </div>
       </div>
 
       {/* Middle Text Section */}
-      <div className="w-full max-w-[900px] mx-auto px-6 py-12 md:py-20 text-center relative z-10">
+      <div className="w-full max-w-[900px] mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-20 text-center relative z-10">
         {deskripsi ? (
-          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium whitespace-pre-wrap">{deskripsi}</p>
+          <p className="text-[14px] sm:text-[16px] md:text-[20px] text-gray-900 leading-[1.7] sm:leading-[1.8] font-medium whitespace-pre-wrap">{deskripsi}</p>
         ) : (
-          <p className="text-[16px] md:text-[20px] text-gray-900 leading-[1.8] font-medium">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor 
-            incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud 
+          <p className="text-[14px] sm:text-[16px] md:text-[20px] text-gray-900 leading-[1.7] sm:leading-[1.8] font-medium">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor
+            incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud
             exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
           </p>
         )}
         {/* Info pills */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mt-5 sm:mt-6">
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{tanggal}</span>
           <span className="bg-[#F3E8F5] text-[#561269] text-xs font-bold px-4 py-1.5 rounded-full">{waktu}</span>
           <span
-            className={`text-xs font-bold px-4 py-1.5 rounded-full ${
-              tipe === "Offline"
-                ? "bg-emerald-100 text-emerald-800"
-                : "bg-blue-100 text-blue-800"
-            }`}
+            className={`text-xs font-bold px-4 py-1.5 rounded-full ${tipe === "Offline"
+              ? "bg-emerald-100 text-emerald-800"
+              : "bg-blue-100 text-blue-800"
+              }`}
           >
             {tipe}
           </span>
@@ -134,10 +133,10 @@ export default function EventDetailClient({ id: _id, event }: Props) {
             </p>
           </div>
           <div className="w-full md:w-1/2 relative h-[250px] md:h-[350px]">
-            <Image 
-              src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-              alt="Event Preview" 
-              fill 
+            <Image
+              src="https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+              alt="Event Preview"
+              fill
               className="object-cover shadow-lg"
               unoptimized
             />

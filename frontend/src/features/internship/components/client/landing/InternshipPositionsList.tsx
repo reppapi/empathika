@@ -48,11 +48,11 @@ export function InternshipPositionsList({
               Ikuti terus informasi terbaru kami untuk mengetahui gelombang pendaftaran berikutnya.
             </p>
             <Link
-              href="/kerja-sama"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#561269] hover:bg-[#651877] text-white font-semibold text-sm transition-colors shadow-sm"
+              href={withBiro ? withBiro("/kerja-sama") : "/kerja-sama"}
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#EAB308] hover:bg-[#CA8A04] text-[#0f172a] font-bold text-sm shadow-sm hover:shadow transition-all"
             >
-              Eksplor Program Kerja Sama
-              <ArrowRight className="w-4 h-4" />
+              <span>Eksplor Program Kerja Sama</span>
+              <ArrowRight className="w-4 h-4 text-[#0f172a]" />
             </Link>
           </div>
         ) : (
