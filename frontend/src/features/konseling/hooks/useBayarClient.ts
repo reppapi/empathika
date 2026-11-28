@@ -168,7 +168,8 @@ export function useBayarClient() {
       }
     }
     if (targetDateStr) {
-      const d = new Date(targetDateStr)
+      const ymd = targetDateStr.split("-").map(Number)
+      const d = ymd.length === 3 && !ymd.some(isNaN) ? new Date(ymd[0], ymd[1] - 1, ymd[2]) : new Date(targetDateStr)
       if (!isNaN(d.getTime())) {
         const day = d.getDay()
         isWeekend = day === 0 || day === 6

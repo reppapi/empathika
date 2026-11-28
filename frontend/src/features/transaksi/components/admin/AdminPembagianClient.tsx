@@ -436,7 +436,7 @@ export default function AdminPembagianClient() {
                       setSelectedItemIds([])
                     }}
                     className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 cursor-pointer transition ${
-                      isSelected ? "bg-purple-50/70 border-l-4 border-l-[#561269]" : "hover:bg-gray-50/80"
+                      isSelected ? "bg-purple-50/70 border-l-[4px] !border-l-[#561269]" : "hover:bg-gray-50/80"
                     }`}
                   >
                     <div className="flex items-center gap-3.5 min-w-0">

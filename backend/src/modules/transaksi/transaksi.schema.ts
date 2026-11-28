@@ -6,6 +6,7 @@ export const createCheckoutTransaksiSchema = z.object({
   }),
   // Referensi item
   id_item: z.string().describe('ID Jadwal/Booking untuk Konseling, ID Event untuk Event, atau ID Paket untuk Psikotes'),
+  id_layanan: z.string().uuid().optional().describe('ID Layanan konsultasi yang dipilih'),
   // Data Peserta / Klien
   nama: z.string().min(2, 'Nama minimal 2 karakter'),
   email: z.string().email('Format email tidak valid').optional().or(z.literal('')),

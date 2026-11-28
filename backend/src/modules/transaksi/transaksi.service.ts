@@ -43,6 +43,7 @@ export class TransaksiService {
     transaksiId: string
     adminName: string
     alasan: string
+    biroId?: string
   }) {
     const result = await this.repo.refundTransaksi(params)
     return {
@@ -192,8 +193,32 @@ export class TransaksiService {
           throw Object.assign(new Error('Slot jadwal ini sudah dibooking. Silakan pilih slot lain.'), { statusCode: 409 })
         }
 
-        const layanan = await tx.layanan.findFirst({ where: { aktif: true } })
-        const hargaDasar = layanan?.harga_weekday ? Number(layanan.harga_weekday) : 200000
+        const layanan = input.id_layanan
+          ? await tx.layanan.findUnique({ where: { id: input.id_layanan } })
+          : await tx.layanan.findFirst({ where: { aktif: true } })
+
+        // Tentukan hari sesi (weekday vs weekend) dari tanggal slot jadwal
+        const tglDay = new Date(slot.tanggal).getUTCDay()
+        const isWeekend = tglDay === 0 || tglDay === 6
+
+        // Tentukan jenis tenaga profesional dari kategori psikolog pada slot
+        const kategoriLower = (slot.psikolog?.kategori || '').toLowerCase()
+        const roleKey: 'peer' | 'konselor' | 'psikolog' = kategoriLower.includes('peer')
+          ? 'peer'
+          : kategoriLower.includes('konselor')
+          ? 'konselor'
+          : 'psikolog'
+
+        const tarifTenagaAhli = (layanan?.tarif_tenaga_ahli as any)?.[roleKey]
+        const rawRate = tarifTenagaAhli
+          ? isWeekend
+            ? tarifTenagaAhli.weekend
+            : tarifTenagaAhli.weekday
+          : isWeekend
+          ? layanan?.harga_weekend
+          : layanan?.harga_weekday
+
+        const hargaDasar = rawRate ? Number(rawRate) : 200000
         kodePesanan = generateOrderId('KONS')
         deskripsiTagihan = `Konseling Psikologi (${slot.psikolog?.nama_gelar || 'Psikolog'}) - ${kodePesanan}`
 

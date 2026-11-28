@@ -31,21 +31,23 @@ export class TransaksiRepository {
       ]
     }
 
-    // Filter periode
+    // Filter periode (konsisten WIB / UTC+7)
     let periodeWhere: any = {}
     if (params?.tanggal) {
-      // Filter hari tertentu
-      const start = new Date(`${params.tanggal}T00:00:00.000Z`)
-      const end = new Date(`${params.tanggal}T23:59:59.999Z`)
+      // Filter hari tertentu (WIB)
+      const start = new Date(`${params.tanggal}T00:00:00.000+07:00`)
+      const end = new Date(`${params.tanggal}T23:59:59.999+07:00`)
       periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
     } else if (params?.bulan) {
-      const start = new Date(tahun, params.bulan - 1, 1)
-      const end = new Date(tahun, params.bulan, 0, 23, 59, 59, 999)
+      const mStr = String(params.bulan).padStart(2, '0')
+      const lastDay = new Date(Date.UTC(tahun, params.bulan, 0)).getUTCDate()
+      const start = new Date(`${tahun}-${mStr}-01T00:00:00.000+07:00`)
+      const end = new Date(`${tahun}-${mStr}-${String(lastDay).padStart(2, '0')}T23:59:59.999+07:00`)
       periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
     } else {
-      // Default: tahun berjalan
-      const start = new Date(tahun, 0, 1)
-      const end = new Date(tahun, 11, 31, 23, 59, 59, 999)
+      // Default: tahun berjalan (WIB)
+      const start = new Date(`${tahun}-01-01T00:00:00.000+07:00`)
+      const end = new Date(`${tahun}-12-31T23:59:59.999+07:00`)
       periodeWhere = { tanggal_bayar: { gte: start, lte: end } }
     }
 
@@ -334,6 +336,7 @@ export class TransaksiRepository {
     transaksiId: string
     adminName: string
     alasan: string
+    biroId?: string
   }) {
     return this.prisma.$transaction(async (tx) => {
       const transaksi = await tx.transaksi.findFirst({
@@ -357,6 +360,15 @@ export class TransaksiRepository {
 
       if (!transaksi) {
         throw Object.assign(new Error('Transaksi tidak ditemukan'), { statusCode: 404 })
+      }
+
+      if (params.biroId) {
+        const isOwner =
+          transaksi.id_biro_tenant === params.biroId ||
+          transaksi.client?.id_biro === params.biroId
+        if (!isOwner) {
+          throw Object.assign(new Error('Anda tidak memiliki akses untuk merefund transaksi biro lain'), { statusCode: 403 })
+        }
       }
 
       if (transaksi.status_pembayaran === 'REFUNDED') {
@@ -664,19 +676,20 @@ export class TransaksiRepository {
       where.status = params.status
     }
 
-    // Filter berdasarkan tanggal spesifik atau bulan & tahun (createdAt)
+    // Filter berdasarkan tanggal spesifik atau bulan & tahun (createdAt, konsisten WIB / UTC+7)
     if (params.tanggal) {
-      const targetDate = new Date(params.tanggal)
-      const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 0, 0, 0, 0)
-      const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 23, 59, 59, 999)
+      const startOfDay = new Date(`${params.tanggal}T00:00:00.000+07:00`)
+      const endOfDay = new Date(`${params.tanggal}T23:59:59.999+07:00`)
       where.createdAt = { gte: startOfDay, lte: endOfDay }
     } else if (params.bulan && params.tahun) {
-      const startOfMonth = new Date(params.tahun, params.bulan - 1, 1, 0, 0, 0, 0)
-      const endOfMonth = new Date(params.tahun, params.bulan, 0, 23, 59, 59, 999)
+      const mStr = String(params.bulan).padStart(2, '0')
+      const lastDay = new Date(Date.UTC(params.tahun, params.bulan, 0)).getUTCDate()
+      const startOfMonth = new Date(`${params.tahun}-${mStr}-01T00:00:00.000+07:00`)
+      const endOfMonth = new Date(`${params.tahun}-${mStr}-${String(lastDay).padStart(2, '0')}T23:59:59.999+07:00`)
       where.createdAt = { gte: startOfMonth, lte: endOfMonth }
     } else if (params.tahun) {
-      const startOfYear = new Date(params.tahun, 0, 1, 0, 0, 0, 0)
-      const endOfYear = new Date(params.tahun, 11, 31, 23, 59, 59, 999)
+      const startOfYear = new Date(`${params.tahun}-01-01T00:00:00.000+07:00`)
+      const endOfYear = new Date(`${params.tahun}-12-31T23:59:59.999+07:00`)
       where.createdAt = { gte: startOfYear, lte: endOfYear }
     }
 

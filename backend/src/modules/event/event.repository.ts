@@ -52,7 +52,7 @@ export class EventRepository {
       for (const ev of activeEvents) {
         const tgl = new Date(ev.tanggal)
         const jam = new Date(ev.jam_mulai)
-        // Gunakan UTC konsisten: gabungkan tanggal (UTC) + jam (UTC) + durasi
+        // Jam di DB disimpan sebagai waktu lokal WIB, konversi ke epoch UTC (-7 jam)
         const endTimeMs =
           Date.UTC(
             tgl.getUTCFullYear(),
@@ -60,7 +60,8 @@ export class EventRepository {
             tgl.getUTCDate(),
             jam.getUTCHours(),
             jam.getUTCMinutes() + (ev.durasi_menit || 0)
-          )
+          ) -
+          7 * 60 * 60 * 1000
         const endTime = new Date(endTimeMs)
         if (endTime <= now) {
           passedEvents.push(ev)
