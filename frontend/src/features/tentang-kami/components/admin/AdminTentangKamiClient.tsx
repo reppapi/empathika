@@ -352,21 +352,6 @@ export default function AdminTentangKamiClient() {
         </div>
       )}
 
-      {/* Top Status Bar */}
-      <div className="flex items-center justify-between">
-        <div>
-          {hasUnsavedChanges ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 animate-pulse">
-              Ada perubahan belum disimpan
-            </span>
-          ) : (
-            <span className="text-xs text-gray-400 font-medium">
-              Semua perubahan telah tersimpan
-            </span>
-          )}
-        </div>
-      </div>
-
       {/* Tabs Navigation: Modern Segmented Pill Controls Tanpa Scrollbar Abu-abu */}
       <div className="bg-white p-1.5 sm:p-2 rounded-2xl border border-gray-200/80 shadow-2xs">
         <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
