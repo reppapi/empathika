@@ -11,6 +11,7 @@ import {
 import { bannerService } from "@/services/banner.service"
 import { processAndUploadImage } from "@/lib/imageCompressor"
 import { ActionButtonEdit, ActionButtonDelete } from "@/components/shared/TableActionButtons"
+import DatePickerMiniCalendar from "@/components/shared/DatePickerMiniCalendar"
 
 export function CardBannerPromoAdmin() {
   const [banners, setBanners] = useState<BannerPromoItem[]>([])
@@ -473,11 +474,12 @@ export function CardBannerPromoAdmin() {
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                   Tanggal Mulai Tayang
                 </label>
-                <input
-                  type="date"
+                <DatePickerMiniCalendar
                   value={tanggalMulai}
-                  onChange={(e) => setTanggalMulai(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/10"
+                  onChange={(val) => setTanggalMulai(val)}
+                  placeholder="Pilih tanggal mulai tayang..."
+                  allowClear
+                  colorTheme="purple"
                 />
               </div>
 
@@ -485,11 +487,13 @@ export function CardBannerPromoAdmin() {
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                   Tanggal Berakhir Tayang
                 </label>
-                <input
-                  type="date"
+                <DatePickerMiniCalendar
                   value={tanggalBerakhir}
-                  onChange={(e) => setTanggalBerakhir(e.target.value)}
-                  className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2.5 text-xs sm:text-sm text-gray-900 focus:border-[#561269] focus:outline-none focus:ring-2 focus:ring-[#561269]/10"
+                  onChange={(val) => setTanggalBerakhir(val)}
+                  minDate={tanggalMulai || undefined}
+                  placeholder="Pilih tanggal berakhir tayang..."
+                  allowClear
+                  colorTheme="purple"
                 />
               </div>
             </div>
