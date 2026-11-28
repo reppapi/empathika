@@ -706,28 +706,28 @@ export default function EditLayananView({ layananId }: EditLayananViewProps) {
               {isKonsultasi && (
                 <span
                   className={`text-xs font-semibold ${
-                    deskripsi.length >= 220 ? "text-amber-600 font-bold" : "text-gray-400"
+                    deskripsi.length >= 120 ? "text-amber-600 font-bold" : "text-gray-400"
                   }`}
                 >
-                  {deskripsi.length} / 220 karakter
+                  {deskripsi.length} / 120 karakter
                 </span>
               )}
             </div>
             <textarea
               value={deskripsi}
               onChange={(e) => setDeskripsi(e.target.value)}
-              maxLength={isKonsultasi ? 220 : undefined}
+              maxLength={isKonsultasi ? 120 : undefined}
               placeholder={
                 isKonsultasi
-                  ? "Contoh: Layanan konseling yang dilakukan secara langsung di rumah klien dengan didampingi oleh psikolog profesional untuk memberikan kenyamanan dan kemudahan dalam proses konsultasi."
+                  ? "Contoh: Konseling tatap muka langsung di rumah klien bersama psikolog profesional untuk kenyamanan konsultasi."
                   : "Masukkan deskripsi mengenai layanan ini"
               }
-              rows={4}
+              rows={3}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
             />
             {isKonsultasi && (
               <p className="text-[11px] text-gray-500 mt-1">
-                Maksimal 220 karakter agar deskripsi layanan konseling tampil ringkas dan rapi pada kartu layanan.
+                Maksimal 120 karakter agar deskripsi tampil padat dan pas 2 baris pada kartu layanan.
               </p>
             )}
           </div>
