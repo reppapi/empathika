@@ -513,16 +513,37 @@ export default function TambahLayananView() {
 
         {/* Deskripsi Layanan */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Deskripsi Layanan <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700">
+              Deskripsi Layanan <span className="text-red-500">*</span>
+            </label>
+            {isKonsultasi && (
+              <span
+                className={`text-xs font-semibold ${
+                  deskripsi.length >= 220 ? "text-amber-600 font-bold" : "text-gray-400"
+                }`}
+              >
+                {deskripsi.length} / 220 karakter
+              </span>
+            )}
+          </div>
           <textarea
             value={deskripsi}
             onChange={(e) => setDeskripsi(e.target.value)}
-            placeholder="Masukkan deskripsi mengenai layanan ini"
+            maxLength={isKonsultasi ? 220 : undefined}
+            placeholder={
+              isKonsultasi
+                ? "Contoh: Layanan konseling yang dilakukan secara langsung di rumah klien dengan didampingi oleh psikolog profesional untuk memberikan kenyamanan dan kemudahan dalam proses konsultasi."
+                : "Masukkan deskripsi mengenai layanan ini"
+            }
             rows={4}
             className="w-full px-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-[#561269] focus:border-[#561269] resize-y whitespace-pre-wrap"
           />
+          {isKonsultasi && (
+            <p className="text-[11px] text-gray-500 mt-1">
+              Maksimal 220 karakter agar deskripsi layanan konseling tampil ringkas dan rapi pada kartu layanan.
+            </p>
+          )}
         </div>
 
         {/* Kolom Manfaat Khusus Workshop & Seminar */}
