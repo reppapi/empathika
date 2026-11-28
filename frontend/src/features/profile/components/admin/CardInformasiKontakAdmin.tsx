@@ -203,19 +203,6 @@ export function CardInformasiKontakAdmin({
             </div>
           </>
         )}
-
-        <div className="md:col-span-2">
-          <label className="block text-xs font-bold text-gray-700 mb-1.5">
-            Bio Singkat
-          </label>
-          <textarea
-            name="bio"
-            rows={3}
-            value={form.bio || ""}
-            onChange={onChange}
-            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:border-[#561269] focus:outline-none focus:ring-1 focus:ring-[#561269] transition resize-none"
-          />
-        </div>
       </div>
     </div>
   )
