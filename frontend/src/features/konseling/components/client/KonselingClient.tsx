@@ -2,7 +2,6 @@
 
 import { useEffect } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Sparkles, ShieldCheck, Clock } from "lucide-react"
 import { useTenantContext } from "@/context/TenantContext"
 import { layananService } from "@/services/layanan.service"
 import { getStoredLayanan } from "@/features/layanan/data/adminLayananData"
@@ -58,90 +57,122 @@ export default function KonselingClient() {
   }, [refetch])
 
   return (
-    <div className="min-h-screen bg-[#FDFBFD] relative overflow-hidden font-poppins selection:bg-[#561269] selection:text-white">
-      {/* ── Background Ambient Blobs & Grid Pattern (Senada dengan Formulir Kerja Sama & Internship) ── */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(86,18,105,0.05)_1px,_transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-      <div className="absolute -top-24 -left-24 w-80 h-80 rounded-full bg-purple-300/25 blur-3xl pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-80 h-80 rounded-full bg-[#EAB308]/15 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/3 -right-24 w-72 h-72 rounded-full bg-fuchsia-300/15 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-12 -left-20 w-80 h-80 rounded-full bg-purple-400/10 blur-3xl pointer-events-none" />
+    <div className="relative min-h-screen overflow-hidden bg-[#FDFBFD] font-poppins selection:bg-[#561269] selection:text-white">
+      {/* ── Hiasan Latar Belakang (Non-Bintang: Hearts, Squiggles, Plus Accents, Rings, Blossom & Dot Clusters) ── */}
+      {/* Soft Ambient Glows */}
+      <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-purple-200/40 blur-3xl pointer-events-none" />
+      <div className="absolute -top-16 -right-20 w-80 h-80 rounded-full bg-amber-100/50 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-24 w-72 h-72 rounded-full bg-pink-100/45 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-20 -left-20 w-80 h-80 rounded-full bg-purple-200/30 blur-3xl pointer-events-none" />
 
-      {/* Decorative Circles Outline */}
-      <div className="absolute top-28 left-6 sm:left-14 w-44 h-44 rounded-full border border-purple-200/50 pointer-events-none" />
-      <div className="absolute top-36 right-6 sm:right-16 w-56 h-56 rounded-full border border-[#EAB308]/20 pointer-events-none" />
+      {/* Floating Graphic Doodles & Shapes (Bukan Bintang) */}
+      {/* Left Top: Cute Heart */}
+      <div className="absolute top-28 left-4 sm:left-12 lg:left-20 w-8 sm:w-10 h-8 sm:h-10 text-rose-400/60 pointer-events-none animate-pulse [animation-duration:4s]">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
 
-      {/* Fluid Wave Curves */}
-      <svg
-        className="absolute top-0 left-0 w-full h-[520px] pointer-events-none opacity-25"
-        preserveAspectRatio="none"
-        viewBox="0 0 1200 520"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M-100 220 C 300 380, 700 60, 1300 250"
-          stroke="url(#konsul-wave-1)"
-          strokeWidth="1.5"
-          strokeDasharray="6 6"
-        />
-        <path
-          d="M-100 140 C 400 50, 800 360, 1300 160"
-          stroke="url(#konsul-wave-2)"
-          strokeWidth="1.5"
-        />
-        <defs>
-          <linearGradient id="konsul-wave-1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#561269" stopOpacity="0" />
-            <stop offset="50%" stopColor="#EAB308" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#561269" stopOpacity="0" />
-          </linearGradient>
-          <linearGradient id="konsul-wave-2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#561269" stopOpacity="0" />
-            <stop offset="50%" stopColor="#561269" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#561269" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-      </svg>
+      {/* Left Mid: Organic Wavy Squiggle */}
+      <div className="absolute top-80 left-3 sm:left-10 lg:left-16 w-20 sm:w-28 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 100 24" fill="none">
+          <path
+            d="M 5,12 Q 25,0 45,12 T 85,12"
+            stroke="#f48520"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1200px] px-4 sm:px-6 pt-28 sm:pt-36 pb-16 sm:pb-24">
-        {/* ── Hero Header Section ── */}
-        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-          {/* Badge Sub-Header */}
-          <div className="inline-flex items-center justify-center gap-2 px-3.5 py-1.5 bg-purple-50/90 border border-purple-200/80 rounded-full mb-3.5 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-[#EAB308] animate-pulse" />
-            <span className="text-[10px] sm:text-xs font-extrabold text-[#561269] tracking-widest uppercase">
-              LAYANAN KONSELING &amp; KONSULTASI {isBiro && biroProfile?.nama_biro ? biroProfile.nama_biro.toUpperCase() : "EMPATHIKA"}
-            </span>
-          </div>
+      {/* Left Lower: Plus Accent (+) */}
+      <div className="absolute bottom-40 left-6 sm:left-16 lg:left-24 w-6 sm:w-8 h-6 sm:h-8 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 24 24" fill="none">
+          <line x1="12" y1="4" x2="12" y2="20" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
+          <line x1="4" y1="12" x2="20" y2="12" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      </div>
 
-          {/* Judul Utama */}
-          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-[#561269] tracking-tight mb-3 sm:mb-4">
-            {isBiro && biroProfile?.nama_biro
-              ? `Mulai Jadwalkan Konsultasi dengan ${biroProfile.nama_biro}!`
-              : "Mulai Jadwalkan Konsultasi dengan Kami!"}
-          </h1>
+      {/* Left Subtle Ring */}
+      <div className="absolute top-52 left-6 sm:left-16 w-12 h-12 rounded-full border-2 border-dashed border-[#561269]/30 pointer-events-none" />
 
-          {/* Deskripsi Pengantar */}
-          <p className="text-gray-600 text-xs sm:text-base leading-relaxed max-w-2xl mx-auto mb-6">
-            Temukan ruang aman dan nyaman untuk bercerita, mengeksplorasi diri, serta menemukan solusi terbaik bersama psikolog &amp; konselor profesional kami.
-          </p>
+      {/* Right Top: Blossom / Flower Petal Ring */}
+      <div className="absolute top-24 right-4 sm:right-12 lg:right-20 w-12 sm:w-16 h-12 sm:h-16 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="7" fill="#f0d164" />
+          <circle cx="20" cy="9" r="4" fill="#EAB308" />
+          <circle cx="20" cy="31" r="4" fill="#EAB308" />
+          <circle cx="9" cy="20" r="4" fill="#EAB308" />
+          <circle cx="31" cy="20" r="4" fill="#EAB308" />
+        </svg>
+      </div>
 
-          {/* Quick Info Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 text-xs text-gray-700">
-            <div className="flex items-center gap-1.5 bg-white/90 border border-purple-100 shadow-2xs px-3.5 py-1.5 rounded-full backdrop-blur-xs">
-              <Sparkles className="w-4 h-4 text-[#EAB308]" />
-              <span className="font-semibold text-gray-700 text-[11px] sm:text-xs">Psikolog Profesional &amp; Berlisensi</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-white/90 border border-purple-100 shadow-2xs px-3.5 py-1.5 rounded-full backdrop-blur-xs">
-              <ShieldCheck className="w-4 h-4 text-[#561269]" />
-              <span className="font-semibold text-gray-700 text-[11px] sm:text-xs">100% Rahasia &amp; Aman</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-white/90 border border-purple-100 shadow-2xs px-3.5 py-1.5 rounded-full backdrop-blur-xs">
-              <Clock className="w-4 h-4 text-[#EAB308]" />
-              <span className="font-semibold text-gray-700 text-[11px] sm:text-xs">Online &amp; Tatap Muka (Offline)</span>
-            </div>
-          </div>
-        </div>
+      {/* Right Mid: Cute Heart */}
+      <div className="absolute top-72 right-5 sm:right-14 lg:right-24 w-7 sm:w-9 h-7 sm:h-9 text-[#561269]/40 pointer-events-none animate-pulse [animation-duration:5s]">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+        </svg>
+      </div>
+
+      {/* Right Mid-Lower: Plus Accent (+) */}
+      <div className="absolute top-[480px] right-6 sm:right-16 lg:right-28 w-6 sm:w-8 h-6 sm:h-8 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 24 24" fill="none">
+          <line x1="12" y1="4" x2="12" y2="20" stroke="#f48520" strokeWidth="3" strokeLinecap="round" />
+          <line x1="4" y1="12" x2="20" y2="12" stroke="#f48520" strokeWidth="3" strokeLinecap="round" />
+        </svg>
+      </div>
+
+      {/* Right Lower: Playful Wavy Squiggle */}
+      <div className="absolute bottom-36 right-4 sm:right-12 lg:right-20 w-24 sm:w-32 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 100 24" fill="none">
+          <path
+            d="M 5,12 Q 25,24 45,12 T 85,12"
+            stroke="#561269"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+      </div>
+
+      {/* Right Subtle Ring */}
+      <div className="absolute top-48 right-8 sm:right-20 w-14 h-14 rounded-full border-2 border-[#EAB308]/35 pointer-events-none" />
+
+      {/* Dot Grid Clusters */}
+      <div className="absolute top-40 left-2 sm:left-6 w-10 h-10 opacity-30 pointer-events-none">
+        <svg viewBox="0 0 30 30" fill="#561269">
+          <circle cx="5" cy="5" r="2" />
+          <circle cx="15" cy="5" r="2" />
+          <circle cx="25" cy="5" r="2" />
+          <circle cx="5" cy="15" r="2" />
+          <circle cx="15" cy="15" r="2" />
+          <circle cx="25" cy="15" r="2" />
+          <circle cx="5" cy="25" r="2" />
+          <circle cx="15" cy="25" r="2" />
+          <circle cx="25" cy="25" r="2" />
+        </svg>
+      </div>
+      <div className="absolute top-[420px] right-2 sm:right-8 w-10 h-10 opacity-30 pointer-events-none">
+        <svg viewBox="0 0 30 30" fill="#EAB308">
+          <circle cx="5" cy="5" r="2" />
+          <circle cx="15" cy="5" r="2" />
+          <circle cx="25" cy="5" r="2" />
+          <circle cx="5" cy="15" r="2" />
+          <circle cx="15" cy="15" r="2" />
+          <circle cx="25" cy="15" r="2" />
+          <circle cx="5" cy="25" r="2" />
+          <circle cx="15" cy="25" r="2" />
+          <circle cx="25" cy="25" r="2" />
+        </svg>
+      </div>
+
+      {/* ── Content Utama ── */}
+      <div className="relative z-10 mx-auto w-full max-w-[1200px] px-6 pt-32 pb-12 lg:pt-36 lg:pb-20">
+        {/* Judul Utama */}
+        <h1 className="mb-8 text-center text-2xl font-bold text-[#561269] sm:text-3xl lg:mb-12 lg:text-[32px]">
+          {isBiro && biroProfile?.nama_biro
+            ? `Mulai jadwalkan konsultasi dengan ${biroProfile.nama_biro}!`
+            : "Mulai jadwalkan konsultasi dengan kami!"}
+        </h1>
 
         {/* Banner Error jika Backend Gagal */}
         {isError && (
@@ -150,8 +181,8 @@ export default function KonselingClient() {
           </div>
         )}
 
-        {/* Container Kartu Layanan */}
-        <div className="rounded-3xl border border-purple-100/90 bg-white/95 backdrop-blur-xs p-6 sm:p-8 lg:p-12 shadow-xl shadow-purple-950/5">
+        {/* Container Putih */}
+        <div className="rounded-2xl border border-gray-300 bg-white p-6 sm:p-8 lg:p-12 shadow-[0px_4px_16px_rgba(0,0,0,0.1)]">
           {isLoading ? (
             <KonselingSkeleton />
           ) : layananList.length === 0 && !isError ? (
@@ -173,4 +204,3 @@ export default function KonselingClient() {
     </div>
   )
 }
-
