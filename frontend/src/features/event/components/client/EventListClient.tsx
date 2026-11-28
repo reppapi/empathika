@@ -402,113 +402,119 @@ export function EventListClient() {
 
             return (
               <div className="space-y-6 sm:space-y-8">
-                {/* 1. Kategori Utama (Seminar, Workshop, Kolaborasi) SELALU DI TENGAH */}
-                <div className="flex justify-center w-full">
-                  <div className="inline-flex items-center justify-center gap-6 sm:gap-10 border-b border-gray-200/80 px-2 sm:px-6">
-                    {ARSIP_KATEGORI_TABS.map((tab) => {
-                      const isSelected = selectedCategoryTab === tab.id
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategoryTab(tab.id)
-                            if (tab.id !== "WORKSHOP") {
-                              setIsWorkshopDropdownOpen(false)
-                              setSelectedWorkshopPill("Semua")
-                            }
-                            setShowAllArsip(false)
-                          }}
-                          className={`relative pb-2.5 sm:pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-2 sm:px-4 ${
-                            isSelected
-                              ? "text-[#561269] font-extrabold"
-                              : "text-gray-400 hover:text-gray-700 font-semibold"
-                          }`}
-                        >
-                          <span>{tab.label}</span>
-                          {isSelected && (
-                            <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#EAB308] rounded-full shadow-sm animate-in fade-in duration-200" />
-                          )}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </div>
+                {/* 1. Baris Kategori Utama (DI TENGAH) & Filter Topik Workshop (DI PINGGIR KANAN) */}
+                <div className="relative w-full flex flex-col md:flex-row md:items-center justify-between gap-3 min-h-[44px] sm:min-h-[48px]">
+                  {/* Spacer penyeimbang di desktop agar tab kategori selalu 100% presisi di tengah */}
+                  <div className="hidden md:block md:w-56 shrink-0 pointer-events-none" />
 
-                {/* 2. Filter Topik Workshop (Muncul saat tab Workshop aktif) TERPUSAT DI TENGAH */}
-                {selectedCategoryTab === "WORKSHOP" && (
-                  <div className="flex justify-center w-full">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        onClick={() => setIsWorkshopDropdownOpen((prev) => !prev)}
-                        className="flex items-center justify-between gap-2 w-52 sm:w-60 h-10 rounded-full border border-gray-200/90 bg-white px-4 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
-                      >
-                        <div className="flex items-center gap-2 min-w-0 flex-1 text-left">
-                          <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
-                          <span className="text-gray-400 font-medium text-xs shrink-0">Topik:</span>
-                          <span
-                            className="text-[#561269] font-bold text-xs sm:text-sm truncate min-w-0"
-                            title={selectedWorkshopPill}
+                  {/* Kategori Utama: TEPAT DI TENGAH */}
+                  <div className="flex items-center justify-center border-b border-gray-200/80 px-2 w-full md:w-auto">
+                    <div className="flex items-center justify-center gap-6 sm:gap-10">
+                      {ARSIP_KATEGORI_TABS.map((tab) => {
+                        const isSelected = selectedCategoryTab === tab.id
+                        return (
+                          <button
+                            key={tab.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategoryTab(tab.id)
+                              if (tab.id !== "WORKSHOP") {
+                                setIsWorkshopDropdownOpen(false)
+                                setSelectedWorkshopPill("Semua")
+                              }
+                              setShowAllArsip(false)
+                            }}
+                            className={`relative pb-2.5 sm:pb-3 text-sm sm:text-base font-bold transition-all duration-200 cursor-pointer px-2 sm:px-4 ${
+                              isSelected
+                                ? "text-[#561269] font-extrabold"
+                                : "text-gray-400 hover:text-gray-700 font-semibold"
+                            }`}
                           >
-                            {selectedWorkshopPill}
-                          </span>
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
-                            isWorkshopDropdownOpen ? "rotate-180" : ""
-                          }`}
-                        />
-                      </button>
-
-                      {/* Dropdown Floating di Tengah Bawah Tombol Filter - Aman dari Kepotong */}
-                      {isWorkshopDropdownOpen && (
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-30 w-64 max-w-[90vw] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
-                          <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
-                            Pilih Topik Workshop
-                          </p>
-                          <div className="max-h-60 overflow-y-auto space-y-0.5 pr-0.5 custom-scrollbar">
-                            {DOKUMENTASI_WORKSHOP_PILLS.map((pill) => {
-                              const isPillSelected = selectedWorkshopPill === pill
-                              return (
-                                <button
-                                  key={pill}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedWorkshopPill(pill)
-                                    setIsWorkshopDropdownOpen(false)
-                                    setShowAllArsip(false)
-                                  }}
-                                  className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
-                                    isPillSelected
-                                      ? "bg-purple-50 text-[#561269] font-bold"
-                                      : "text-gray-700 hover:bg-gray-50 font-semibold"
-                                  }`}
-                                >
-                                  <span className={isPillSelected ? "font-bold text-[#561269] truncate" : "font-semibold text-gray-800 truncate"}>
-                                    {pill}
-                                  </span>
-                                  {isPillSelected && (
-                                    <svg
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      strokeWidth={2.5}
-                                      stroke="currentColor"
-                                      className="h-3.5 w-3.5 text-[#561269] shrink-0 ml-2"
-                                    >
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                    </svg>
-                                  )}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )}
+                            <span>{tab.label}</span>
+                            {isSelected && (
+                              <span className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#EAB308] rounded-full shadow-sm animate-in fade-in duration-200" />
+                            )}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
-                )}
+
+                  {/* Tombol Filter Topik Workshop: DI PINGGIR KANAN */}
+                  <div className="w-full md:w-56 flex justify-end shrink-0">
+                    {selectedCategoryTab === "WORKSHOP" && (
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setIsWorkshopDropdownOpen((prev) => !prev)}
+                          className="flex items-center justify-between gap-1.5 w-44 sm:w-52 h-9 sm:h-10 rounded-full border border-gray-200/90 bg-white px-3 sm:px-3.5 text-xs sm:text-sm font-bold text-gray-800 shadow-sm hover:border-[#561269] hover:bg-gray-50/80 transition-all duration-300 cursor-pointer active:scale-95 shrink-0"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 text-left">
+                            <Filter className="w-3.5 h-3.5 text-[#561269] shrink-0" />
+                            <span className="text-gray-400 font-medium text-[11px] sm:text-xs shrink-0">Topik:</span>
+                            <span
+                              className="text-[#561269] font-bold text-xs sm:text-sm truncate min-w-0"
+                              title={selectedWorkshopPill}
+                            >
+                              {selectedWorkshopPill}
+                            </span>
+                          </div>
+                          <ChevronDown
+                            className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${
+                              isWorkshopDropdownOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </button>
+
+                        {/* Dropdown Floating di Pinggir Kanan (right-0 agar rata kanan dan tidak keluar batas layar) */}
+                        {isWorkshopDropdownOpen && (
+                          <div className="absolute right-0 top-full mt-2 z-30 w-56 sm:w-60 max-w-[calc(100vw-32px)] rounded-2xl border border-gray-100 bg-white p-2 shadow-2xl ring-1 ring-black/5 text-left text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                            <p className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-400 font-bold">
+                              Pilih Topik Workshop
+                            </p>
+                            <div className="max-h-60 overflow-y-auto space-y-0.5 pr-0.5 custom-scrollbar">
+                              {DOKUMENTASI_WORKSHOP_PILLS.map((pill) => {
+                                const isPillSelected = selectedWorkshopPill === pill
+                                return (
+                                  <button
+                                    key={pill}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedWorkshopPill(pill)
+                                      setIsWorkshopDropdownOpen(false)
+                                      setShowAllArsip(false)
+                                    }}
+                                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors cursor-pointer ${
+                                      isPillSelected
+                                        ? "bg-purple-50 text-[#561269] font-bold"
+                                        : "text-gray-700 hover:bg-gray-50 font-semibold"
+                                    }`}
+                                  >
+                                    <span className={isPillSelected ? "font-bold text-[#561269] truncate" : "font-semibold text-gray-800 truncate"}>
+                                      {pill}
+                                    </span>
+                                    {isPillSelected && (
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        strokeWidth={2.5}
+                                        stroke="currentColor"
+                                        className="h-3.5 w-3.5 text-[#561269] shrink-0 ml-2"
+                                      >
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                      </svg>
+                                    )}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* 3. Grid Foto Dokumentasi Langsung (Card 2 Kolom di Mobile, 2 di Tablet, 3 di Desktop) */}
                 {displayedDokumentasi.length > 0 ? (
