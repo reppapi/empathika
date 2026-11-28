@@ -398,8 +398,8 @@ export default function AdminTentangKamiClient() {
                 onClick={() => setActiveTab(tab.key as any)}
                 className={`px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm tracking-wide transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                   isActive
-                    ? "bg-[#561269] text-white shadow-xs"
-                    : "text-gray-600 hover:text-gray-950 hover:bg-purple-50/60"
+                    ? "bg-[#EAB308] text-gray-950 font-extrabold shadow-xs"
+                    : "text-gray-600 hover:text-gray-950 hover:bg-gray-100"
                 }`}
               >
                 {tab.label}
