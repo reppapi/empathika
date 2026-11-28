@@ -107,9 +107,7 @@ export default function KonselingClient() {
           className="mb-8 text-center text-2xl font-bold sm:text-3xl lg:mb-12 lg:text-[32px] tracking-tight"
           style={{ color: themeBaseColor }}
         >
-          {isBiro && biroProfile?.nama_biro
-            ? `Mulai jadwalkan konsultasi dengan ${biroProfile.nama_biro}!`
-            : "Mulai jadwalkan konsultasi dengan kami!"}
+          Mulai jadwalkan konsultasi dengan kami!
         </h1>
 
         {/* Banner Error jika Backend Gagal */}
