@@ -352,8 +352,8 @@ export default function AdminTentangKamiClient() {
         </div>
       )}
 
-      {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Status Bar */}
+      <div className="flex items-center justify-between">
         <div>
           {hasUnsavedChanges ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200 animate-pulse">
@@ -364,19 +364,6 @@ export default function AdminTentangKamiClient() {
               Semua perubahan telah tersimpan
             </span>
           )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-2xl bg-[#EAB308] hover:bg-[#CA8A04] text-gray-950 text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-60 cursor-pointer"
-          >
-            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            <span>{isSaving ? "Menyimpan..." : "Simpan Perubahan"}</span>
-          </button>
         </div>
       </div>
 
