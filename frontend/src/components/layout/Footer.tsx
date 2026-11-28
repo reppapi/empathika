@@ -7,6 +7,16 @@ import { MapPin, Mail, Phone } from "lucide-react";
 import { adminService } from "@/services/admin.service";
 import { useTenantContext } from "@/context/TenantContext";
 
+function formatBiroName(name?: string | null): string {
+  if (!name || !name.trim()) return "Biro";
+  return name
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function Footer() {
   const pathname = usePathname();
   const { isBiro, slug, biroProfile, withBiro } = useTenantContext();
@@ -141,10 +151,10 @@ export function Footer() {
               {isBiro ? (
                 <div className="flex flex-col min-w-0">
                   <span
-                    className="text-[18px] sm:text-[20px] font-extrabold tracking-wide uppercase truncate leading-tight"
+                    className="text-[18px] sm:text-[20px] font-extrabold tracking-wide truncate leading-tight"
                     style={{ color: themeColor }}
                   >
-                    {biroProfile?.nama_biro?.trim() || (slug ? slug.replace(/^biro[-_]/i, "").trim().toUpperCase() : null) || "BIRO MITRA"}
+                    {formatBiroName(biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "") : "Biro Mitra"))}
                   </span>
                   <span className="text-[11px] font-medium tracking-normal text-gray-500 flex items-center gap-1.5 leading-none mt-1">
                     <span>powered by</span>
@@ -164,7 +174,7 @@ export function Footer() {
             </Link>
             <p className="text-gray-600 leading-relaxed font-medium min-h-[44px]">
               {isBiro
-                ? `Layanan psikologi dan kesehatan mental resmi ${biroProfile?.nama_biro || "Biro"} yang didukung oleh platform Empathika.`
+                ? `Layanan psikologi dan kesehatan mental resmi ${formatBiroName(biroProfile?.nama_biro || (slug ? slug.replace(/^biro[-_]/i, "") : "Biro"))} yang didukung oleh platform Empathika.`
                 : "Platform psikologi dan kesehatan mental."}
             </p>
             <p className="text-[#3B074B] font-semibold text-lg max-w-sm leading-snug min-h-[56px]">
