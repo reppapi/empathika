@@ -92,7 +92,14 @@ export class TransaksiController {
     reply: FastifyReply
   ) => {
     try {
-      const user = request.user as { id?: string; name?: string; role?: string; email?: string }
+      const user = request.user as { id?: string; name?: string; role?: string; email?: string; biroId?: string }
+      if (user?.role === 'ADMIN_BIRO') {
+        return reply.code(403).send({
+          error: 'Forbidden',
+          message: 'Admin Biro tidak memiliki izin untuk memproses refund transaksi.',
+        })
+      }
+
       const adminName = user?.name || user?.email || 'Admin Empathika'
       const { alasan } = request.body
 
@@ -105,7 +112,7 @@ export class TransaksiController {
     } catch (err: any) {
       const statusCode = err.statusCode || 400
       reply.code(statusCode).send({
-        error: statusCode === 409 ? 'Conflict' : statusCode === 422 ? 'Unprocessable Entity' : statusCode === 404 ? 'Not Found' : 'Bad Request',
+        error: statusCode === 403 ? 'Forbidden' : statusCode === 409 ? 'Conflict' : statusCode === 422 ? 'Unprocessable Entity' : statusCode === 404 ? 'Not Found' : 'Bad Request',
         message: err.message,
         details: err.details,
       })

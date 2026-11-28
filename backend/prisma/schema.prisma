@@ -220,6 +220,7 @@ model Biro {
   bank_code          String?  // Kode bank Xendit (mis. BCA, BNI, BRI, MANDIRI)
   nomor_rekening     String?  // Nomor rekening biro
   nama_pemilik_rek   String?  // Nama pemilik rekening
+  komisi_persen      Decimal  @default(0) @db.Decimal(5, 2) // Persentase komisi khusus untuk biro ini
   status      StatusBiro @default(PENDING)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
@@ -302,6 +303,9 @@ model Psikolog {
   jadwal_slot      JadwalSlot[]
   booking_psikotes BookingPsikotes[]
 
+  @@index([status])
+  @@index([id_spesialisasi])
+  @@index([kategori])
   @@map("psikologs")
 }
 
