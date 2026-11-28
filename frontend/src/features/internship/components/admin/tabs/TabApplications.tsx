@@ -139,39 +139,51 @@ export function TabApplications({
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200/80 overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-600">
-              <thead className="bg-[#FAF7FB] border-b border-gray-100 text-gray-700 font-bold uppercase text-[11px] tracking-wider">
-                <tr>
-                  <th className="py-3 px-4">Tanggal</th>
-                  <th className="py-3 px-4">Nama Pelamar</th>
-                  <th className="py-3 px-4">Posisi Magang</th>
-                  <th className="py-3 px-4">Universitas / Jurusan</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-center">Aksi</th>
+          <div className="overflow-x-auto admin-table-scrollbar">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead className="sticky top-0 z-10 bg-[#D3C4D8] biro-table-header">
+                <tr className="bg-[#D3C4D8] text-gray-800 text-xs sm:text-sm font-bold biro-table-header">
+                  <th className="py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Tanggal
+                  </th>
+                  <th className="py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Nama Pelamar
+                  </th>
+                  <th className="py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Posisi Magang
+                  </th>
+                  <th className="py-4 px-4 sm:px-5 sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Universitas / Jurusan
+                  </th>
+                  <th className="py-4 px-4 sm:px-5 text-center sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Status
+                  </th>
+                  <th className="py-4 px-4 sm:px-5 text-center sticky top-0 bg-[#D3C4D8] biro-table-header z-10 font-bold">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 text-xs sm:text-sm">
                 {applications.map((app) => (
                   <tr key={app.id} className="hover:bg-purple-50/30 transition-colors">
                     {/* Tanggal */}
-                    <td className="py-3.5 px-4 whitespace-nowrap text-gray-500">
+                    <td className="py-3.5 px-4 sm:px-5 whitespace-nowrap text-gray-500">
                       {formatDateTime(app.createdAt)}
                     </td>
 
                     {/* Pelamar */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 sm:px-5">
                       <div className="font-bold text-gray-900">{app.nama}</div>
                       <div className="text-[11px] text-gray-400">{app.email}</div>
                     </td>
 
                     {/* Posisi */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 sm:px-5">
                       <span className="font-semibold text-gray-800">{app.positionTitle}</span>
                     </td>
 
                     {/* Universitas */}
-                    <td className="py-3.5 px-4">
+                    <td className="py-3.5 px-4 sm:px-5">
                       <div className="text-gray-900 font-medium">{app.universitas}</div>
                       <div className="text-[11px] text-gray-400">
                         {app.jurusan || "-"} {app.semester ? `(Sem. ${app.semester})` : ""}
@@ -179,7 +191,7 @@ export function TabApplications({
                     </td>
 
                     {/* Status */}
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 sm:px-5 text-center">
                       <select
                         value={app.status}
                         onChange={(e) =>
@@ -206,7 +218,7 @@ export function TabApplications({
                     </td>
 
                     {/* Aksi */}
-                    <td className="py-3.5 px-4 text-center">
+                    <td className="py-3.5 px-4 sm:px-5 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => onOpenAppDetail(app)}
