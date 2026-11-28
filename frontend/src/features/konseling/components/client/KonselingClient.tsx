@@ -58,87 +58,111 @@ export default function KonselingClient() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#FDFBFD] font-poppins selection:bg-[#561269] selection:text-white">
-      {/* ── Hiasan Latar Belakang (Non-Bintang: Hearts, Squiggles, Plus Accents, Rings, Blossom & Dot Clusters) ── */}
-      {/* Soft Ambient Glows */}
-      <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-purple-200/40 blur-3xl pointer-events-none" />
-      <div className="absolute -top-16 -right-20 w-80 h-80 rounded-full bg-amber-100/50 blur-3xl pointer-events-none" />
-      <div className="absolute top-1/2 -right-24 w-72 h-72 rounded-full bg-pink-100/45 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-20 -left-20 w-80 h-80 rounded-full bg-purple-200/30 blur-3xl pointer-events-none" />
+      {/* ── Hiasan Latar Belakang (Tema Warna Empathika: Ungu #561269 & Emas #EAB308) ── */}
 
-      {/* Floating Graphic Doodles & Shapes (Bukan Bintang) */}
-      {/* Left Top: Cute Heart */}
-      <div className="absolute top-28 left-4 sm:left-12 lg:left-20 w-8 sm:w-10 h-8 sm:h-10 text-rose-400/60 pointer-events-none animate-pulse [animation-duration:4s]">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+      {/* 1. Subtle Dot Matrix Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle,_rgba(86,18,105,0.06)_1px,_transparent_1px)] [background-size:28px_28px] pointer-events-none" />
+
+      {/* 2. Soft Ambient Brand Glows */}
+      <div className="absolute -top-20 -left-20 w-80 sm:w-96 h-80 sm:h-96 rounded-full bg-[#561269]/10 blur-3xl pointer-events-none" />
+      <div className="absolute -top-16 -right-20 w-80 sm:w-96 h-80 sm:h-96 rounded-full bg-[#EAB308]/15 blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 -right-24 w-72 h-72 rounded-full bg-[#561269]/8 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 -left-20 w-80 h-80 rounded-full bg-[#EAB308]/12 blur-3xl pointer-events-none" />
+
+      {/* 3. Fluid Wave Ribbon Curves (Persis seperti di Formulir Kerja Sama & Internship dengan warna Empathika) */}
+      <svg
+        className="absolute top-0 left-0 w-full h-[580px] pointer-events-none opacity-40"
+        preserveAspectRatio="none"
+        viewBox="0 0 1200 580"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Gelombang Emas Putus-Putus */}
+        <path
+          d="M-100 240 C 250 420, 650 60, 1300 280"
+          stroke="url(#empathika-wave-gold)"
+          strokeWidth="2"
+          strokeDasharray="8 8"
+        />
+        {/* Gelombang Ungu Solid */}
+        <path
+          d="M-100 160 C 350 40, 750 380, 1300 180"
+          stroke="url(#empathika-wave-purple)"
+          strokeWidth="1.8"
+        />
+        {/* Gelombang Aksen Bawah Halus */}
+        <path
+          d="M-50 360 C 400 480, 850 180, 1250 390"
+          stroke="url(#empathika-wave-gold)"
+          strokeWidth="1.2"
+          strokeDasharray="4 6"
+        />
+        <defs>
+          <linearGradient id="empathika-wave-gold" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#561269" stopOpacity="0" />
+            <stop offset="25%" stopColor="#EAB308" stopOpacity="0.6" />
+            <stop offset="75%" stopColor="#EAB308" stopOpacity="0.4" />
+            <stop offset="100%" stopColor="#561269" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="empathika-wave-purple" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#EAB308" stopOpacity="0" />
+            <stop offset="30%" stopColor="#561269" stopOpacity="0.45" />
+            <stop offset="70%" stopColor="#7a1b94" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#EAB308" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* 4. Organic Concentric Rings & Arcs (Empathika Brand Elements) */}
+      {/* Sisi Kiri Atas: Ring Lingkaran Ganda Emas & Ungu */}
+      <div className="absolute top-28 left-4 sm:left-12 lg:left-16 w-20 sm:w-28 h-20 sm:h-28 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="45" stroke="#561269" strokeWidth="2" strokeDasharray="5 5" />
+          <circle cx="50" cy="50" r="28" stroke="#EAB308" strokeWidth="2.5" />
+          <circle cx="50" cy="50" r="8" fill="#561269" fillOpacity="0.25" />
         </svg>
       </div>
 
-      {/* Left Mid: Organic Wavy Squiggle */}
-      <div className="absolute top-80 left-3 sm:left-10 lg:left-16 w-20 sm:w-28 opacity-40 pointer-events-none">
-        <svg viewBox="0 0 100 24" fill="none">
-          <path
-            d="M 5,12 Q 25,0 45,12 T 85,12"
-            stroke="#f48520"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
-
-      {/* Left Lower: Plus Accent (+) */}
-      <div className="absolute bottom-40 left-6 sm:left-16 lg:left-24 w-6 sm:w-8 h-6 sm:h-8 opacity-40 pointer-events-none">
+      {/* Sisi Kiri Tengah: Aksen Plus (+) Ungu */}
+      <div className="absolute top-80 left-6 sm:left-14 lg:left-20 w-7 sm:w-9 h-7 sm:h-9 opacity-50 pointer-events-none">
         <svg viewBox="0 0 24 24" fill="none">
-          <line x1="12" y1="4" x2="12" y2="20" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
-          <line x1="4" y1="12" x2="20" y2="12" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
+          <line x1="12" y1="3" x2="12" y2="21" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
+          <line x1="3" y1="12" x2="21" y2="12" stroke="#561269" strokeWidth="3" strokeLinecap="round" />
         </svg>
       </div>
 
-      {/* Left Subtle Ring */}
-      <div className="absolute top-52 left-6 sm:left-16 w-12 h-12 rounded-full border-2 border-dashed border-[#561269]/30 pointer-events-none" />
+      {/* Sisi Kiri Bawah: Organic Pill / Capsule Shape */}
+      <div className="absolute bottom-36 left-4 sm:left-12 lg:left-16 w-16 sm:w-20 opacity-35 pointer-events-none rotate-45">
+        <div className="w-16 h-8 rounded-full border-2 border-[#EAB308] bg-[#EAB308]/10" />
+      </div>
 
-      {/* Right Top: Blossom / Flower Petal Ring */}
-      <div className="absolute top-24 right-4 sm:right-12 lg:right-20 w-12 sm:w-16 h-12 sm:h-16 opacity-40 pointer-events-none">
-        <svg viewBox="0 0 40 40" fill="none">
-          <circle cx="20" cy="20" r="7" fill="#f0d164" />
-          <circle cx="20" cy="9" r="4" fill="#EAB308" />
-          <circle cx="20" cy="31" r="4" fill="#EAB308" />
-          <circle cx="9" cy="20" r="4" fill="#EAB308" />
-          <circle cx="31" cy="20" r="4" fill="#EAB308" />
+      {/* Sisi Kanan Atas: Ring Geometris Lingkaran Konsentris Ungu & Emas */}
+      <div className="absolute top-24 right-4 sm:right-12 lg:right-20 w-24 sm:w-32 h-24 sm:h-32 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 100 100" fill="none">
+          <circle cx="50" cy="50" r="44" stroke="#EAB308" strokeWidth="1.8" />
+          <circle cx="50" cy="50" r="30" stroke="#561269" strokeWidth="2" strokeDasharray="6 4" />
+          <circle cx="50" cy="50" r="14" fill="#EAB308" fillOpacity="0.2" />
         </svg>
       </div>
 
-      {/* Right Mid: Cute Heart */}
-      <div className="absolute top-72 right-5 sm:right-14 lg:right-24 w-7 sm:w-9 h-7 sm:h-9 text-[#561269]/40 pointer-events-none animate-pulse [animation-duration:5s]">
-        <svg viewBox="0 0 24 24" fill="currentColor">
-          <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-      </div>
-
-      {/* Right Mid-Lower: Plus Accent (+) */}
-      <div className="absolute top-[480px] right-6 sm:right-16 lg:right-28 w-6 sm:w-8 h-6 sm:h-8 opacity-40 pointer-events-none">
+      {/* Sisi Kanan Tengah: Aksen Plus (+) Emas */}
+      <div className="absolute top-72 right-6 sm:right-16 lg:right-24 w-8 sm:w-10 h-8 sm:h-10 opacity-50 pointer-events-none">
         <svg viewBox="0 0 24 24" fill="none">
-          <line x1="12" y1="4" x2="12" y2="20" stroke="#f48520" strokeWidth="3" strokeLinecap="round" />
-          <line x1="4" y1="12" x2="20" y2="12" stroke="#f48520" strokeWidth="3" strokeLinecap="round" />
+          <line x1="12" y1="3" x2="12" y2="21" stroke="#EAB308" strokeWidth="3" strokeLinecap="round" />
+          <line x1="3" y1="12" x2="21" y2="12" stroke="#EAB308" strokeWidth="3" strokeLinecap="round" />
         </svg>
       </div>
 
-      {/* Right Lower: Playful Wavy Squiggle */}
-      <div className="absolute bottom-36 right-4 sm:right-12 lg:right-20 w-24 sm:w-32 opacity-40 pointer-events-none">
-        <svg viewBox="0 0 100 24" fill="none">
-          <path
-            d="M 5,12 Q 25,24 45,12 T 85,12"
-            stroke="#561269"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
+      {/* Sisi Kanan Bawah: Double Rings Emas & Ungu */}
+      <div className="absolute bottom-32 right-6 sm:right-14 lg:right-20 w-16 sm:w-20 h-16 sm:h-20 opacity-40 pointer-events-none">
+        <svg viewBox="0 0 60 60" fill="none">
+          <circle cx="30" cy="30" r="26" stroke="#561269" strokeWidth="2" strokeDasharray="4 4" />
+          <circle cx="30" cy="30" r="15" stroke="#EAB308" strokeWidth="2" />
         </svg>
       </div>
 
-      {/* Right Subtle Ring */}
-      <div className="absolute top-48 right-8 sm:right-20 w-14 h-14 rounded-full border-2 border-[#EAB308]/35 pointer-events-none" />
-
-      {/* Dot Grid Clusters */}
-      <div className="absolute top-40 left-2 sm:left-6 w-10 h-10 opacity-30 pointer-events-none">
+      {/* 5. Dot Grid Clusters (Khas Desain Banner Empathika) */}
+      <div className="absolute top-44 left-3 sm:left-8 w-10 h-10 opacity-35 pointer-events-none">
         <svg viewBox="0 0 30 30" fill="#561269">
           <circle cx="5" cy="5" r="2" />
           <circle cx="15" cy="5" r="2" />
@@ -151,7 +175,7 @@ export default function KonselingClient() {
           <circle cx="25" cy="25" r="2" />
         </svg>
       </div>
-      <div className="absolute top-[420px] right-2 sm:right-8 w-10 h-10 opacity-30 pointer-events-none">
+      <div className="absolute top-[400px] right-3 sm:right-10 w-10 h-10 opacity-35 pointer-events-none">
         <svg viewBox="0 0 30 30" fill="#EAB308">
           <circle cx="5" cy="5" r="2" />
           <circle cx="15" cy="5" r="2" />
@@ -168,11 +192,15 @@ export default function KonselingClient() {
       {/* ── Content Utama ── */}
       <div className="relative z-10 mx-auto w-full max-w-[1200px] px-6 pt-32 pb-12 lg:pt-36 lg:pb-20">
         {/* Judul Utama */}
-        <h1 className="mb-8 text-center text-2xl font-bold text-[#561269] sm:text-3xl lg:mb-12 lg:text-[32px]">
-          {isBiro && biroProfile?.nama_biro
-            ? `Mulai jadwalkan konsultasi dengan ${biroProfile.nama_biro}!`
-            : "Mulai jadwalkan konsultasi dengan kami!"}
-        </h1>
+        <div className="text-center mb-8 lg:mb-12">
+          <h1 className="inline-block relative text-2xl font-bold text-[#561269] sm:text-3xl lg:text-[32px] tracking-tight">
+            {isBiro && biroProfile?.nama_biro
+              ? `Mulai jadwalkan konsultasi dengan ${biroProfile.nama_biro}!`
+              : "Mulai jadwalkan konsultasi dengan kami!"}
+            {/* Aksen Lengkungan Garis Kuning Emas di Bawah Judul */}
+            <span className="block mx-auto mt-2 w-24 sm:w-32 h-1 bg-gradient-to-r from-transparent via-[#EAB308] to-transparent rounded-full" />
+          </h1>
+        </div>
 
         {/* Banner Error jika Backend Gagal */}
         {isError && (
