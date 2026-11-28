@@ -26,6 +26,17 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   -webkit-appearance: none;
 }
 
+/* Sembunyikan scrollbar bawaan browser tapi tetap bisa di-scroll (scrollbar-none) */
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 /* Sembunyikan icon mata bawaan browser (Edge/IE) agar tidak double dengan custom eye button */
 input::-ms-reveal,
 input::-ms-clear {
